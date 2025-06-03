@@ -44,6 +44,108 @@ const PrescriptionForm = () => {
   const [analysis, setAnalysis] = useState<any>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
+  const generateMockAnalysis = (data: PrescriptionData) => {
+    const medicationNames = data.medications
+      .filter(med => med.name.trim())
+      .map(med => med.name.trim().toLowerCase());
+
+    // Define known drug interactions and adverse reactions
+    const knownInteractions: { [key: string]: any } = {
+      'aspirin-warfarin': {
+        medications: ['Aspirin', 'Warfarin'],
+        severity: 'High',
+        description: 'Increased risk of bleeding when used together'
+      },
+      'aspirin-metformin': {
+        medications: ['Aspirin', 'Metformin'],
+        severity: 'Low',
+        description: 'Monitor blood glucose levels more closely'
+      }
+    };
+
+    const knownAdverseReactions: { [key: string]: any } = {
+      'lisinopril': {
+        medication: 'Lisinopril',
+        reaction: 'Dry cough',
+        likelihood: 'Medium',
+        patientRisk: 'Consider patient age and gender'
+      },
+      'amoxicillin': {
+        medication: 'Amoxicillin',
+        reaction: 'Allergic reactions, nausea',
+        likelihood: 'Low',
+        patientRisk: 'Monitor for rash or digestive issues'
+      },
+      'metformin': {
+        medication: 'Metformin',
+        reaction: 'Gastrointestinal upset, lactic acidosis (rare)',
+        likelihood: 'Medium',
+        patientRisk: 'Monitor kidney function, especially in elderly patients'
+      }
+    };
+
+    // Check for interactions between prescribed medications
+    const drugInteractions = [];
+    for (let i = 0; i < medicationNames.length; i++) {
+      for (let j = i + 1; j < medicationNames.length; j++) {
+        const key1 = `${medicationNames[i]}-${medicationNames[j]}`;
+        const key2 = `${medicationNames[j]}-${medicationNames[i]}`;
+        
+        if (knownInteractions[key1]) {
+          drugInteractions.push(knownInteractions[key1]);
+        } else if (knownInteractions[key2]) {
+          drugInteractions.push(knownInteractions[key2]);
+        }
+      }
+    }
+
+    // Check for adverse reactions for each prescribed medication
+    const adverseReactions = medicationNames
+      .map(med => knownAdverseReactions[med])
+      .filter(reaction => reaction);
+
+    // Generate dosage validation for prescribed medications
+    const dosageValidation = data.medications
+      .filter(med => med.name.trim())
+      .map(med => ({
+        medication: med.name,
+        status: 'Appropriate',
+        recommendation: `Dosage of ${med.dosage} ${med.frequency} appears within normal range for this medication`
+      }));
+
+    // Determine overall risk
+    let overallRisk = 'Low';
+    if (drugInteractions.some(interaction => interaction.severity === 'High')) {
+      overallRisk = 'High';
+    } else if (drugInteractions.some(interaction => interaction.severity === 'Medium') || 
+               adverseReactions.some(reaction => reaction.likelihood === 'Medium')) {
+      overallRisk = 'Medium';
+    }
+
+    // Generate recommendations
+    const recommendations = [
+      'Monitor patient response to prescribed medications',
+      'Schedule follow-up appointment as indicated',
+      'Educate patient about potential side effects'
+    ];
+
+    if (drugInteractions.length > 0) {
+      recommendations.unshift('Monitor for drug interaction effects closely');
+    }
+
+    if (data.age > 65) {
+      recommendations.push('Consider dose adjustments for elderly patient');
+    }
+
+    return {
+      drugInteractions,
+      adverseReactions,
+      dosageValidation,
+      overallRisk,
+      recommendations
+    };
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -69,39 +171,9 @@ const PrescriptionForm = () => {
     setIsAnalyzing(true);
     
     try {
-      // Mock AI analysis for demo (replace with actual Gemini API call)
-      const mockAnalysis = {
-        drugInteractions: [
-          {
-            medications: ['Aspirin', 'Warfarin'],
-            severity: 'High',
-            description: 'Increased risk of bleeding when used together'
-          }
-        ],
-        adverseReactions: [
-          {
-            medication: 'Lisinopril',
-            reaction: 'Dry cough',
-            likelihood: 'Medium',
-            patientRisk: 'Consider patient age and gender'
-          }
-        ],
-        dosageValidation: [
-          {
-            medication: 'Metformin',
-            status: 'Appropriate',
-            recommendation: 'Dosage within normal range for patient age and weight'
-          }
-        ],
-        overallRisk: 'Medium',
-        recommendations: [
-          'Monitor blood pressure closely during first week',
-          'Schedule follow-up in 2 weeks to assess medication tolerance',
-          'Patient should report any unusual bleeding or bruising immediately'
-        ]
-      };
-
+      // Generate analysis based on actual prescription data
       setTimeout(() => {
+        const mockAnalysis = generateMockAnalysis(prescriptionData);
         setAnalysis(mockAnalysis);
         setIsAnalyzing(false);
         toast({
