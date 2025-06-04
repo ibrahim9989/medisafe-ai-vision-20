@@ -209,8 +209,3 @@ class TavilyService {
 }
 
 export const tavilyService = new TavilyService();
-
-// Export the function that MedicineResolver is trying to import
-export const resolveMedicine = (medicineName: string): Promise<MedicineResolution> => {
-  return tavilyService.resolveMedicineName(medicineName);
-};
