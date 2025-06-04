@@ -1,13 +1,14 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Brain, CheckCircle } from 'lucide-react';
+import { AlertCircle, Brain, CheckCircle, Search } from 'lucide-react';
 import PatientInfo from './PatientInfo';
 import MedicationList from './MedicationList';
 import VitalSigns from './VitalSigns';
 import AIAnalysis from './AIAnalysis';
 import { toast } from '@/hooks/use-toast';
+import EnhancedMedicationList from './EnhancedMedicationList';
+import { tavilyService } from '../services/tavilyService';
 
 export interface PrescriptionData {
   doctorName: string;
@@ -43,11 +44,31 @@ const PrescriptionForm = () => {
 
   const [analysis, setAnalysis] = useState<any>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
 
   const analyzePrescriptionWithLyzr = async (data: PrescriptionData) => {
-    const medicationDetails = data.medications
-      .filter(med => med.name.trim())
-      .map(med => `${med.name} - ${med.dosage} ${med.frequency} for ${med.duration}`)
+    // Resolve medicine names first
+    console.log('Resolving medicine names...');
+    const resolvedMedications = await Promise.all(
+      data.medications
+        .filter(med => med.name.trim())
+        .map(async (med) => {
+          try {
+            const resolution = await tavilyService.resolveMedicineName(med.name);
+            return {
+              ...med,
+              genericName: resolution.genericName,
+              activeIngredients: resolution.activeIngredients,
+              confidence: resolution.confidence
+            };
+          } catch (error) {
+            return { ...med, genericName: med.name, activeIngredients: [med.name], confidence: 0.3 };
+          }
+        })
+    );
+
+    const medicationDetails = resolvedMedications
+      .map(med => `${med.genericName} (${med.name}) - ${med.dosage} ${med.frequency} for ${med.duration}`)
       .join(', ');
 
     const analysisPrompt = `Analyze this prescription for drug interactions, adverse reactions, dosage validation, and provide specific alternative medications:
@@ -59,7 +80,7 @@ Patient Information:
 - Temperature: ${data.temperature}°F
 - Blood Pressure: ${data.bp}
 
-Prescribed Medications:
+Prescribed Medications (with resolved names):
 ${medicationDetails}
 
 Clinical Notes: ${data.notes}
@@ -107,19 +128,45 @@ Format the response as JSON with the following structure:
       // Parse the AI response and extract the analysis
       let analysisData;
       try {
-        // Try to parse the response message as JSON
         const messageContent = result.response || result.message || result.content || '';
         analysisData = JSON.parse(messageContent);
       } catch (parseError) {
         console.log('Failed to parse JSON response, using fallback analysis');
-        // Fallback to mock analysis if parsing fails
         analysisData = generateMockAnalysis(data);
+      }
+
+      // Validate the analysis with Tavily
+      if (analysisData.drugInteractions && analysisData.drugInteractions.length > 0) {
+        console.log('Validating drug interactions...');
+        setIsValidating(true);
+        
+        const validatedInteractions = await Promise.all(
+          analysisData.drugInteractions.map(async (interaction: any) => {
+            try {
+              const validation = await tavilyService.validateADRPrediction(
+                interaction.medications.join(' + '),
+                interaction.description
+              );
+              return {
+                ...interaction,
+                validated: validation.validated,
+                confidence: validation.confidence,
+                sources: validation.sources,
+                additionalInfo: validation.additionalInfo
+              };
+            } catch (error) {
+              return { ...interaction, validated: false, confidence: 0 };
+            }
+          })
+        );
+        
+        analysisData.drugInteractions = validatedInteractions;
+        setIsValidating(false);
       }
 
       return analysisData;
     } catch (error) {
       console.error('Lyzr API Error:', error);
-      // Fallback to mock analysis in case of API failure
       return generateMockAnalysis(data);
     }
   };
@@ -272,7 +319,7 @@ Format the response as JSON with the following structure:
       setIsAnalyzing(false);
       toast({
         title: "Analysis Complete",
-        description: "AI analysis has been generated successfully.",
+        description: "AI analysis with medicine name resolution and validation completed.",
       });
     } catch (error) {
       console.error('Analysis error:', error);
@@ -299,7 +346,7 @@ Format the response as JSON with the following structure:
           />
         </div>
         
-        <MedicationList 
+        <EnhancedMedicationList 
           data={prescriptionData} 
           onChange={setPrescriptionData} 
         />
@@ -347,13 +394,18 @@ Format the response as JSON with the following structure:
         <div className="flex justify-center">
           <Button
             type="submit"
-            disabled={isAnalyzing}
+            disabled={isAnalyzing || isValidating}
             className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
           >
             {isAnalyzing ? (
               <>
                 <Brain className="h-5 w-5 mr-2 animate-pulse" />
                 Analyzing Prescription...
+              </>
+            ) : isValidating ? (
+              <>
+                <Search className="h-5 w-5 mr-2 animate-pulse" />
+                Validating Results...
               </>
             ) : (
               <>

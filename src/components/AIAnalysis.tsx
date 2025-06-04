@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Brain, AlertTriangle, CheckCircle, Info, Shield, Pill } from 'lucide-react';
@@ -9,6 +8,9 @@ interface AIAnalysisProps {
       medications: string[];
       severity: string;
       description: string;
+      validated?: boolean;
+      additionalInfo?: string;
+      sources?: string[];
     }>;
     adverseReactions: Array<{
       medication: string;
@@ -57,6 +59,25 @@ const AIAnalysis = ({ analysis }: AIAnalysisProps) => {
       default:
         return <Shield className="h-5 w-5 text-gray-600" />;
     }
+  };
+
+  const getValidationBadge = (interaction: any) => {
+    if (interaction.validated === true) {
+      return (
+        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-green-100 text-green-800 border border-green-200">
+          <CheckCircle className="h-3 w-3 mr-1" />
+          Verified
+        </span>
+      );
+    } else if (interaction.validated === false && interaction.confidence !== undefined) {
+      return (
+        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-yellow-100 text-yellow-800 border border-yellow-200">
+          <AlertTriangle className="h-3 w-3 mr-1" />
+          Partial Validation
+        </span>
+      );
+    }
+    return null;
   };
 
   return (
@@ -133,13 +154,43 @@ const AIAnalysis = ({ analysis }: AIAnalysisProps) => {
             {analysis.drugInteractions.length > 0 ? (
               analysis.drugInteractions.map((interaction, index) => (
                 <div key={index} className={`p-3 rounded-lg border ${getRiskColor(interaction.severity)}`}>
-                  <div className="flex items-center space-x-2 mb-2">
-                    {getRiskIcon(interaction.severity)}
-                    <span className="font-semibold">{interaction.severity} Risk</span>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-2">
+                      {getRiskIcon(interaction.severity)}
+                      <span className="font-semibold">{interaction.severity} Risk</span>
+                    </div>
+                    {getValidationBadge(interaction)}
                   </div>
                   <div className="text-sm">
                     <div className="font-medium">Medications: {interaction.medications.join(' + ')}</div>
                     <div className="mt-1">{interaction.description}</div>
+                    {interaction.additionalInfo && (
+                      <div className="mt-2 p-2 bg-gray-50 rounded text-xs">
+                        <strong>Additional Info:</strong> {interaction.additionalInfo}
+                      </div>
+                    )}
+                    {interaction.sources && interaction.sources.length > 0 && (
+                      <div className="mt-2">
+                        <details className="text-xs">
+                          <summary className="cursor-pointer text-blue-600 hover:text-blue-800">
+                            View Sources ({interaction.sources.length})
+                          </summary>
+                          <div className="mt-1 space-y-1">
+                            {interaction.sources.slice(0, 2).map((source: string, srcIndex: number) => (
+                              <a
+                                key={srcIndex}
+                                href={source}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="block text-blue-600 hover:text-blue-800 truncate"
+                              >
+                                {source}
+                              </a>
+                            ))}
+                          </div>
+                        </details>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))
