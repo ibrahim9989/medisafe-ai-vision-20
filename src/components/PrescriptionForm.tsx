@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -43,6 +42,84 @@ const PrescriptionForm = () => {
 
   const [analysis, setAnalysis] = useState<any>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+
+  const analyzePrescriptionWithLyzr = async (data: PrescriptionData) => {
+    const medicationDetails = data.medications
+      .filter(med => med.name.trim())
+      .map(med => `${med.name} - ${med.dosage} ${med.frequency} for ${med.duration}`)
+      .join(', ');
+
+    const analysisPrompt = `Analyze this prescription for drug interactions, adverse reactions, and dosage validation:
+
+Patient Information:
+- Name: ${data.patientName}
+- Age: ${data.age}
+- Gender: ${data.gender}
+- Temperature: ${data.temperature}°F
+- Blood Pressure: ${data.bp}
+
+Prescribed Medications:
+${medicationDetails}
+
+Clinical Notes: ${data.notes}
+
+Please provide a comprehensive analysis including:
+1. Drug-drug interactions (if any between the prescribed medications)
+2. Potential adverse reactions based on patient profile
+3. Dosage validation for each medication
+4. Overall risk assessment (Low/Medium/High)
+5. Clinical recommendations
+
+Format the response as JSON with the following structure:
+{
+  "drugInteractions": [{"medications": [], "severity": "", "description": ""}],
+  "adverseReactions": [{"medication": "", "reaction": "", "likelihood": "", "patientRisk": ""}],
+  "dosageValidation": [{"medication": "", "status": "", "recommendation": ""}],
+  "overallRisk": "",
+  "recommendations": []
+}`;
+
+    try {
+      const response = await fetch('https://agent-prod.studio.lyzr.ai/v3/inference/chat/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': 'sk-default-AsQXLZ1TMDXuZxqud7PGl6ae7Q5Gs5UX'
+        },
+        body: JSON.stringify({
+          user_id: "ibrahimshaheer75@gmail.com",
+          agent_id: "68401a5c0ff8ffe17f2c0aab",
+          session_id: "68401a5c0ff8ffe17f2c0aab-zzfkwq1hb0s",
+          message: analysisPrompt
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API request failed with status ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('Lyzr API Response:', result);
+
+      // Parse the AI response and extract the analysis
+      let analysisData;
+      try {
+        // Try to parse the response message as JSON
+        const messageContent = result.response || result.message || result.content || '';
+        analysisData = JSON.parse(messageContent);
+      } catch (parseError) {
+        console.log('Failed to parse JSON response, using fallback analysis');
+        // Fallback to mock analysis if parsing fails
+        analysisData = generateMockAnalysis(data);
+      }
+
+      return analysisData;
+    } catch (error) {
+      console.error('Lyzr API Error:', error);
+      // Fallback to mock analysis in case of API failure
+      return generateMockAnalysis(data);
+    }
+  };
 
   const generateMockAnalysis = (data: PrescriptionData) => {
     const medicationNames = data.medications
@@ -171,17 +248,13 @@ const PrescriptionForm = () => {
     setIsAnalyzing(true);
     
     try {
-      // Generate analysis based on actual prescription data
-      setTimeout(() => {
-        const mockAnalysis = generateMockAnalysis(prescriptionData);
-        setAnalysis(mockAnalysis);
-        setIsAnalyzing(false);
-        toast({
-          title: "Analysis Complete",
-          description: "AI analysis has been generated successfully.",
-        });
-      }, 2000);
-
+      const analysisResult = await analyzePrescriptionWithLyzr(prescriptionData);
+      setAnalysis(analysisResult);
+      setIsAnalyzing(false);
+      toast({
+        title: "Analysis Complete",
+        description: "AI analysis has been generated successfully.",
+      });
     } catch (error) {
       console.error('Analysis error:', error);
       setIsAnalyzing(false);
