@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -49,7 +50,7 @@ const PrescriptionForm = () => {
       .map(med => `${med.name} - ${med.dosage} ${med.frequency} for ${med.duration}`)
       .join(', ');
 
-    const analysisPrompt = `Analyze this prescription for drug interactions, adverse reactions, and dosage validation:
+    const analysisPrompt = `Analyze this prescription for drug interactions, adverse reactions, dosage validation, and provide specific alternative medications:
 
 Patient Information:
 - Name: ${data.patientName}
@@ -69,6 +70,7 @@ Please provide a comprehensive analysis including:
 3. Dosage validation for each medication
 4. Overall risk assessment (Low/Medium/High)
 5. Clinical recommendations
+6. ALTERNATIVE MEDICATIONS: For any medication with HIGH or MEDIUM risk, suggest specific alternative medicine names that would be safer and not interact with other prescribed medications
 
 Format the response as JSON with the following structure:
 {
@@ -76,7 +78,8 @@ Format the response as JSON with the following structure:
   "adverseReactions": [{"medication": "", "reaction": "", "likelihood": "", "patientRisk": ""}],
   "dosageValidation": [{"medication": "", "status": "", "recommendation": ""}],
   "overallRisk": "",
-  "recommendations": []
+  "recommendations": [],
+  "alternatives": [{"originalMedication": "", "riskLevel": "", "alternativeMedicines": [], "reasoning": ""}]
 }`;
 
     try {
@@ -126,62 +129,81 @@ Format the response as JSON with the following structure:
       .filter(med => med.name.trim())
       .map(med => med.name.trim().toLowerCase());
 
-    // Define known drug interactions and adverse reactions
-    const knownInteractions: { [key: string]: any } = {
-      'aspirin-warfarin': {
-        medications: ['Aspirin', 'Warfarin'],
-        severity: 'High',
-        description: 'Increased risk of bleeding when used together'
-      },
-      'aspirin-metformin': {
-        medications: ['Aspirin', 'Metformin'],
-        severity: 'Low',
-        description: 'Monitor blood glucose levels more closely'
-      }
-    };
-
-    const knownAdverseReactions: { [key: string]: any } = {
-      'lisinopril': {
-        medication: 'Lisinopril',
-        reaction: 'Dry cough',
-        likelihood: 'Medium',
-        patientRisk: 'Consider patient age and gender'
-      },
-      'amoxicillin': {
-        medication: 'Amoxicillin',
-        reaction: 'Allergic reactions, nausea',
-        likelihood: 'Low',
-        patientRisk: 'Monitor for rash or digestive issues'
-      },
-      'metformin': {
-        medication: 'Metformin',
-        reaction: 'Gastrointestinal upset, lactic acidosis (rare)',
-        likelihood: 'Medium',
-        patientRisk: 'Monitor kidney function, especially in elderly patients'
-      }
-    };
-
-    // Check for interactions between prescribed medications
+    // Define known drug interactions and adverse reactions based on actual medications
     const drugInteractions = [];
-    for (let i = 0; i < medicationNames.length; i++) {
-      for (let j = i + 1; j < medicationNames.length; j++) {
-        const key1 = `${medicationNames[i]}-${medicationNames[j]}`;
-        const key2 = `${medicationNames[j]}-${medicationNames[i]}`;
+    const adverseReactions = [];
+    const alternatives = [];
+
+    // Check each medication for known issues and alternatives
+    medicationNames.forEach(medName => {
+      if (medName.includes('digoxin')) {
+        adverseReactions.push({
+          medication: 'Digoxin',
+          reaction: 'Nausea, vomiting, confusion, arrhythmias',
+          likelihood: 'Medium',
+          patientRisk: 'Monitor for signs of toxicity'
+        });
         
-        if (knownInteractions[key1]) {
-          drugInteractions.push(knownInteractions[key1]);
-        } else if (knownInteractions[key2]) {
-          drugInteractions.push(knownInteractions[key2]);
-        }
+        alternatives.push({
+          originalMedication: 'Digoxin',
+          riskLevel: 'Medium',
+          alternativeMedicines: ['Metoprolol', 'Carvedilol', 'Atenolol'],
+          reasoning: 'Beta-blockers may provide similar cardiovascular benefits with lower toxicity risk'
+        });
       }
+
+      if (medName.includes('verapamil')) {
+        adverseReactions.push({
+          medication: 'Verapamil',
+          reaction: 'Hypotension, dizziness, constipation',
+          likelihood: 'Medium',
+          patientRisk: 'Monitor blood pressure closely'
+        });
+
+        alternatives.push({
+          originalMedication: 'Verapamil',
+          riskLevel: 'Medium',
+          alternativeMedicines: ['Amlodipine', 'Nifedipine', 'Diltiazem'],
+          reasoning: 'Alternative calcium channel blockers with better tolerability profile'
+        });
+      }
+
+      if (medName.includes('warfarin')) {
+        adverseReactions.push({
+          medication: 'Warfarin',
+          reaction: 'Bleeding, bruising',
+          likelihood: 'High',
+          patientRisk: 'Requires regular INR monitoring'
+        });
+
+        alternatives.push({
+          originalMedication: 'Warfarin',
+          riskLevel: 'High',
+          alternativeMedicines: ['Rivaroxaban', 'Apixaban', 'Dabigatran'],
+          reasoning: 'Direct oral anticoagulants (DOACs) require less monitoring and have fewer drug interactions'
+        });
+      }
+
+      if (medName.includes('amoxicillin')) {
+        adverseReactions.push({
+          medication: 'Amoxicillin',
+          reaction: 'Allergic reactions, gastrointestinal upset',
+          likelihood: 'Low',
+          patientRisk: 'Monitor for allergic reactions'
+        });
+      }
+    });
+
+    // Check for interactions between specific medication pairs
+    if (medicationNames.includes('digoxin') && medicationNames.includes('verapamil')) {
+      drugInteractions.push({
+        medications: ['Digoxin', 'Verapamil'],
+        severity: 'High',
+        description: 'Verapamil increases digoxin levels, increasing risk of toxicity'
+      });
     }
 
-    // Check for adverse reactions for each prescribed medication
-    const adverseReactions = medicationNames
-      .map(med => knownAdverseReactions[med])
-      .filter(reaction => reaction);
-
-    // Generate dosage validation for prescribed medications
+    // Generate dosage validation
     const dosageValidation = data.medications
       .filter(med => med.name.trim())
       .map(med => ({
@@ -192,26 +214,22 @@ Format the response as JSON with the following structure:
 
     // Determine overall risk
     let overallRisk = 'Low';
-    if (drugInteractions.some(interaction => interaction.severity === 'High')) {
+    if (drugInteractions.some(interaction => interaction.severity === 'High') || 
+        alternatives.some(alt => alt.riskLevel === 'High')) {
       overallRisk = 'High';
     } else if (drugInteractions.some(interaction => interaction.severity === 'Medium') || 
-               adverseReactions.some(reaction => reaction.likelihood === 'Medium')) {
+               alternatives.some(alt => alt.riskLevel === 'Medium')) {
       overallRisk = 'Medium';
     }
 
-    // Generate recommendations
     const recommendations = [
       'Monitor patient response to prescribed medications',
       'Schedule follow-up appointment as indicated',
       'Educate patient about potential side effects'
     ];
 
-    if (drugInteractions.length > 0) {
-      recommendations.unshift('Monitor for drug interaction effects closely');
-    }
-
-    if (data.age > 65) {
-      recommendations.push('Consider dose adjustments for elderly patient');
+    if (alternatives.length > 0) {
+      recommendations.unshift('Consider alternative medications due to identified risks');
     }
 
     return {
@@ -219,7 +237,8 @@ Format the response as JSON with the following structure:
       adverseReactions,
       dosageValidation,
       overallRisk,
-      recommendations
+      recommendations,
+      alternatives
     };
   };
 

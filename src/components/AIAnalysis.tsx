@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Brain, AlertTriangle, CheckCircle, Info, Shield } from 'lucide-react';
+import { Brain, AlertTriangle, CheckCircle, Info, Shield, Pill } from 'lucide-react';
 
 interface AIAnalysisProps {
   analysis: {
@@ -23,6 +23,12 @@ interface AIAnalysisProps {
     }>;
     overallRisk: string;
     recommendations: string[];
+    alternatives?: Array<{
+      originalMedication: string;
+      riskLevel: string;
+      alternativeMedicines: string[];
+      reasoning: string;
+    }>;
   };
 }
 
@@ -69,6 +75,51 @@ const AIAnalysis = ({ analysis }: AIAnalysisProps) => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Alternative Medications Section - Show prominently if there are alternatives */}
+      {analysis.alternatives && analysis.alternatives.length > 0 && (
+        <Card className="border-orange-200 bg-orange-50">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <Pill className="h-6 w-6 text-orange-600" />
+              <span className="text-orange-900">Alternative Medications Recommended</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {analysis.alternatives.map((alternative, index) => (
+              <div key={index} className={`p-4 rounded-lg border ${getRiskColor(alternative.riskLevel)}`}>
+                <div className="flex items-center space-x-2 mb-3">
+                  {getRiskIcon(alternative.riskLevel)}
+                  <span className="font-semibold text-lg">
+                    Replace: {alternative.originalMedication}
+                  </span>
+                  <span className={`px-2 py-1 rounded text-sm font-medium ${getRiskColor(alternative.riskLevel)}`}>
+                    {alternative.riskLevel} Risk
+                  </span>
+                </div>
+                
+                <div className="mb-3">
+                  <h4 className="font-medium text-gray-900 mb-2">Recommended Alternatives:</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {alternative.alternativeMedicines.map((medicine, medIndex) => (
+                      <span 
+                        key={medIndex}
+                        className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium border border-green-200"
+                      >
+                        {medicine}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="text-sm text-gray-700 bg-white p-3 rounded border-l-4 border-blue-500">
+                  <strong>Reasoning:</strong> {alternative.reasoning}
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
