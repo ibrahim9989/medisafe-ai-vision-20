@@ -1,6 +1,7 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Brain, AlertTriangle, CheckCircle, Info, Shield, Pill } from 'lucide-react';
+import { Brain, AlertTriangle, CheckCircle, Info, Shield, Pill, ArrowRight } from 'lucide-react';
 
 interface AIAnalysisProps {
   analysis: {
@@ -30,6 +31,12 @@ interface AIAnalysisProps {
       riskLevel: string;
       alternativeMedicines: string[];
       reasoning: string;
+    }>;
+    medicationResolutions?: Array<{
+      originalName: string;
+      genericName: string;
+      activeIngredients: string[];
+      confidence?: number;
     }>;
   };
 }
@@ -96,6 +103,48 @@ const AIAnalysis = ({ analysis }: AIAnalysisProps) => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Medicine Name Resolution Display */}
+      {analysis.medicationResolutions && analysis.medicationResolutions.length > 0 && (
+        <Card className="border-blue-200 bg-blue-50">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <ArrowRight className="h-6 w-6 text-blue-600" />
+              <span className="text-blue-900">Medicine Name Resolution</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="text-sm text-blue-800 mb-3">
+              <strong>Analysis Note:</strong> AI analysis was performed using generic drug names for medical accuracy.
+            </div>
+            {analysis.medicationResolutions.map((resolution, index) => (
+              <div key={index} className="flex items-center space-x-3 p-3 bg-white rounded-lg border border-blue-200">
+                <div className="flex-1">
+                  <div className="flex items-center space-x-2">
+                    <span className="font-medium text-gray-800">{resolution.originalName}</span>
+                    <ArrowRight className="h-4 w-4 text-blue-600" />
+                    <span className="font-semibold text-blue-900">{resolution.genericName}</span>
+                  </div>
+                  {resolution.activeIngredients && resolution.activeIngredients.length > 0 && (
+                    <div className="text-sm text-gray-600 mt-1">
+                      Active: {resolution.activeIngredients.join(', ')}
+                    </div>
+                  )}
+                </div>
+                {resolution.confidence && (
+                  <div className={`px-2 py-1 rounded text-xs ${
+                    resolution.confidence >= 0.7 ? 'bg-green-100 text-green-800' : 
+                    resolution.confidence >= 0.4 ? 'bg-yellow-100 text-yellow-800' : 
+                    'bg-red-100 text-red-800'
+                  }`}>
+                    {Math.round(resolution.confidence * 100)}% confident
+                  </div>
+                )}
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Alternative Medications Section - Show prominently if there are alternatives */}
       {analysis.alternatives && analysis.alternatives.length > 0 && (

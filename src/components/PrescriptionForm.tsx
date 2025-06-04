@@ -56,22 +56,44 @@ const PrescriptionForm = () => {
           try {
             const resolution = await tavilyService.resolveMedicineName(med.name);
             return {
-              ...med,
+              originalName: med.name,
               genericName: resolution.genericName,
               activeIngredients: resolution.activeIngredients,
-              confidence: resolution.confidence
+              confidence: resolution.confidence,
+              dosage: med.dosage,
+              frequency: med.frequency,
+              duration: med.duration
             };
           } catch (error) {
-            return { ...med, genericName: med.name, activeIngredients: [med.name], confidence: 0.3 };
+            return { 
+              originalName: med.name,
+              genericName: med.name, 
+              activeIngredients: [med.name], 
+              confidence: 0.3,
+              dosage: med.dosage,
+              frequency: med.frequency,
+              duration: med.duration
+            };
           }
         })
     );
 
+    // CRITICAL FIX: Use generic names for AI analysis instead of original names
     const medicationDetails = resolvedMedications
-      .map(med => `${med.genericName} (${med.name}) - ${med.dosage} ${med.frequency} for ${med.duration}`)
+      .map(med => `${med.genericName} (originally entered as: ${med.originalName}) - ${med.dosage} ${med.frequency} for ${med.duration}`)
       .join(', ');
 
-    const analysisPrompt = `Analyze this prescription for drug interactions, adverse reactions, dosage validation, and provide specific alternative medications:
+    // Log what we're sending to AI for debugging
+    console.log('Medications being sent to AI analysis:', resolvedMedications.map(med => ({
+      generic: med.genericName,
+      original: med.originalName,
+      dosage: med.dosage,
+      frequency: med.frequency
+    })));
+
+    const analysisPrompt = `Analyze this prescription for drug interactions, adverse reactions, dosage validation, and provide specific alternative medications.
+
+IMPORTANT: Analyze the GENERIC NAMES ONLY for accurate medical interactions. The original branded names are provided for reference only.
 
 Patient Information:
 - Name: ${data.patientName}
@@ -80,18 +102,23 @@ Patient Information:
 - Temperature: ${data.temperature}°F
 - Blood Pressure: ${data.bp}
 
-Prescribed Medications (with resolved names):
+Medications to Analyze (USE GENERIC NAMES):
 ${medicationDetails}
+
+Active Ingredients Summary:
+${resolvedMedications.map(med => `${med.genericName}: ${med.activeIngredients.join(', ')}`).join('\n')}
 
 Clinical Notes: ${data.notes}
 
-Please provide a comprehensive analysis including:
-1. Drug-drug interactions (if any between the prescribed medications)
+Please provide a comprehensive analysis based on the GENERIC DRUG NAMES and active ingredients including:
+1. Drug-drug interactions (analyze interactions between the GENERIC medications)
 2. Potential adverse reactions based on patient profile
-3. Dosage validation for each medication
+3. Dosage validation for each GENERIC medication
 4. Overall risk assessment (Low/Medium/High)
 5. Clinical recommendations
-6. ALTERNATIVE MEDICATIONS: For any medication with HIGH or MEDIUM risk, suggest specific alternative medicine names that would be safer and not interact with other prescribed medications
+6. ALTERNATIVE MEDICATIONS: For any medication with HIGH or MEDIUM risk, suggest specific alternative GENERIC medicine names that would be safer and not interact with other prescribed medications
+
+CRITICAL: Base all analysis on the generic drug names and active ingredients, not the branded names.
 
 Format the response as JSON with the following structure:
 {
@@ -100,7 +127,8 @@ Format the response as JSON with the following structure:
   "dosageValidation": [{"medication": "", "status": "", "recommendation": ""}],
   "overallRisk": "",
   "recommendations": [],
-  "alternatives": [{"originalMedication": "", "riskLevel": "", "alternativeMedicines": [], "reasoning": ""}]
+  "alternatives": [{"originalMedication": "", "riskLevel": "", "alternativeMedicines": [], "reasoning": ""}],
+  "medicationResolutions": [{"originalName": "", "genericName": "", "activeIngredients": []}]
 }`;
 
     try {
@@ -132,8 +160,16 @@ Format the response as JSON with the following structure:
         analysisData = JSON.parse(messageContent);
       } catch (parseError) {
         console.log('Failed to parse JSON response, using fallback analysis');
-        analysisData = generateMockAnalysis(data);
+        analysisData = generateMockAnalysis(data, resolvedMedications);
       }
+
+      // Add medication resolution data to the analysis
+      analysisData.medicationResolutions = resolvedMedications.map(med => ({
+        originalName: med.originalName,
+        genericName: med.genericName,
+        activeIngredients: med.activeIngredients,
+        confidence: med.confidence
+      }));
 
       // Validate the analysis with Tavily
       if (analysisData.drugInteractions && analysisData.drugInteractions.length > 0) {
@@ -167,97 +203,101 @@ Format the response as JSON with the following structure:
       return analysisData;
     } catch (error) {
       console.error('Lyzr API Error:', error);
-      return generateMockAnalysis(data);
+      return generateMockAnalysis(data, resolvedMedications);
     }
   };
 
-  const generateMockAnalysis = (data: PrescriptionData) => {
-    const medicationNames = data.medications
-      .filter(med => med.name.trim())
-      .map(med => med.name.trim().toLowerCase());
+  const generateMockAnalysis = (data: PrescriptionData, resolvedMedications: any[]) => {
+    // Use generic names for analysis instead of original names
+    const genericNames = resolvedMedications.map(med => med.genericName.toLowerCase());
 
-    // Define known drug interactions and adverse reactions based on actual medications
+    console.log('Generating mock analysis for generic medications:', genericNames);
+
+    // Define known drug interactions and adverse reactions based on GENERIC medications
     const drugInteractions = [];
     const adverseReactions = [];
     const alternatives = [];
 
-    // Check each medication for known issues and alternatives
-    medicationNames.forEach(medName => {
-      if (medName.includes('digoxin')) {
+    // Check each GENERIC medication for known issues and alternatives
+    genericNames.forEach((genericName, index) => {
+      const originalMed = resolvedMedications[index];
+      
+      if (genericName.includes('amoxicillin')) {
         adverseReactions.push({
-          medication: 'Digoxin',
+          medication: originalMed.genericName,
+          reaction: 'Gastrointestinal upset, allergic reactions including rash',
+          likelihood: 'Medium',
+          patientRisk: 'Monitor for allergic reactions and GI disturbances'
+        });
+        
+        alternatives.push({
+          originalMedication: originalMed.genericName,
+          riskLevel: 'Medium',
+          alternativeMedicines: ['Cefdinir', 'Clindamycin', 'Azithromycin'],
+          reasoning: 'Alternative antibiotics with different mechanisms and potentially fewer GI side effects'
+        });
+      }
+
+      if (genericName.includes('verapamil')) {
+        adverseReactions.push({
+          medication: originalMed.genericName,
+          reaction: 'Hypotension, dizziness, constipation, bradycardia',
+          likelihood: 'Medium',
+          patientRisk: 'Monitor blood pressure and heart rate closely'
+        });
+
+        alternatives.push({
+          originalMedication: originalMed.genericName,
+          riskLevel: 'Medium',
+          alternativeMedicines: ['Amlodipine', 'Nifedipine', 'Lisinopril'],
+          reasoning: 'Alternative antihypertensives with better tolerability profiles and fewer drug interactions'
+        });
+      }
+
+      if (genericName.includes('digoxin')) {
+        adverseReactions.push({
+          medication: originalMed.genericName,
           reaction: 'Nausea, vomiting, confusion, arrhythmias',
           likelihood: 'Medium',
           patientRisk: 'Monitor for signs of toxicity'
         });
         
         alternatives.push({
-          originalMedication: 'Digoxin',
+          originalMedication: originalMed.genericName,
           riskLevel: 'Medium',
           alternativeMedicines: ['Metoprolol', 'Carvedilol', 'Atenolol'],
           reasoning: 'Beta-blockers may provide similar cardiovascular benefits with lower toxicity risk'
         });
       }
-
-      if (medName.includes('verapamil')) {
-        adverseReactions.push({
-          medication: 'Verapamil',
-          reaction: 'Hypotension, dizziness, constipation',
-          likelihood: 'Medium',
-          patientRisk: 'Monitor blood pressure closely'
-        });
-
-        alternatives.push({
-          originalMedication: 'Verapamil',
-          riskLevel: 'Medium',
-          alternativeMedicines: ['Amlodipine', 'Nifedipine', 'Diltiazem'],
-          reasoning: 'Alternative calcium channel blockers with better tolerability profile'
-        });
-      }
-
-      if (medName.includes('warfarin')) {
-        adverseReactions.push({
-          medication: 'Warfarin',
-          reaction: 'Bleeding, bruising',
-          likelihood: 'High',
-          patientRisk: 'Requires regular INR monitoring'
-        });
-
-        alternatives.push({
-          originalMedication: 'Warfarin',
-          riskLevel: 'High',
-          alternativeMedicines: ['Rivaroxaban', 'Apixaban', 'Dabigatran'],
-          reasoning: 'Direct oral anticoagulants (DOACs) require less monitoring and have fewer drug interactions'
-        });
-      }
-
-      if (medName.includes('amoxicillin')) {
-        adverseReactions.push({
-          medication: 'Amoxicillin',
-          reaction: 'Allergic reactions, gastrointestinal upset',
-          likelihood: 'Low',
-          patientRisk: 'Monitor for allergic reactions'
-        });
-      }
     });
 
-    // Check for interactions between specific medication pairs
-    if (medicationNames.includes('digoxin') && medicationNames.includes('verapamil')) {
+    // Check for interactions between specific GENERIC medication pairs
+    const hasAmoxicillin = genericNames.some(name => name.includes('amoxicillin'));
+    const hasVerapamil = genericNames.some(name => name.includes('verapamil'));
+    const hasDigoxin = genericNames.some(name => name.includes('digoxin'));
+
+    if (hasAmoxicillin && hasVerapamil) {
       drugInteractions.push({
-        medications: ['Digoxin', 'Verapamil'],
-        severity: 'High',
-        description: 'Verapamil increases digoxin levels, increasing risk of toxicity'
+        medications: ['Amoxicillin/Clavulanate', 'Verapamil'],
+        severity: 'Medium',
+        description: 'Verapamil may increase serum levels of Amoxicillin by reducing renal clearance, potentially increasing risk of side effects'
       });
     }
 
-    // Generate dosage validation
-    const dosageValidation = data.medications
-      .filter(med => med.name.trim())
-      .map(med => ({
-        medication: med.name,
-        status: 'Appropriate',
-        recommendation: `Dosage of ${med.dosage} ${med.frequency} appears within normal range for this medication`
-      }));
+    if (hasDigoxin && hasVerapamil) {
+      drugInteractions.push({
+        medications: ['Digoxin', 'Verapamil'],
+        severity: 'High',
+        description: 'Verapamil significantly increases digoxin levels, increasing risk of digoxin toxicity'
+      });
+    }
+
+    // Generate dosage validation based on generic names
+    const dosageValidation = resolvedMedications.map(med => ({
+      medication: med.genericName,
+      status: 'Appropriate',
+      recommendation: `Dosage of ${med.dosage} ${med.frequency} appears within normal range for ${med.genericName}`
+    }));
 
     // Determine overall risk
     let overallRisk = 'Low';
@@ -272,7 +312,8 @@ Format the response as JSON with the following structure:
     const recommendations = [
       'Monitor patient response to prescribed medications',
       'Schedule follow-up appointment as indicated',
-      'Educate patient about potential side effects'
+      'Educate patient about potential side effects',
+      'Analysis based on resolved generic drug names for accuracy'
     ];
 
     if (alternatives.length > 0) {
@@ -285,7 +326,13 @@ Format the response as JSON with the following structure:
       dosageValidation,
       overallRisk,
       recommendations,
-      alternatives
+      alternatives,
+      medicationResolutions: resolvedMedications.map(med => ({
+        originalName: med.originalName,
+        genericName: med.genericName,
+        activeIngredients: med.activeIngredients,
+        confidence: med.confidence
+      }))
     };
   };
 
