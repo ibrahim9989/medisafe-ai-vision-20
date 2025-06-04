@@ -1,29 +1,24 @@
 
 import React from 'react';
-import { Stethoscope, Shield } from 'lucide-react';
+import { Stethoscope } from 'lucide-react';
 
 const Header = () => {
   return (
-    <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-white/20">
-      <div className="container mx-auto px-4 py-4">
+    <header className="sticky top-0 z-50 bg-white/70 backdrop-blur-2xl border-b border-white/10">
+      <div className="container mx-auto px-6 py-6">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-r from-[#cb6ce6] to-[#9c4bc7] rounded-2xl shadow-lg shadow-purple-500/25">
-              <Stethoscope className="h-6 w-6 text-white" />
+          <div className="flex items-center space-x-5">
+            <div className="flex items-center justify-center w-14 h-14 bg-gradient-to-br from-[#cb6ce6] via-[#b84fd9] to-[#9c4bc7] rounded-3xl shadow-2xl shadow-purple-500/30 ring-1 ring-white/20">
+              <Stethoscope className="h-7 w-7 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-semibold text-gray-900 tracking-tight">MediSafe AI</h1>
-              <p className="text-sm font-medium text-gray-500">Prescription Intelligence Platform</p>
+              <h1 className="text-3xl font-light text-gray-900 tracking-tight">MediSafe AI</h1>
+              <p className="text-sm font-medium text-gray-500 tracking-wide">Prescription Intelligence</p>
             </div>
           </div>
           
-          <div className="flex items-center space-x-6">
-            <div className="hidden md:flex items-center space-x-2 px-4 py-2 rounded-full bg-green-50 border border-green-100">
-              <Shield className="h-4 w-4 text-green-600" />
-              <span className="text-sm font-medium text-green-700">HIPAA Secure</span>
-            </div>
-            
-            <button className="px-6 py-2 bg-gradient-to-r from-[#cb6ce6] to-[#9c4bc7] text-white font-medium rounded-xl shadow-lg shadow-purple-500/25 hover:shadow-xl hover:shadow-purple-500/30 transform hover:scale-105 transition-all duration-300">
+          <div className="flex items-center">
+            <button className="px-8 py-3 bg-gradient-to-r from-[#cb6ce6] to-[#9c4bc7] text-white font-medium rounded-2xl shadow-xl shadow-purple-500/25 hover:shadow-2xl hover:shadow-purple-500/35 transform hover:scale-[1.02] transition-all duration-500 ring-1 ring-white/20 backdrop-blur-sm">
               Get Started
             </button>
           </div>

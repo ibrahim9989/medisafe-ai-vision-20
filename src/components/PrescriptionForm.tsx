@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -367,16 +368,16 @@ Format the response as JSON with the following structure:
   };
 
   return (
-    <div className="space-y-12">
-      <form onSubmit={handleSubmit} className="space-y-12">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <div className="space-y-8">
+    <div className="space-y-16">
+      <form onSubmit={handleSubmit} className="space-y-16">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+          <div className="space-y-12">
             <PatientInfo 
               data={prescriptionData} 
               onChange={setPrescriptionData} 
             />
           </div>
-          <div className="space-y-8">
+          <div className="space-y-12">
             <VitalSigns 
               data={prescriptionData} 
               onChange={setPrescriptionData} 
@@ -389,18 +390,18 @@ Format the response as JSON with the following structure:
           onChange={setPrescriptionData} 
         />
 
-        <Card className="border-0 bg-white/40 backdrop-blur-xl shadow-xl shadow-gray-500/10 rounded-2xl">
-          <CardHeader className="pb-6">
-            <CardTitle className="flex items-center space-x-4">
-              <div className="p-3 bg-gradient-to-r from-[#cb6ce6] to-[#9c4bc7] rounded-2xl shadow-lg shadow-purple-500/25">
-                <AlertCircle className="h-6 w-6 text-white" />
+        <Card className="border-0 bg-white/50 backdrop-blur-2xl shadow-2xl shadow-gray-900/5 rounded-3xl ring-1 ring-white/20">
+          <CardHeader className="pb-8">
+            <CardTitle className="flex items-center space-x-6">
+              <div className="p-4 bg-gradient-to-br from-[#cb6ce6] via-[#b84fd9] to-[#9c4bc7] rounded-3xl shadow-xl shadow-purple-500/30 ring-1 ring-white/20">
+                <AlertCircle className="h-7 w-7 text-white" />
               </div>
-              <span className="text-2xl font-semibold text-gray-900 tracking-tight">Clinical Notes</span>
+              <span className="text-3xl font-light text-gray-900 tracking-tight">Clinical Notes</span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-8">
+          <CardContent className="space-y-10">
             <div>
-              <label className="block text-base font-semibold text-gray-900 mb-3">
+              <label className="block text-lg font-medium text-gray-900 mb-4 tracking-wide">
                 Additional Observations
               </label>
               <textarea
@@ -409,13 +410,13 @@ Format the response as JSON with the following structure:
                   ...prescriptionData,
                   notes: e.target.value
                 })}
-                className="w-full p-6 border-0 bg-white/60 backdrop-blur-sm rounded-2xl focus:ring-2 focus:ring-[#cb6ce6]/50 focus:outline-none transition-all duration-300 text-gray-700 placeholder-gray-400 shadow-inner"
-                rows={4}
+                className="w-full p-8 border-0 bg-white/70 backdrop-blur-sm rounded-3xl focus:ring-2 focus:ring-[#cb6ce6]/40 focus:outline-none transition-all duration-500 text-gray-700 placeholder-gray-400 shadow-inner ring-1 ring-white/20 text-lg leading-relaxed"
+                rows={5}
                 placeholder="Clinical observations, patient concerns, or additional notes..."
               />
             </div>
             <div>
-              <label className="block text-base font-semibold text-gray-900 mb-3">
+              <label className="block text-lg font-medium text-gray-900 mb-4 tracking-wide">
                 Follow-up Appointment
               </label>
               <input
@@ -425,36 +426,36 @@ Format the response as JSON with the following structure:
                   ...prescriptionData,
                   followUpDate: e.target.value
                 })}
-                className="w-full p-6 border-0 bg-white/60 backdrop-blur-sm rounded-2xl focus:ring-2 focus:ring-[#cb6ce6]/50 focus:outline-none transition-all duration-300 text-gray-700 shadow-inner"
+                className="w-full p-8 border-0 bg-white/70 backdrop-blur-sm rounded-3xl focus:ring-2 focus:ring-[#cb6ce6]/40 focus:outline-none transition-all duration-500 text-gray-700 shadow-inner ring-1 ring-white/20 text-lg"
               />
             </div>
           </CardContent>
         </Card>
 
-        <div className="flex justify-center pt-8">
+        <div className="flex justify-center pt-12">
           <Button
             type="submit"
             disabled={isAnalyzing || isValidating}
-            className="relative px-12 py-6 bg-gradient-to-r from-[#cb6ce6] to-[#9c4bc7] text-white text-lg font-semibold rounded-2xl shadow-2xl shadow-purple-500/25 hover:shadow-3xl hover:shadow-purple-500/40 transform hover:scale-105 transition-all duration-300 border-0 disabled:opacity-50 disabled:transform-none"
+            className="relative px-16 py-8 bg-gradient-to-r from-[#cb6ce6] via-[#b84fd9] to-[#9c4bc7] text-white text-xl font-medium rounded-3xl shadow-2xl shadow-purple-500/30 hover:shadow-3xl hover:shadow-purple-500/40 transform hover:scale-[1.02] transition-all duration-500 border-0 disabled:opacity-50 disabled:transform-none ring-1 ring-white/20 backdrop-blur-sm"
           >
             {isAnalyzing ? (
               <>
-                <Brain className="h-6 w-6 mr-3 animate-pulse" />
+                <Brain className="h-7 w-7 mr-4 animate-pulse" />
                 Analyzing Prescription...
               </>
             ) : isValidating ? (
               <>
-                <Search className="h-6 w-6 mr-3 animate-pulse" />
+                <Search className="h-7 w-7 mr-4 animate-pulse" />
                 Validating Results...
               </>
             ) : (
               <>
-                <Zap className="h-6 w-6 mr-3" />
+                <Zap className="h-7 w-7 mr-4" />
                 Analyze with AI
               </>
             )}
             
-            <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent rounded-2xl opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-white/10 via-white/5 to-transparent rounded-3xl opacity-0 hover:opacity-100 transition-opacity duration-500"></div>
           </Button>
         </div>
       </form>
