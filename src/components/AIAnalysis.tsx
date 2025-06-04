@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Brain, AlertTriangle, CheckCircle, Info, Shield, Pill, ArrowRight, Sparkles } from 'lucide-react';
@@ -90,32 +89,34 @@ const AIAnalysis = ({ analysis, prescriptionData }: AIAnalysisProps) => {
   };
 
   return (
-    <div className="space-y-8">
-      {/* Header Card with Export */}
+    <div className="space-y-6 lg:space-y-8 p-4 lg:p-0">
+      {/* Header Card with Export - Mobile optimized */}
       <Card className="border-0 bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 shadow-xl">
         <CardHeader className="pb-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <CardTitle className="flex items-center space-x-3">
-              <div className="p-2 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl">
-                <Brain className="h-6 w-6 text-white" />
+              <div className="p-2 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex-shrink-0">
+                <Brain className="h-5 w-5 lg:h-6 lg:w-6 text-white" />
               </div>
-              <div>
-                <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              <div className="min-w-0">
+                <span className="text-xl lg:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent block">
                   AI Analysis Results
                 </span>
                 <div className="flex items-center mt-1">
-                  <Sparkles className="h-4 w-4 text-purple-500 mr-1" />
-                  <span className="text-sm text-slate-600">Powered by Advanced AI</span>
+                  <Sparkles className="h-3 w-3 lg:h-4 lg:w-4 text-purple-500 mr-1 flex-shrink-0" />
+                  <span className="text-xs lg:text-sm text-slate-600">Powered by Advanced AI</span>
                 </div>
               </div>
             </CardTitle>
-            <PDFExport prescriptionData={prescriptionData} analysis={analysis} />
+            <div className="flex-shrink-0 w-full sm:w-auto">
+              <PDFExport prescriptionData={prescriptionData} analysis={analysis} />
+            </div>
           </div>
         </CardHeader>
         <CardContent>
-          <div className={`inline-flex items-center space-x-3 px-6 py-3 rounded-2xl border-2 shadow-lg ${getRiskColor(analysis.overallRisk)}`}>
+          <div className={`inline-flex items-center space-x-3 px-4 lg:px-6 py-3 rounded-2xl border-2 shadow-lg w-full sm:w-auto justify-center sm:justify-start ${getRiskColor(analysis.overallRisk)}`}>
             {getRiskIcon(analysis.overallRisk)}
-            <span className="font-bold text-lg">Overall Risk Level: {analysis.overallRisk}</span>
+            <span className="font-bold text-base lg:text-lg">Overall Risk Level: {analysis.overallRisk}</span>
           </div>
         </CardContent>
       </Card>
@@ -125,10 +126,10 @@ const AIAnalysis = ({ analysis, prescriptionData }: AIAnalysisProps) => {
         <Card className="border-0 bg-gradient-to-br from-blue-50 to-cyan-50 shadow-lg hover:shadow-xl transition-all duration-300">
           <CardHeader>
             <CardTitle className="flex items-center space-x-3">
-              <div className="p-2 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl">
-                <ArrowRight className="h-5 w-5 text-white" />
+              <div className="p-2 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex-shrink-0">
+                <ArrowRight className="h-4 w-4 lg:h-5 lg:w-5 text-white" />
               </div>
-              <span className="text-xl font-bold text-slate-800">Medicine Name Resolution</span>
+              <span className="text-lg lg:text-xl font-bold text-slate-800">Medicine Name Resolution</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -136,21 +137,21 @@ const AIAnalysis = ({ analysis, prescriptionData }: AIAnalysisProps) => {
               <strong>Analysis Note:</strong> AI analysis was performed using generic drug names for medical accuracy.
             </div>
             {analysis.medicationResolutions.map((resolution, index) => (
-              <div key={index} className="flex items-center space-x-4 p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-blue-200 shadow-sm hover:shadow-md transition-all duration-200">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-3">
-                    <span className="font-medium text-slate-700 px-3 py-1 bg-slate-100 rounded-lg">{resolution.originalName}</span>
-                    <ArrowRight className="h-4 w-4 text-blue-600" />
-                    <span className="font-bold text-blue-900 px-3 py-1 bg-blue-100 rounded-lg">{resolution.genericName}</span>
+              <div key={index} className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-blue-200 shadow-sm hover:shadow-md transition-all duration-200">
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
+                    <span className="font-medium text-slate-700 px-3 py-1 bg-slate-100 rounded-lg text-sm break-words">{resolution.originalName}</span>
+                    <ArrowRight className="h-4 w-4 text-blue-600 self-center sm:self-auto" />
+                    <span className="font-bold text-blue-900 px-3 py-1 bg-blue-100 rounded-lg text-sm break-words">{resolution.genericName}</span>
                   </div>
                   {resolution.activeIngredients && resolution.activeIngredients.length > 0 && (
-                    <div className="text-sm text-slate-600 mt-2 ml-1">
+                    <div className="text-xs lg:text-sm text-slate-600 mt-2 ml-1 break-words">
                       <span className="font-medium">Active:</span> {resolution.activeIngredients.join(', ')}
                     </div>
                   )}
                 </div>
                 {resolution.confidence && (
-                  <div className={`px-3 py-2 rounded-xl text-sm font-medium shadow-sm ${
+                  <div className={`px-3 py-2 rounded-xl text-xs lg:text-sm font-medium shadow-sm flex-shrink-0 text-center ${
                     resolution.confidence >= 0.7 ? 'bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-800 border border-emerald-200' : 
                     resolution.confidence >= 0.4 ? 'bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-800 border border-amber-200' : 
                     'bg-gradient-to-r from-red-100 to-rose-100 text-red-800 border border-red-200'
@@ -169,32 +170,32 @@ const AIAnalysis = ({ analysis, prescriptionData }: AIAnalysisProps) => {
         <Card className="border-0 bg-gradient-to-br from-orange-50 to-amber-50 shadow-lg hover:shadow-xl transition-all duration-300">
           <CardHeader>
             <CardTitle className="flex items-center space-x-3">
-              <div className="p-2 bg-gradient-to-br from-orange-500 to-amber-500 rounded-xl">
-                <Pill className="h-5 w-5 text-white" />
+              <div className="p-2 bg-gradient-to-br from-orange-500 to-amber-500 rounded-xl flex-shrink-0">
+                <Pill className="h-4 w-4 lg:h-5 lg:w-5 text-white" />
               </div>
-              <span className="text-xl font-bold text-slate-800">Alternative Medications Recommended</span>
+              <span className="text-lg lg:text-xl font-bold text-slate-800">Alternative Medications Recommended</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             {analysis.alternatives.map((alternative, index) => (
-              <div key={index} className={`p-6 rounded-2xl border-2 shadow-lg ${getRiskColor(alternative.riskLevel)}`}>
-                <div className="flex items-center space-x-3 mb-4">
+              <div key={index} className={`p-4 lg:p-6 rounded-2xl border-2 shadow-lg ${getRiskColor(alternative.riskLevel)}`}>
+                <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-3 mb-4">
                   {getRiskIcon(alternative.riskLevel)}
-                  <span className="font-bold text-xl">
+                  <span className="font-bold text-lg lg:text-xl break-words">
                     Replace: {alternative.originalMedication}
                   </span>
-                  <span className={`px-3 py-1 rounded-full text-sm font-bold shadow-sm ${getRiskColor(alternative.riskLevel)}`}>
+                  <span className={`px-3 py-1 rounded-full text-xs lg:text-sm font-bold shadow-sm self-start sm:self-auto ${getRiskColor(alternative.riskLevel)}`}>
                     {alternative.riskLevel} Risk
                   </span>
                 </div>
                 
                 <div className="mb-4">
-                  <h4 className="font-bold text-slate-900 mb-3 text-lg">Recommended Alternatives:</h4>
-                  <div className="flex flex-wrap gap-3">
+                  <h4 className="font-bold text-slate-900 mb-3 text-base lg:text-lg">Recommended Alternatives:</h4>
+                  <div className="flex flex-wrap gap-2 lg:gap-3">
                     {alternative.alternativeMedicines.map((medicine, medIndex) => (
                       <span 
                         key={medIndex}
-                        className="bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-800 px-4 py-2 rounded-full text-sm font-bold border border-emerald-200 shadow-sm hover:shadow-md transition-all duration-200"
+                        className="bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-800 px-3 lg:px-4 py-2 rounded-full text-xs lg:text-sm font-bold border border-emerald-200 shadow-sm hover:shadow-md transition-all duration-200 break-words"
                       >
                         {medicine}
                       </span>
@@ -202,7 +203,7 @@ const AIAnalysis = ({ analysis, prescriptionData }: AIAnalysisProps) => {
                   </div>
                 </div>
                 
-                <div className="text-sm text-slate-700 bg-white/80 backdrop-blur-sm p-4 rounded-xl border-l-4 border-blue-500 shadow-sm">
+                <div className="text-xs lg:text-sm text-slate-700 bg-white/80 backdrop-blur-sm p-4 rounded-xl border-l-4 border-blue-500 shadow-sm">
                   <strong className="text-blue-700">Reasoning:</strong> {alternative.reasoning}
                 </div>
               </div>
@@ -211,29 +212,31 @@ const AIAnalysis = ({ analysis, prescriptionData }: AIAnalysisProps) => {
         </Card>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {/* Rest of the analysis sections with improved mobile layout */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 lg:gap-8">
+        {/* Drug Interactions */}
         <Card className="border-0 bg-gradient-to-br from-orange-50 to-red-50 shadow-lg hover:shadow-xl transition-all duration-300">
           <CardHeader>
             <CardTitle className="flex items-center space-x-3">
-              <div className="p-2 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl">
-                <AlertTriangle className="h-5 w-5 text-white" />
+              <div className="p-2 bg-gradient-to-br from-orange-500 to-red-500 rounded-xl flex-shrink-0">
+                <AlertTriangle className="h-4 w-4 lg:h-5 lg:w-5 text-white" />
               </div>
-              <span className="text-xl font-bold text-slate-800">Drug Interactions</span>
+              <span className="text-lg lg:text-xl font-bold text-slate-800">Drug Interactions</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {analysis.drugInteractions.length > 0 ? (
               analysis.drugInteractions.map((interaction, index) => (
                 <div key={index} className={`p-4 rounded-xl border-2 shadow-sm ${getRiskColor(interaction.severity)}`}>
-                  <div className="flex items-center justify-between mb-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-3">
                     <div className="flex items-center space-x-2">
                       {getRiskIcon(interaction.severity)}
-                      <span className="font-bold text-lg">{interaction.severity} Risk</span>
+                      <span className="font-bold text-base lg:text-lg">{interaction.severity} Risk</span>
                     </div>
                     {getValidationBadge(interaction)}
                   </div>
                   <div className="text-sm">
-                    <div className="font-bold mb-2 text-slate-800">Medications: {interaction.medications.join(' + ')}</div>
+                    <div className="font-bold mb-2 text-slate-800 break-words">Medications: {interaction.medications.join(' + ')}</div>
                     <div className="mb-2">{interaction.description}</div>
                     {interaction.additionalInfo && (
                       <div className="mt-3 p-3 bg-white/70 rounded-lg text-xs border border-slate-200">
@@ -267,20 +270,21 @@ const AIAnalysis = ({ analysis, prescriptionData }: AIAnalysisProps) => {
               ))
             ) : (
               <div className="text-emerald-700 text-sm flex items-center space-x-2 p-4 bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl border border-emerald-200">
-                <CheckCircle className="h-5 w-5" />
+                <CheckCircle className="h-5 w-5 flex-shrink-0" />
                 <span className="font-medium">No significant drug interactions detected</span>
               </div>
             )}
           </CardContent>
         </Card>
 
+        {/* Adverse Reactions */}
         <Card className="border-0 bg-gradient-to-br from-purple-50 to-indigo-50 shadow-lg hover:shadow-xl transition-all duration-300">
           <CardHeader>
             <CardTitle className="flex items-center space-x-3">
-              <div className="p-2 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-xl">
-                <Shield className="h-5 w-5 text-white" />
+              <div className="p-2 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-xl flex-shrink-0">
+                <Shield className="h-4 w-4 lg:h-5 lg:w-5 text-white" />
               </div>
-              <span className="text-xl font-bold text-slate-800">Adverse Reactions</span>
+              <span className="text-lg lg:text-xl font-bold text-slate-800">Adverse Reactions</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -289,17 +293,17 @@ const AIAnalysis = ({ analysis, prescriptionData }: AIAnalysisProps) => {
                 <div key={index} className={`p-4 rounded-xl border-2 shadow-sm ${getRiskColor(reaction.likelihood)}`}>
                   <div className="flex items-center space-x-2 mb-3">
                     {getRiskIcon(reaction.likelihood)}
-                    <span className="font-bold text-lg">{reaction.medication}</span>
+                    <span className="font-bold text-base lg:text-lg break-words">{reaction.medication}</span>
                   </div>
                   <div className="text-sm">
-                    <div className="font-bold mb-1 text-slate-800">Potential Reaction: {reaction.reaction}</div>
+                    <div className="font-bold mb-1 text-slate-800 break-words">Potential Reaction: {reaction.reaction}</div>
                     <div className="text-slate-600">{reaction.patientRisk}</div>
                   </div>
                 </div>
               ))
             ) : (
               <div className="text-emerald-700 text-sm flex items-center space-x-2 p-4 bg-gradient-to-r from-emerald-50 to-green-50 rounded-xl border border-emerald-200">
-                <CheckCircle className="h-5 w-5" />
+                <CheckCircle className="h-5 w-5 flex-shrink-0" />
                 <span className="font-medium">No adverse reactions identified for this patient profile</span>
               </div>
             )}
@@ -307,39 +311,41 @@ const AIAnalysis = ({ analysis, prescriptionData }: AIAnalysisProps) => {
         </Card>
       </div>
 
+      {/* Dosage Validation */}
       <Card className="border-0 bg-gradient-to-br from-green-50 to-emerald-50 shadow-lg hover:shadow-xl transition-all duration-300">
         <CardHeader>
           <CardTitle className="flex items-center space-x-3">
-            <div className="p-2 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl">
-              <CheckCircle className="h-5 w-5 text-white" />
+            <div className="p-2 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex-shrink-0">
+              <CheckCircle className="h-4 w-4 lg:h-5 lg:w-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-slate-800">Dosage Validation</span>
+            <span className="text-lg lg:text-xl font-bold text-slate-800">Dosage Validation</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {analysis.dosageValidation.map((validation, index) => (
             <div key={index} className="p-4 bg-white/80 backdrop-blur-sm rounded-xl border border-slate-200 shadow-sm">
-              <div className="flex items-center justify-between mb-2">
-                <span className="font-bold text-lg text-slate-800">{validation.medication}</span>
-                <span className={`px-3 py-1 rounded-full text-sm font-bold ${
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+                <span className="font-bold text-base lg:text-lg text-slate-800 break-words">{validation.medication}</span>
+                <span className={`px-3 py-1 rounded-full text-xs lg:text-sm font-bold self-start sm:self-auto ${
                   validation.status === 'Appropriate' ? 'bg-gradient-to-r from-emerald-100 to-green-100 text-emerald-800 border border-emerald-200' : 'bg-gradient-to-r from-amber-100 to-yellow-100 text-amber-800 border border-amber-200'
                 }`}>
                   {validation.status}
                 </span>
               </div>
-              <div className="text-sm text-slate-600">{validation.recommendation}</div>
+              <div className="text-xs lg:text-sm text-slate-600">{validation.recommendation}</div>
             </div>
           ))}
         </CardContent>
       </Card>
 
+      {/* Recommendations */}
       <Card className="border-0 bg-gradient-to-br from-blue-50 to-indigo-50 shadow-lg hover:shadow-xl transition-all duration-300">
         <CardHeader>
           <CardTitle className="flex items-center space-x-3">
-            <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-xl">
-              <Info className="h-5 w-5 text-white" />
+            <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-xl flex-shrink-0">
+              <Info className="h-4 w-4 lg:h-5 lg:w-5 text-white" />
             </div>
-            <span className="text-xl font-bold text-slate-800">Recommendations</span>
+            <span className="text-lg lg:text-xl font-bold text-slate-800">Recommendations</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -347,7 +353,7 @@ const AIAnalysis = ({ analysis, prescriptionData }: AIAnalysisProps) => {
             {analysis.recommendations.map((recommendation, index) => (
               <li key={index} className="flex items-start space-x-3 p-3 bg-white/70 rounded-xl border border-blue-200 hover:bg-white/90 transition-all duration-200">
                 <div className="w-2 h-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full mt-2 flex-shrink-0"></div>
-                <span className="text-slate-700 font-medium">{recommendation}</span>
+                <span className="text-slate-700 font-medium text-sm lg:text-base">{recommendation}</span>
               </li>
             ))}
           </ul>
