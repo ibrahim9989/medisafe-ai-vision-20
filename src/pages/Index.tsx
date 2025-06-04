@@ -23,18 +23,18 @@ const Index = () => {
         <div className="hidden lg:block absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-gradient-to-r from-[#cb6ce6]/1 to-purple-400/1 rounded-full blur-3xl opacity-30"></div>
       </div>
 
-      {/* Mobile AI Status - Fixed position for mobile */}
-      <div className="fixed top-20 right-4 z-40 lg:top-32 lg:right-8">
+      {/* AI Status - Better positioned */}
+      <div className="fixed top-24 right-4 z-40 lg:top-32 lg:right-8">
         <div className="relative group">
-          <div className="absolute inset-0 bg-gradient-to-r from-[#cb6ce6]/20 to-purple-400/20 rounded-2xl lg:rounded-3xl blur-lg lg:blur-xl opacity-60 group-hover:opacity-80 transition-all duration-700"></div>
-          <div className="relative bg-white/80 backdrop-blur-3xl border border-white/40 rounded-2xl lg:rounded-3xl p-3 lg:p-6 shadow-xl lg:shadow-2xl shadow-purple-500/15 lg:shadow-purple-500/10 ring-1 ring-white/30 hover:shadow-purple-500/25 lg:hover:shadow-purple-500/20 transition-all duration-700 hover:scale-105">
-            <div className="flex items-center space-x-2 lg:space-x-3">
+          <div className="absolute inset-0 bg-gradient-to-r from-[#cb6ce6]/20 to-purple-400/20 rounded-xl lg:rounded-2xl blur-lg opacity-60 group-hover:opacity-80 transition-all duration-700"></div>
+          <div className="relative bg-white/80 backdrop-blur-3xl border border-white/40 rounded-xl lg:rounded-2xl p-2 lg:p-4 shadow-lg lg:shadow-xl shadow-purple-500/15 ring-1 ring-white/30 hover:shadow-purple-500/25 transition-all duration-700 hover:scale-105">
+            <div className="flex items-center space-x-2">
               <div className="relative">
                 <div className="w-2 h-2 lg:w-3 lg:h-3 bg-gradient-to-r from-[#cb6ce6] to-[#9c4bc7] rounded-full animate-pulse"></div>
                 <div className="absolute inset-0 w-2 h-2 lg:w-3 lg:h-3 bg-gradient-to-r from-[#cb6ce6] to-[#9c4bc7] rounded-full animate-ping opacity-30"></div>
               </div>
               <div className="hidden lg:block">
-                <p className="text-sm font-medium text-gray-700">AI Status</p>
+                <p className="text-xs font-medium text-gray-700">AI Status</p>
                 <p className="text-xs text-gray-500">Analysis Ready</p>
               </div>
               <div className="lg:hidden">
