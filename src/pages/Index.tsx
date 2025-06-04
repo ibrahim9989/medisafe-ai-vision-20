@@ -6,15 +6,20 @@ import { Sparkles } from 'lucide-react';
 
 const Index = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50/50 via-white to-purple-50/20 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-stone-50/80 via-amber-50/30 to-purple-50/20 relative overflow-hidden">
       <Header />
       
-      {/* Ultra-premium background with animated elements */}
+      {/* Ultra-premium background with animated elements and plus grid pattern */}
       <div className="fixed inset-0 pointer-events-none">
-        {/* Subtle dot pattern overlay */}
-        <div className="absolute inset-0 opacity-[0.015]" style={{
-          backgroundImage: `radial-gradient(circle at 1px 1px, #cb6ce6 1px, transparent 0)`,
-          backgroundSize: '32px 32px'
+        {/* Plus sign grid pattern overlay */}
+        <div className="absolute inset-0 opacity-[0.04]" style={{
+          backgroundImage: `
+            linear-gradient(to right, #8b7355 1px, transparent 1px),
+            linear-gradient(to bottom, #8b7355 1px, transparent 1px),
+            linear-gradient(to right, transparent 10px, #8b7355 11px, #8b7355 13px, transparent 14px),
+            linear-gradient(to bottom, transparent 10px, #8b7355 11px, #8b7355 13px, transparent 14px)
+          `,
+          backgroundSize: '24px 24px, 24px 24px, 24px 24px, 24px 24px'
         }}></div>
         
         {/* Floating orbs with ultra-subtle animation - hidden on mobile */}
