@@ -27,7 +27,7 @@ const MedicineResolutionCard = ({ medicineName, resolution }: MedicineResolution
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
           <h4 className="text-lg font-semibold text-gray-900 break-words">
-            {resolution.resolvedName || medicineName}
+            {resolution.genericName || resolution.originalName || medicineName}
           </h4>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
@@ -40,11 +40,11 @@ const MedicineResolutionCard = ({ medicineName, resolution }: MedicineResolution
         </div>
       </div>
 
-      {/* Description Box */}
-      {resolution.description && (
+      {/* Brand Names */}
+      {resolution.brandNames && resolution.brandNames.length > 1 && (
         <div className="bg-blue-50/80 backdrop-blur-sm border border-blue-100 rounded-lg p-3">
           <p className="text-sm text-blue-800 leading-relaxed">
-            {resolution.description}
+            <span className="font-medium">Brand names:</span> {resolution.brandNames.filter(name => name !== resolution.originalName).join(', ')}
           </p>
         </div>
       )}
@@ -59,12 +59,12 @@ const MedicineResolutionCard = ({ medicineName, resolution }: MedicineResolution
         </div>
       )}
 
-      {/* Uses */}
-      {resolution.uses && resolution.uses.length > 0 && (
+      {/* Generic Name (if different from original) */}
+      {resolution.genericName && resolution.genericName !== resolution.originalName && (
         <div className="space-y-2">
-          <p className="text-sm font-medium text-gray-700">Common Uses:</p>
+          <p className="text-sm font-medium text-gray-700">Generic Name:</p>
           <p className="text-sm text-gray-600 leading-relaxed">
-            {resolution.uses.join(', ')}
+            {resolution.genericName}
           </p>
         </div>
       )}
