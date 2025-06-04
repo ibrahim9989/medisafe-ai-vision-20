@@ -1,8 +1,7 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Brain, CheckCircle, Search, Sparkles } from 'lucide-react';
+import { AlertCircle, Brain, CheckCircle, Search, Sparkles, Zap } from 'lucide-react';
 import PatientInfo from './PatientInfo';
 import MedicationList from './MedicationList';
 import VitalSigns from './VitalSigns';
@@ -48,7 +47,6 @@ const PrescriptionForm = () => {
   const [isValidating, setIsValidating] = useState(false);
 
   const analyzePrescriptionWithLyzr = async (data: PrescriptionData) => {
-    // Resolve medicine names first
     console.log('Resolving medicine names...');
     const resolvedMedications = await Promise.all(
       data.medications
@@ -79,12 +77,10 @@ const PrescriptionForm = () => {
         })
     );
 
-    // CRITICAL FIX: Use generic names for AI analysis instead of original names
     const medicationDetails = resolvedMedications
       .map(med => `${med.genericName} (originally entered as: ${med.originalName}) - ${med.dosage} ${med.frequency} for ${med.duration}`)
       .join(', ');
 
-    // Log what we're sending to AI for debugging
     console.log('Medications being sent to AI analysis:', resolvedMedications.map(med => ({
       generic: med.genericName,
       original: med.originalName,
@@ -154,7 +150,6 @@ Format the response as JSON with the following structure:
       const result = await response.json();
       console.log('Lyzr API Response:', result);
 
-      // Parse the AI response and extract the analysis
       let analysisData;
       try {
         const messageContent = result.response || result.message || result.content || '';
@@ -164,7 +159,6 @@ Format the response as JSON with the following structure:
         analysisData = generateMockAnalysis(data, resolvedMedications);
       }
 
-      // Add medication resolution data to the analysis
       analysisData.medicationResolutions = resolvedMedications.map(med => ({
         originalName: med.originalName,
         genericName: med.genericName,
@@ -172,7 +166,6 @@ Format the response as JSON with the following structure:
         confidence: med.confidence
       }));
 
-      // Validate the analysis with Tavily
       if (analysisData.drugInteractions && analysisData.drugInteractions.length > 0) {
         console.log('Validating drug interactions...');
         setIsValidating(true);
@@ -209,17 +202,14 @@ Format the response as JSON with the following structure:
   };
 
   const generateMockAnalysis = (data: PrescriptionData, resolvedMedications: any[]) => {
-    // Use generic names for analysis instead of original names
     const genericNames = resolvedMedications.map(med => med.genericName.toLowerCase());
 
     console.log('Generating mock analysis for generic medications:', genericNames);
 
-    // Define known drug interactions and adverse reactions based on GENERIC medications
     const drugInteractions = [];
     const adverseReactions = [];
     const alternatives = [];
 
-    // Check each GENERIC medication for known issues and alternatives
     genericNames.forEach((genericName, index) => {
       const originalMed = resolvedMedications[index];
       
@@ -272,7 +262,6 @@ Format the response as JSON with the following structure:
       }
     });
 
-    // Check for interactions between specific GENERIC medication pairs
     const hasAmoxicillin = genericNames.some(name => name.includes('amoxicillin'));
     const hasVerapamil = genericNames.some(name => name.includes('verapamil'));
     const hasDigoxin = genericNames.some(name => name.includes('digoxin'));
@@ -293,14 +282,12 @@ Format the response as JSON with the following structure:
       });
     }
 
-    // Generate dosage validation based on generic names
     const dosageValidation = resolvedMedications.map(med => ({
       medication: med.genericName,
       status: 'Appropriate',
       recommendation: `Dosage of ${med.dosage} ${med.frequency} appears within normal range for ${med.genericName}`
     }));
 
-    // Determine overall risk
     let overallRisk = 'Low';
     if (drugInteractions.some(interaction => interaction.severity === 'High') || 
         alternatives.some(alt => alt.riskLevel === 'High')) {
@@ -340,7 +327,6 @@ Format the response as JSON with the following structure:
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Basic validation
     if (!prescriptionData.patientName || !prescriptionData.doctorName) {
       toast({
         title: "Validation Error",
@@ -381,17 +367,21 @@ Format the response as JSON with the following structure:
   };
 
   return (
-    <div className="space-y-8">
-      <form onSubmit={handleSubmit} className="space-y-8">
+    <div className="space-y-12">
+      <form onSubmit={handleSubmit} className="space-y-12">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          <PatientInfo 
-            data={prescriptionData} 
-            onChange={setPrescriptionData} 
-          />
-          <VitalSigns 
-            data={prescriptionData} 
-            onChange={setPrescriptionData} 
-          />
+          <div className="space-y-8">
+            <PatientInfo 
+              data={prescriptionData} 
+              onChange={setPrescriptionData} 
+            />
+          </div>
+          <div className="space-y-8">
+            <VitalSigns 
+              data={prescriptionData} 
+              onChange={setPrescriptionData} 
+            />
+          </div>
         </div>
         
         <EnhancedMedicationList 
@@ -399,19 +389,19 @@ Format the response as JSON with the following structure:
           onChange={setPrescriptionData} 
         />
 
-        <Card className="border-0 bg-gradient-to-br from-slate-50 to-gray-100 shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-3">
-              <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-xl">
-                <AlertCircle className="h-5 w-5 text-white" />
+        <Card className="border-0 bg-white/40 backdrop-blur-xl shadow-xl shadow-gray-500/10 rounded-2xl">
+          <CardHeader className="pb-6">
+            <CardTitle className="flex items-center space-x-4">
+              <div className="p-3 bg-gradient-to-r from-[#cb6ce6] to-[#9c4bc7] rounded-2xl shadow-lg shadow-purple-500/25">
+                <AlertCircle className="h-6 w-6 text-white" />
               </div>
-              <span className="text-xl font-bold text-slate-800">Additional Notes</span>
+              <span className="text-2xl font-semibold text-gray-900 tracking-tight">Clinical Notes</span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-8">
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">
-                Clinical Notes
+              <label className="block text-base font-semibold text-gray-900 mb-3">
+                Additional Observations
               </label>
               <textarea
                 value={prescriptionData.notes}
@@ -419,14 +409,14 @@ Format the response as JSON with the following structure:
                   ...prescriptionData,
                   notes: e.target.value
                 })}
-                className="w-full p-4 border-2 border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 bg-white/80 backdrop-blur-sm"
-                rows={3}
-                placeholder="Additional clinical observations, patient concerns, etc."
+                className="w-full p-6 border-0 bg-white/60 backdrop-blur-sm rounded-2xl focus:ring-2 focus:ring-[#cb6ce6]/50 focus:outline-none transition-all duration-300 text-gray-700 placeholder-gray-400 shadow-inner"
+                rows={4}
+                placeholder="Clinical observations, patient concerns, or additional notes..."
               />
             </div>
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">
-                Follow-up Date
+              <label className="block text-base font-semibold text-gray-900 mb-3">
+                Follow-up Appointment
               </label>
               <input
                 type="date"
@@ -435,17 +425,17 @@ Format the response as JSON with the following structure:
                   ...prescriptionData,
                   followUpDate: e.target.value
                 })}
-                className="w-full p-4 border-2 border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 bg-white/80 backdrop-blur-sm"
+                className="w-full p-6 border-0 bg-white/60 backdrop-blur-sm rounded-2xl focus:ring-2 focus:ring-[#cb6ce6]/50 focus:outline-none transition-all duration-300 text-gray-700 shadow-inner"
               />
             </div>
           </CardContent>
         </Card>
 
-        <div className="flex justify-center">
+        <div className="flex justify-center pt-8">
           <Button
             type="submit"
             disabled={isAnalyzing || isValidating}
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-12 py-4 text-lg font-bold rounded-2xl shadow-2xl hover:shadow-3xl transform hover:scale-105 transition-all duration-300"
+            className="relative px-12 py-6 bg-gradient-to-r from-[#cb6ce6] to-[#9c4bc7] text-white text-lg font-semibold rounded-2xl shadow-2xl shadow-purple-500/25 hover:shadow-3xl hover:shadow-purple-500/40 transform hover:scale-105 transition-all duration-300 border-0 disabled:opacity-50 disabled:transform-none"
           >
             {isAnalyzing ? (
               <>
@@ -459,10 +449,12 @@ Format the response as JSON with the following structure:
               </>
             ) : (
               <>
-                <Sparkles className="h-6 w-6 mr-3" />
-                Analyze Prescription
+                <Zap className="h-6 w-6 mr-3" />
+                Analyze with AI
               </>
             )}
+            
+            <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent rounded-2xl opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
           </Button>
         </div>
       </form>
