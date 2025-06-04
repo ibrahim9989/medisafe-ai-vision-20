@@ -1,7 +1,8 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Brain, CheckCircle, Search } from 'lucide-react';
+import { AlertCircle, Brain, CheckCircle, Search, Sparkles } from 'lucide-react';
 import PatientInfo from './PatientInfo';
 import MedicationList from './MedicationList';
 import VitalSigns from './VitalSigns';
@@ -380,9 +381,9 @@ Format the response as JSON with the following structure:
   };
 
   return (
-    <div className="space-y-6">
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="space-y-8">
+      <form onSubmit={handleSubmit} className="space-y-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <PatientInfo 
             data={prescriptionData} 
             onChange={setPrescriptionData} 
@@ -398,16 +399,18 @@ Format the response as JSON with the following structure:
           onChange={setPrescriptionData} 
         />
 
-        <Card>
+        <Card className="border-0 bg-gradient-to-br from-slate-50 to-gray-100 shadow-lg">
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <AlertCircle className="h-5 w-5 text-blue-600" />
-              <span>Additional Notes</span>
+            <CardTitle className="flex items-center space-x-3">
+              <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-xl">
+                <AlertCircle className="h-5 w-5 text-white" />
+              </div>
+              <span className="text-xl font-bold text-slate-800">Additional Notes</span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-bold text-slate-700 mb-2">
                 Clinical Notes
               </label>
               <textarea
@@ -416,13 +419,13 @@ Format the response as JSON with the following structure:
                   ...prescriptionData,
                   notes: e.target.value
                 })}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full p-4 border-2 border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 bg-white/80 backdrop-blur-sm"
                 rows={3}
                 placeholder="Additional clinical observations, patient concerns, etc."
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-bold text-slate-700 mb-2">
                 Follow-up Date
               </label>
               <input
@@ -432,7 +435,7 @@ Format the response as JSON with the following structure:
                   ...prescriptionData,
                   followUpDate: e.target.value
                 })}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full p-4 border-2 border-slate-200 rounded-xl focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 bg-white/80 backdrop-blur-sm"
               />
             </div>
           </CardContent>
@@ -442,21 +445,21 @@ Format the response as JSON with the following structure:
           <Button
             type="submit"
             disabled={isAnalyzing || isValidating}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg font-semibold rounded-lg shadow-lg hover:shadow-xl transition-all duration-200"
+            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-12 py-4 text-lg font-bold rounded-2xl shadow-2xl hover:shadow-3xl transform hover:scale-105 transition-all duration-300"
           >
             {isAnalyzing ? (
               <>
-                <Brain className="h-5 w-5 mr-2 animate-pulse" />
+                <Brain className="h-6 w-6 mr-3 animate-pulse" />
                 Analyzing Prescription...
               </>
             ) : isValidating ? (
               <>
-                <Search className="h-5 w-5 mr-2 animate-pulse" />
+                <Search className="h-6 w-6 mr-3 animate-pulse" />
                 Validating Results...
               </>
             ) : (
               <>
-                <CheckCircle className="h-5 w-5 mr-2" />
+                <Sparkles className="h-6 w-6 mr-3" />
                 Analyze Prescription
               </>
             )}
@@ -464,7 +467,7 @@ Format the response as JSON with the following structure:
         </div>
       </form>
 
-      {analysis && <AIAnalysis analysis={analysis} />}
+      {analysis && <AIAnalysis analysis={analysis} prescriptionData={prescriptionData} />}
     </div>
   );
 };
