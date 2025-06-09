@@ -9,7 +9,131 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      ai_analysis: {
+        Row: {
+          adverse_reactions: Json | null
+          alternatives: Json | null
+          created_at: string
+          dosage_validation: Json | null
+          drug_interactions: Json | null
+          id: string
+          medication_resolutions: Json | null
+          overall_risk: string | null
+          prescription_id: string
+          recommendations: Json | null
+        }
+        Insert: {
+          adverse_reactions?: Json | null
+          alternatives?: Json | null
+          created_at?: string
+          dosage_validation?: Json | null
+          drug_interactions?: Json | null
+          id?: string
+          medication_resolutions?: Json | null
+          overall_risk?: string | null
+          prescription_id: string
+          recommendations?: Json | null
+        }
+        Update: {
+          adverse_reactions?: Json | null
+          alternatives?: Json | null
+          created_at?: string
+          dosage_validation?: Json | null
+          drug_interactions?: Json | null
+          id?: string
+          medication_resolutions?: Json | null
+          overall_risk?: string | null
+          prescription_id?: string
+          recommendations?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_analysis_prescription_id_fkey"
+            columns: ["prescription_id"]
+            isOneToOne: false
+            referencedRelation: "prescriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prescriptions: {
+        Row: {
+          age: number
+          bp: string | null
+          contact: string | null
+          created_at: string
+          doctor_name: string
+          follow_up_date: string | null
+          gender: string
+          id: string
+          medications: Json
+          notes: string | null
+          patient_name: string
+          temperature: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          age: number
+          bp?: string | null
+          contact?: string | null
+          created_at?: string
+          doctor_name: string
+          follow_up_date?: string | null
+          gender: string
+          id?: string
+          medications?: Json
+          notes?: string | null
+          patient_name: string
+          temperature?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          age?: number
+          bp?: string | null
+          contact?: string | null
+          created_at?: string
+          doctor_name?: string
+          follow_up_date?: string | null
+          gender?: string
+          id?: string
+          medications?: Json
+          notes?: string | null
+          patient_name?: string
+          temperature?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

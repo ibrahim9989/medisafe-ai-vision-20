@@ -1,8 +1,22 @@
 
 import React from 'react';
-import { Stethoscope, Menu } from 'lucide-react';
+import { Stethoscope, Menu, LogOut, User } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const Header = () => {
+  const { user, signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
+
   return (
     <header className="sticky top-0 z-50 bg-white/40 lg:bg-white/30 backdrop-blur-3xl border-b border-white/20 lg:border-white/10">
       <div className="container mx-auto px-4 lg:px-6 py-4 lg:py-8">
@@ -30,8 +44,25 @@ const Header = () => {
             </div>
           </div>
           
-          {/* Mobile navigation - only menu button */}
-          <div className="flex items-center">
+          {/* User menu */}
+          <div className="flex items-center space-x-2">
+            {user && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="bg-white/60 backdrop-blur-sm border-white/30 shadow-lg">
+                    <User className="h-4 w-4 mr-2" />
+                    <span className="hidden sm:inline">{user.email}</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="bg-white/90 backdrop-blur-xl border-white/30">
+                  <DropdownMenuItem onClick={handleSignOut} className="text-red-600 focus:text-red-700">
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            
             <button className="lg:hidden p-2 rounded-xl bg-white/60 backdrop-blur-sm border border-white/30 shadow-lg">
               <Menu className="h-5 w-5 text-gray-600" />
             </button>

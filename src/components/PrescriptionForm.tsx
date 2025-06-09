@@ -8,6 +8,7 @@ import AIAnalysis from './AIAnalysis';
 import { toast } from '@/hooks/use-toast';
 import EnhancedMedicationList from './EnhancedMedicationList';
 import { tavilyService } from '../services/tavilyService';
+import { usePrescriptions } from '@/hooks/usePrescriptions';
 
 export interface PrescriptionData {
   doctorName: string;
@@ -44,6 +45,9 @@ const PrescriptionForm = () => {
   const [analysis, setAnalysis] = useState<any>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
+  const [currentPrescriptionId, setCurrentPrescriptionId] = useState<string | null>(null);
+  
+  const { savePrescription, saveAIAnalysis } = usePrescriptions();
 
   const analyzePrescriptionWithLyzr = async (data: PrescriptionData) => {
     console.log('Resolving medicine names...');
@@ -347,12 +351,29 @@ Format the response as JSON with the following structure:
     setIsAnalyzing(true);
     
     try {
+      // Save prescription to database first
+      console.log('Saving prescription to database...');
+      const savedPrescription = await savePrescription(prescriptionData);
+      setCurrentPrescriptionId(savedPrescription.id);
+      
+      toast({
+        title: "Prescription Saved",
+        description: "Prescription has been saved successfully.",
+      });
+
+      // Then perform AI analysis
+      console.log('Starting AI analysis...');
       const analysisResult = await analyzePrescriptionWithLyzr(prescriptionData);
+      
+      // Save AI analysis to database
+      console.log('Saving AI analysis to database...');
+      await saveAIAnalysis(savedPrescription.id, analysisResult);
+      
       setAnalysis(analysisResult);
       setIsAnalyzing(false);
       toast({
         title: "Analysis Complete",
-        description: "AI analysis with medicine name resolution and validation completed.",
+        description: "AI analysis completed and saved successfully.",
       });
     } catch (error) {
       console.error('Analysis error:', error);
