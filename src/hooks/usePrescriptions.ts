@@ -48,7 +48,14 @@ export const usePrescriptions = () => {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setPrescriptions(data || []);
+      
+      // Cast the data to match our interface types
+      const typedData: Prescription[] = (data || []).map(item => ({
+        ...item,
+        medications: Array.isArray(item.medications) ? item.medications : []
+      }));
+      
+      setPrescriptions(typedData);
     } catch (error) {
       console.error('Error fetching prescriptions:', error);
       toast({
@@ -129,7 +136,21 @@ export const usePrescriptions = () => {
         .single();
 
       if (error && error.code !== 'PGRST116') throw error;
-      return data;
+      
+      if (!data) return null;
+      
+      // Cast the data to match our interface types
+      const typedData: AIAnalysisData = {
+        ...data,
+        drug_interactions: Array.isArray(data.drug_interactions) ? data.drug_interactions : [],
+        adverse_reactions: Array.isArray(data.adverse_reactions) ? data.adverse_reactions : [],
+        dosage_validation: Array.isArray(data.dosage_validation) ? data.dosage_validation : [],
+        recommendations: Array.isArray(data.recommendations) ? data.recommendations : [],
+        alternatives: Array.isArray(data.alternatives) ? data.alternatives : [],
+        medication_resolutions: Array.isArray(data.medication_resolutions) ? data.medication_resolutions : []
+      };
+      
+      return typedData;
     } catch (error) {
       console.error('Error fetching AI analysis:', error);
       return null;
