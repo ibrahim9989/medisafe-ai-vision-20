@@ -2,11 +2,11 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, Brain, Search, Zap, Stethoscope } from 'lucide-react';
-import PatientInfo from './PatientInfo';
 import VitalSigns from './VitalSigns';
 import AIAnalysis from './AIAnalysis';
 import { toast } from '@/hooks/use-toast';
 import EnhancedMedicationList from './EnhancedMedicationList';
+import EnhancedPrescriptionForm from './EnhancedPrescriptionForm';
 import { tavilyService } from '../services/tavilyService';
 import { usePrescriptions } from '@/hooks/usePrescriptions';
 
@@ -393,154 +393,153 @@ Format the response as JSON with the following structure:
   return (
     <div className="space-y-8 lg:space-y-16">
       <form onSubmit={handleSubmit} className="space-y-8 lg:space-y-16">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-12">
-          <div className="space-y-6 lg:space-y-12">
-            <PatientInfo 
-              data={prescriptionData} 
-              onChange={setPrescriptionData} 
-            />
-          </div>
-          <div className="space-y-6 lg:space-y-12">
-            <VitalSigns 
-              data={prescriptionData} 
-              onChange={setPrescriptionData} 
-            />
-          </div>
-        </div>
-        
-        {/* Diagnosis Section */}
-        <Card className="border-0 bg-white/40 backdrop-blur-xl shadow-lg shadow-gray-900/5 rounded-xl lg:rounded-2xl ring-1 ring-white/20 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-blue-50/10 rounded-xl lg:rounded-2xl pointer-events-none"></div>
-          <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
-          
-          <CardHeader className="pb-4 lg:pb-6 relative">
-            <CardTitle className="flex items-center space-x-3 lg:space-x-6">
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl opacity-20 blur-lg"></div>
-                <div className="relative p-2 lg:p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
-                  <Stethoscope className="h-4 w-4 lg:h-6 lg:w-6 text-white" />
-                </div>
-              </div>
-              <span className="text-lg lg:text-2xl xl:text-3xl font-medium text-gray-900 tracking-wide">Diagnosis</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6 lg:space-y-8 p-4 lg:p-6 pt-0 relative">
-            <div className="space-y-2">
-              <label className="block text-sm lg:text-lg font-medium text-gray-900 mb-3 tracking-wide">
-                Current Diagnosis *
-              </label>
-              <div className="relative">
-                <textarea
-                  value={prescriptionData.diagnosis}
-                  onChange={(e) => setPrescriptionData({
-                    ...prescriptionData,
-                    diagnosis: e.target.value
-                  })}
-                  className="w-full p-4 lg:p-6 border-0 bg-white/60 backdrop-blur-sm rounded-xl focus:ring-2 focus:ring-[#cb6ce6]/30 focus:outline-none transition-all duration-300 text-gray-700 placeholder-gray-400 shadow-inner ring-1 ring-white/30 text-base leading-relaxed resize-none"
-                  rows={3}
-                  placeholder="Enter the current medical diagnosis for this visit (e.g., Acute bronchitis, Type 2 diabetes mellitus, Essential hypertension)..."
-                  required
-                />
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent rounded-xl pointer-events-none"></div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <EnhancedMedicationList 
+        <EnhancedPrescriptionForm 
           data={prescriptionData} 
-          onChange={setPrescriptionData} 
-        />
-
-        <Card className="border-0 bg-white/40 backdrop-blur-xl shadow-lg shadow-gray-900/5 rounded-xl lg:rounded-2xl ring-1 ring-white/20 relative overflow-hidden">
-          {/* Ultra-subtle inner glow */}
-          <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-purple-50/10 rounded-xl lg:rounded-2xl pointer-events-none"></div>
-          <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+          onChange={setPrescriptionData}
+        >
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-12">
+            <div className="space-y-6 lg:space-y-12">
+              <VitalSigns 
+                data={prescriptionData} 
+                onChange={setPrescriptionData} 
+              />
+            </div>
+          </div>
           
-          <CardHeader className="pb-4 lg:pb-6 relative">
-            <CardTitle className="flex items-center space-x-3 lg:space-x-6">
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl opacity-20 blur-lg"></div>
-                <div className="relative p-2 lg:p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg">
-                  <AlertCircle className="h-4 w-4 lg:h-6 lg:w-6 text-white" />
+          {/* Diagnosis Section */}
+          <Card className="border-0 bg-white/40 backdrop-blur-xl shadow-lg shadow-gray-900/5 rounded-xl lg:rounded-2xl ring-1 ring-white/20 relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-blue-50/10 rounded-xl lg:rounded-2xl pointer-events-none"></div>
+            <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+            
+            <CardHeader className="pb-4 lg:pb-6 relative">
+              <CardTitle className="flex items-center space-x-3 lg:space-x-6">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl opacity-20 blur-lg"></div>
+                  <div className="relative p-2 lg:p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
+                    <Stethoscope className="h-4 w-4 lg:h-6 lg:w-6 text-white" />
+                  </div>
+                </div>
+                <span className="text-lg lg:text-2xl xl:text-3xl font-medium text-gray-900 tracking-wide">Diagnosis</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6 lg:space-y-8 p-4 lg:p-6 pt-0 relative">
+              <div className="space-y-2">
+                <label className="block text-sm lg:text-lg font-medium text-gray-900 mb-3 tracking-wide">
+                  Current Diagnosis *
+                </label>
+                <div className="relative">
+                  <textarea
+                    value={prescriptionData.diagnosis}
+                    onChange={(e) => setPrescriptionData({
+                      ...prescriptionData,
+                      diagnosis: e.target.value
+                    })}
+                    className="w-full p-4 lg:p-6 border-0 bg-white/60 backdrop-blur-sm rounded-xl focus:ring-2 focus:ring-[#cb6ce6]/30 focus:outline-none transition-all duration-300 text-gray-700 placeholder-gray-400 shadow-inner ring-1 ring-white/30 text-base leading-relaxed resize-none"
+                    rows={3}
+                    placeholder="Enter the current medical diagnosis for this visit (e.g., Acute bronchitis, Type 2 diabetes mellitus, Essential hypertension)..."
+                    required
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent rounded-xl pointer-events-none"></div>
                 </div>
               </div>
-              <span className="text-lg lg:text-2xl xl:text-3xl font-medium text-gray-900 tracking-wide">Clinical Notes & Underlying Conditions</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6 lg:space-y-8 p-4 lg:p-6 pt-0 relative">
-            <div className="space-y-2">
-              <label className="block text-sm lg:text-lg font-medium text-gray-900 mb-3 tracking-wide">
-                Underlying Medical Conditions & Additional Observations
-              </label>
-              <div className="relative">
-                <textarea
-                  value={prescriptionData.notes}
-                  onChange={(e) => setPrescriptionData({
-                    ...prescriptionData,
-                    notes: e.target.value
-                  })}
-                  className="w-full p-4 lg:p-6 border-0 bg-white/60 backdrop-blur-sm rounded-xl focus:ring-2 focus:ring-[#cb6ce6]/30 focus:outline-none transition-all duration-300 text-gray-700 placeholder-gray-400 shadow-inner ring-1 ring-white/30 text-base leading-relaxed resize-none"
-                  rows={4}
-                  placeholder="Enter underlying conditions (e.g., hypertension, diabetes), patient concerns, allergies, or additional clinical observations..."
-                />
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent rounded-xl pointer-events-none"></div>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <label className="block text-sm lg:text-lg font-medium text-gray-900 mb-3 tracking-wide">
-                Follow-up Appointment
-              </label>
-              <div className="relative">
-                <input
-                  type="date"
-                  value={prescriptionData.followUpDate}
-                  onChange={(e) => setPrescriptionData({
-                    ...prescriptionData,
-                    followUpDate: e.target.value
-                  })}
-                  className="w-full p-4 lg:p-6 border-0 bg-white/60 backdrop-blur-sm rounded-xl focus:ring-2 focus:ring-[#cb6ce6]/30 focus:outline-none transition-all duration-300 text-gray-700 shadow-inner ring-1 ring-white/30 text-base"
-                />
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent rounded-xl pointer-events-none"></div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+          
+          <EnhancedMedicationList 
+            data={prescriptionData} 
+            onChange={setPrescriptionData} 
+          />
 
-        <div className="flex justify-center pt-8 lg:pt-12">
-          <div className="relative group w-full max-w-md lg:max-w-lg">
-            {/* Multi-layered glow effect */}
-            <div className="absolute inset-0 bg-gradient-to-r from-[#cb6ce6] via-[#b84fd9] to-[#9c4bc7] rounded-xl lg:rounded-2xl blur-xl lg:blur-2xl opacity-30 group-hover:opacity-50 transition-all duration-700 transform scale-105 lg:scale-110"></div>
-            <div className="absolute inset-0 bg-gradient-to-r from-[#cb6ce6] via-[#b84fd9] to-[#9c4bc7] rounded-xl lg:rounded-2xl blur-lg opacity-40 group-hover:opacity-60 transition-all duration-700 transform scale-102 lg:scale-105"></div>
+          <Card className="border-0 bg-white/40 backdrop-blur-xl shadow-lg shadow-gray-900/5 rounded-xl lg:rounded-2xl ring-1 ring-white/20 relative overflow-hidden">
+            {/* Ultra-subtle inner glow */}
+            <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-purple-50/10 rounded-xl lg:rounded-2xl pointer-events-none"></div>
+            <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
             
-            <Button
-              type="submit"
-              disabled={isAnalyzing || isValidating}
-              className="relative w-full px-8 lg:px-16 py-4 lg:py-6 bg-gradient-to-r from-[#cb6ce6] via-[#b84fd9] to-[#9c4bc7] text-white text-base lg:text-lg xl:text-xl font-medium rounded-xl lg:rounded-2xl shadow-xl lg:shadow-2xl shadow-purple-500/25 hover:shadow-2xl lg:hover:shadow-3xl hover:shadow-purple-500/35 transform hover:scale-[1.02] transition-all duration-700 border-0 disabled:opacity-50 disabled:transform-none ring-1 ring-white/20 backdrop-blur-sm tracking-wide min-h-[48px] lg:min-h-[64px]"
-            >
-              {isAnalyzing ? (
-                <>
-                  <Brain className="h-5 w-5 lg:h-6 lg:w-6 mr-3 lg:mr-4 animate-pulse" />
-                  Analyzing Prescription...
-                </>
-              ) : isValidating ? (
-                <>
-                  <Search className="h-5 w-5 lg:h-6 lg:w-6 mr-3 lg:mr-4 animate-pulse" />
-                  Validating Results...
-                </>
-              ) : (
-                <>
-                  <Zap className="h-5 w-5 lg:h-6 lg:w-6 mr-3 lg:mr-4" />
-                  Analyze with AI
-                </>
-              )}
+            <CardHeader className="pb-4 lg:pb-6 relative">
+              <CardTitle className="flex items-center space-x-3 lg:space-x-6">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl opacity-20 blur-lg"></div>
+                  <div className="relative p-2 lg:p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg">
+                    <AlertCircle className="h-4 w-4 lg:h-6 lg:w-6 text-white" />
+                  </div>
+                </div>
+                <span className="text-lg lg:text-2xl xl:text-3xl font-medium text-gray-900 tracking-wide">Clinical Notes & Underlying Conditions</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6 lg:space-y-8 p-4 lg:p-6 pt-0 relative">
+              <div className="space-y-2">
+                <label className="block text-sm lg:text-lg font-medium text-gray-900 mb-3 tracking-wide">
+                  Underlying Medical Conditions & Additional Observations
+                </label>
+                <div className="relative">
+                  <textarea
+                    value={prescriptionData.notes}
+                    onChange={(e) => setPrescriptionData({
+                      ...prescriptionData,
+                      notes: e.target.value
+                    })}
+                    className="w-full p-4 lg:p-6 border-0 bg-white/60 backdrop-blur-sm rounded-xl focus:ring-2 focus:ring-[#cb6ce6]/30 focus:outline-none transition-all duration-300 text-gray-700 placeholder-gray-400 shadow-inner ring-1 ring-white/30 text-base leading-relaxed resize-none"
+                    rows={4}
+                    placeholder="Enter underlying conditions (e.g., hypertension, diabetes), patient concerns, allergies, or additional clinical observations..."
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent rounded-xl pointer-events-none"></div>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="block text-sm lg:text-lg font-medium text-gray-900 mb-3 tracking-wide">
+                  Follow-up Appointment
+                </label>
+                <div className="relative">
+                  <input
+                    type="date"
+                    value={prescriptionData.followUpDate}
+                    onChange={(e) => setPrescriptionData({
+                      ...prescriptionData,
+                      followUpDate: e.target.value
+                    })}
+                    className="w-full p-4 lg:p-6 border-0 bg-white/60 backdrop-blur-sm rounded-xl focus:ring-2 focus:ring-[#cb6ce6]/30 focus:outline-none transition-all duration-300 text-gray-700 shadow-inner ring-1 ring-white/30 text-base"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent rounded-xl pointer-events-none"></div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div className="flex justify-center pt-8 lg:pt-12">
+            <div className="relative group w-full max-w-md lg:max-w-lg">
+              {/* Multi-layered glow effect */}
+              <div className="absolute inset-0 bg-gradient-to-r from-[#cb6ce6] via-[#b84fd9] to-[#9c4bc7] rounded-xl lg:rounded-2xl blur-xl lg:blur-2xl opacity-30 group-hover:opacity-50 transition-all duration-700 transform scale-105 lg:scale-110"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-[#cb6ce6] via-[#b84fd9] to-[#9c4bc7] rounded-xl lg:rounded-2xl blur-lg opacity-40 group-hover:opacity-60 transition-all duration-700 transform scale-102 lg:scale-105"></div>
               
-              {/* Ultra-premium inner highlights */}
-              <div className="absolute inset-0 bg-gradient-to-r from-white/15 via-white/8 to-white/5 rounded-xl lg:rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
-              <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/40 to-transparent group-hover:opacity-100 opacity-0 transition-opacity duration-700"></div>
-            </Button>
+              <Button
+                type="submit"
+                disabled={isAnalyzing || isValidating}
+                className="relative w-full px-8 lg:px-16 py-4 lg:py-6 bg-gradient-to-r from-[#cb6ce6] via-[#b84fd9] to-[#9c4bc7] text-white text-base lg:text-lg xl:text-xl font-medium rounded-xl lg:rounded-2xl shadow-xl lg:shadow-2xl shadow-purple-500/25 hover:shadow-2xl lg:hover:shadow-3xl hover:shadow-purple-500/35 transform hover:scale-[1.02] transition-all duration-700 border-0 disabled:opacity-50 disabled:transform-none ring-1 ring-white/20 backdrop-blur-sm tracking-wide min-h-[48px] lg:min-h-[64px]"
+              >
+                {isAnalyzing ? (
+                  <>
+                    <Brain className="h-5 w-5 lg:h-6 lg:w-6 mr-3 lg:mr-4 animate-pulse" />
+                    Analyzing Prescription...
+                  </>
+                ) : isValidating ? (
+                  <>
+                    <Search className="h-5 w-5 lg:h-6 lg:w-6 mr-3 lg:mr-4 animate-pulse" />
+                    Validating Results...
+                  </>
+                ) : (
+                  <>
+                    <Zap className="h-5 w-5 lg:h-6 lg:w-6 mr-3 lg:mr-4" />
+                    Analyze with AI
+                  </>
+                )}
+                
+                {/* Ultra-premium inner highlights */}
+                <div className="absolute inset-0 bg-gradient-to-r from-white/15 via-white/8 to-white/5 rounded-xl lg:rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+                <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/40 to-transparent group-hover:opacity-100 opacity-0 transition-opacity duration-700"></div>
+              </Button>
+            </div>
           </div>
-        </div>
+        </EnhancedPrescriptionForm>
       </form>
 
       {analysis && <AIAnalysis analysis={analysis} prescriptionData={prescriptionData} />}
