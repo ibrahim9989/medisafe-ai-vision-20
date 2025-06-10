@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -168,7 +169,8 @@ export const usePrescriptions = () => {
         age: patientData.age,
         gender: patientData.gender,
         phone_number: patientData.contact,
-        address: null // Could be added to the form later
+        address: null, // Could be added to the form later
+        patient_id: '' // This will be overwritten by the database trigger
       })
       .select()
       .single();
