@@ -6,8 +6,10 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import ProfileGuard from "@/components/ProfileGuard";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
+import ProfileSetup from "./pages/ProfileSetup";
 
 const queryClient = new QueryClient();
 
@@ -21,10 +23,20 @@ const App = () => (
           <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route 
+              path="/profile-setup" 
+              element={
+                <ProtectedRoute>
+                  <ProfileSetup />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
               path="/" 
               element={
                 <ProtectedRoute>
-                  <Index />
+                  <ProfileGuard>
+                    <Index />
+                  </ProfileGuard>
                 </ProtectedRoute>
               } 
             />

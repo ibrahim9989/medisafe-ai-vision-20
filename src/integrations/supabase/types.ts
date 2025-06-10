@@ -56,6 +56,174 @@ export type Database = {
           },
         ]
       }
+      doctor_profiles: {
+        Row: {
+          age: number | null
+          clinical_address: string | null
+          country: string | null
+          created_at: string
+          full_name: string
+          gender: string | null
+          id: string
+          is_profile_complete: boolean
+          license_number: string | null
+          phone_number: string | null
+          pincode: string | null
+          profile_picture_url: string | null
+          regulatory_body: string | null
+          specialization: string[] | null
+          updated_at: string
+          user_id: string
+          years_of_experience: number | null
+        }
+        Insert: {
+          age?: number | null
+          clinical_address?: string | null
+          country?: string | null
+          created_at?: string
+          full_name: string
+          gender?: string | null
+          id?: string
+          is_profile_complete?: boolean
+          license_number?: string | null
+          phone_number?: string | null
+          pincode?: string | null
+          profile_picture_url?: string | null
+          regulatory_body?: string | null
+          specialization?: string[] | null
+          updated_at?: string
+          user_id: string
+          years_of_experience?: number | null
+        }
+        Update: {
+          age?: number | null
+          clinical_address?: string | null
+          country?: string | null
+          created_at?: string
+          full_name?: string
+          gender?: string | null
+          id?: string
+          is_profile_complete?: boolean
+          license_number?: string | null
+          phone_number?: string | null
+          pincode?: string | null
+          profile_picture_url?: string | null
+          regulatory_body?: string | null
+          specialization?: string[] | null
+          updated_at?: string
+          user_id?: string
+          years_of_experience?: number | null
+        }
+        Relationships: []
+      }
+      patient_visits: {
+        Row: {
+          created_at: string
+          diagnosis: string | null
+          doctor_id: string
+          id: string
+          notes: string | null
+          patient_id: string
+          prescription_id: string | null
+          reason_for_visit: string | null
+          updated_at: string
+          visit_date: string
+        }
+        Insert: {
+          created_at?: string
+          diagnosis?: string | null
+          doctor_id: string
+          id?: string
+          notes?: string | null
+          patient_id: string
+          prescription_id?: string | null
+          reason_for_visit?: string | null
+          updated_at?: string
+          visit_date?: string
+        }
+        Update: {
+          created_at?: string
+          diagnosis?: string | null
+          doctor_id?: string
+          id?: string
+          notes?: string | null
+          patient_id?: string
+          prescription_id?: string | null
+          reason_for_visit?: string | null
+          updated_at?: string
+          visit_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_visits_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctor_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_visits_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_visits_prescription_id_fkey"
+            columns: ["prescription_id"]
+            isOneToOne: false
+            referencedRelation: "prescriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      patients: {
+        Row: {
+          address: string | null
+          age: number | null
+          created_at: string
+          doctor_id: string
+          full_name: string
+          gender: string | null
+          id: string
+          patient_id: string
+          phone_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          age?: number | null
+          created_at?: string
+          doctor_id: string
+          full_name: string
+          gender?: string | null
+          id?: string
+          patient_id: string
+          phone_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          age?: number | null
+          created_at?: string
+          doctor_id?: string
+          full_name?: string
+          gender?: string | null
+          id?: string
+          patient_id?: string
+          phone_number?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patients_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctor_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prescriptions: {
         Row: {
           age: number
@@ -139,7 +307,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_patient_id: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
