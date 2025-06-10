@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -9,6 +8,7 @@ import { Search, Users, MapPin, Calendar, Stethoscope, UserPlus } from 'lucide-r
 import { supabase } from '@/integrations/supabase/client';
 import { DoctorProfile } from '@/hooks/useDoctorProfile';
 import { useNavigate } from 'react-router-dom';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface DirectoryStats {
   totalDoctors: number;
@@ -282,23 +282,31 @@ const DoctorsDirectory = () => {
                   <Card key={doctor.id} className="bg-white/60 backdrop-blur-xl border-white/30 hover:shadow-lg transition-shadow">
                     <CardHeader>
                       <div className="flex items-start justify-between">
-                        <div>
-                          <CardTitle className="text-lg font-semibold text-gray-900 mb-1">
-                            Dr. {doctor.full_name}
-                          </CardTitle>
-                          <div className="flex items-center space-x-2 text-sm text-gray-600">
-                            {doctor.country && (
-                              <div className="flex items-center space-x-1">
-                                <MapPin className="h-3 w-3" />
-                                <span>{doctor.country}</span>
-                              </div>
-                            )}
-                            {doctor.years_of_experience && (
-                              <div className="flex items-center space-x-1">
-                                <Calendar className="h-3 w-3" />
-                                <span>{doctor.years_of_experience}+ years</span>
-                              </div>
-                            )}
+                        <div className="flex items-start space-x-3 flex-1">
+                          <Avatar className="h-12 w-12 border-2 border-white/30">
+                            <AvatarImage src={doctor.profile_picture_url || ''} alt={`Dr. ${doctor.full_name}`} />
+                            <AvatarFallback className="bg-gradient-to-br from-[#cb6ce6] to-[#9c4bc7] text-white font-medium">
+                              {doctor.full_name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <CardTitle className="text-lg font-semibold text-gray-900 mb-1">
+                              Dr. {doctor.full_name}
+                            </CardTitle>
+                            <div className="flex items-center space-x-2 text-sm text-gray-600">
+                              {doctor.country && (
+                                <div className="flex items-center space-x-1">
+                                  <MapPin className="h-3 w-3" />
+                                  <span>{doctor.country}</span>
+                                </div>
+                              )}
+                              {doctor.years_of_experience && (
+                                <div className="flex items-center space-x-1">
+                                  <Calendar className="h-3 w-3" />
+                                  <span>{doctor.years_of_experience}+ years</span>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </div>
                         <div className="p-2 bg-gradient-to-br from-[#cb6ce6] to-[#9c4bc7] rounded-lg">

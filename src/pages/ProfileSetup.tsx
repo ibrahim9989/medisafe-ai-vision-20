@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from '@/hooks/use-toast';
 import { useDoctorProfile } from '@/hooks/useDoctorProfile';
 import { User, Stethoscope, Eye } from 'lucide-react';
+import ProfilePictureUpload from '@/components/ProfilePictureUpload';
 
 const INDIAN_REGULATORY_BODIES = [
   'Medical Council of India (MCI)',
@@ -81,6 +82,14 @@ const ProfileSetup = () => {
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleImageUpload = (url: string) => {
+    setFormData(prev => ({ ...prev, profile_picture_url: url }));
+  };
+
+  const handleImageRemove = () => {
+    setFormData(prev => ({ ...prev, profile_picture_url: '' }));
   };
 
   const handleSpecializationToggle = (specialization: string) => {
@@ -183,6 +192,13 @@ const ProfileSetup = () => {
             </CardHeader>
             <CardContent className="p-6 pt-0">
               <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Profile Picture Upload */}
+                <ProfilePictureUpload
+                  currentImageUrl={formData.profile_picture_url}
+                  onImageUpload={handleImageUpload}
+                  onImageRemove={handleImageRemove}
+                />
+
                 {/* Basic Information */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
