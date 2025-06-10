@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDoctorProfile } from '@/hooks/useDoctorProfile';
 import { toast } from '@/hooks/use-toast';
 
 export interface Prescription {
@@ -33,10 +34,39 @@ export interface AIAnalysisData {
   created_at: string;
 }
 
+export interface Patient {
+  id: string;
+  patient_id: string;
+  doctor_id: string;
+  full_name: string;
+  age: number | null;
+  gender: string | null;
+  phone_number: string | null;
+  address: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PatientVisit {
+  id: string;
+  patient_id: string;
+  doctor_id: string;
+  visit_date: string;
+  reason_for_visit: string | null;
+  diagnosis: string | null;
+  prescription_id: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export const usePrescriptions = () => {
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [patientVisits, setPatientVisits] = useState<PatientVisit[]>([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
+  const { profile } = useDoctorProfile();
 
   const fetchPrescriptions = async () => {
     if (!user) return;
@@ -49,7 +79,6 @@ export const usePrescriptions = () => {
 
       if (error) throw error;
       
-      // Cast the data to match our interface types
       const typedData: Prescription[] = (data || []).map(item => ({
         ...item,
         medications: Array.isArray(item.medications) ? item.medications : []
@@ -68,11 +97,115 @@ export const usePrescriptions = () => {
     }
   };
 
+  const fetchPatients = async () => {
+    if (!profile) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('patients')
+        .select('*')
+        .eq('doctor_id', profile.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      
+      setPatients(data || []);
+    } catch (error) {
+      console.error('Error fetching patients:', error);
+    }
+  };
+
+  const fetchPatientVisits = async () => {
+    if (!profile) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('patient_visits')
+        .select(`
+          *,
+          patients (
+            patient_id,
+            full_name
+          ),
+          prescriptions (
+            doctor_name,
+            medications
+          )
+        `)
+        .eq('doctor_id', profile.id)
+        .order('visit_date', { ascending: false });
+
+      if (error) throw error;
+      
+      setPatientVisits(data || []);
+    } catch (error) {
+      console.error('Error fetching patient visits:', error);
+    }
+  };
+
+  const findOrCreatePatient = async (patientData: any) => {
+    if (!profile) throw new Error('Doctor profile not found');
+
+    // First, try to find existing patient by name and phone
+    const { data: existingPatients, error: searchError } = await supabase
+      .from('patients')
+      .select('*')
+      .eq('doctor_id', profile.id)
+      .eq('full_name', patientData.patientName)
+      .eq('phone_number', patientData.contact || '');
+
+    if (searchError) throw searchError;
+
+    if (existingPatients && existingPatients.length > 0) {
+      return existingPatients[0];
+    }
+
+    // Create new patient if not found
+    const { data: newPatient, error: createError } = await supabase
+      .from('patients')
+      .insert({
+        doctor_id: profile.id,
+        full_name: patientData.patientName,
+        age: patientData.age,
+        gender: patientData.gender,
+        phone_number: patientData.contact,
+        address: null // Could be added to the form later
+      })
+      .select()
+      .single();
+
+    if (createError) throw createError;
+    
+    return newPatient;
+  };
+
+  const createPatientVisit = async (patient: any, prescription: any, prescriptionData: any) => {
+    if (!profile) throw new Error('Doctor profile not found');
+
+    const { data, error } = await supabase
+      .from('patient_visits')
+      .insert({
+        patient_id: patient.id,
+        doctor_id: profile.id,
+        visit_date: new Date().toISOString().split('T')[0],
+        reason_for_visit: 'Medical consultation',
+        diagnosis: prescriptionData.notes || 'General consultation',
+        prescription_id: prescription.id,
+        notes: prescriptionData.notes
+      })
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  };
+
   const savePrescription = async (prescriptionData: any) => {
     if (!user) throw new Error('User not authenticated');
 
     try {
-      const { data, error } = await supabase
+      // Save prescription first
+      const { data: prescription, error: prescriptionError } = await supabase
         .from('prescriptions')
         .insert({
           user_id: user.id,
@@ -90,10 +223,20 @@ export const usePrescriptions = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (prescriptionError) throw prescriptionError;
+
+      // Create or find patient
+      const patient = await findOrCreatePatient(prescriptionData);
       
+      // Create patient visit record
+      await createPatientVisit(patient, prescription, prescriptionData);
+      
+      // Refresh data
       await fetchPrescriptions();
-      return data;
+      await fetchPatients();
+      await fetchPatientVisits();
+      
+      return prescription;
     } catch (error) {
       console.error('Error saving prescription:', error);
       throw error;
@@ -139,7 +282,6 @@ export const usePrescriptions = () => {
       
       if (!data) return null;
       
-      // Cast the data to match our interface types
       const typedData: AIAnalysisData = {
         ...data,
         drug_interactions: Array.isArray(data.drug_interactions) ? data.drug_interactions : [],
@@ -158,15 +300,23 @@ export const usePrescriptions = () => {
   };
 
   useEffect(() => {
-    fetchPrescriptions();
-  }, [user]);
+    if (user && profile) {
+      fetchPrescriptions();
+      fetchPatients();
+      fetchPatientVisits();
+    }
+  }, [user, profile]);
 
   return {
     prescriptions,
+    patients,
+    patientVisits,
     loading,
     savePrescription,
     saveAIAnalysis,
     getAIAnalysis,
-    fetchPrescriptions
+    fetchPrescriptions,
+    fetchPatients,
+    fetchPatientVisits
   };
 };

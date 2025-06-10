@@ -1,10 +1,14 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import PrescriptionForm from '../components/PrescriptionForm';
+import PatientHistory from '../components/PatientHistory';
 import Header from '../components/Header';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, FileText, Users } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const Index = () => {
+  const [activeTab, setActiveTab] = useState<'prescription' | 'history'>('prescription');
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-stone-50/80 via-amber-50/30 to-purple-50/20 relative overflow-hidden">
       <Header />
@@ -66,8 +70,40 @@ const Index = () => {
             
             {/* Mobile-optimized subtitle */}
             <p className="text-sm sm:text-base lg:text-xl xl:text-2xl font-light text-gray-500 max-w-3xl mx-auto leading-relaxed tracking-wide px-4">
-              Advanced AI-powered medication analysis and safety monitoring
+              Advanced AI-powered medication analysis and patient history management
             </p>
+          </div>
+
+          {/* Tab Navigation */}
+          <div className="flex justify-center mb-8">
+            <div className="bg-white/60 backdrop-blur-xl rounded-xl p-1 border border-white/30 shadow-lg">
+              <div className="flex space-x-1">
+                <Button
+                  variant={activeTab === 'prescription' ? 'default' : 'ghost'}
+                  onClick={() => setActiveTab('prescription')}
+                  className={`flex items-center space-x-2 px-6 py-3 rounded-lg transition-all duration-300 ${
+                    activeTab === 'prescription' 
+                      ? 'bg-gradient-to-r from-[#cb6ce6] to-[#9c4bc7] text-white shadow-lg' 
+                      : 'text-gray-600 hover:bg-white/60'
+                  }`}
+                >
+                  <FileText className="h-4 w-4" />
+                  <span>New Prescription</span>
+                </Button>
+                <Button
+                  variant={activeTab === 'history' ? 'default' : 'ghost'}
+                  onClick={() => setActiveTab('history')}
+                  className={`flex items-center space-x-2 px-6 py-3 rounded-lg transition-all duration-300 ${
+                    activeTab === 'history' 
+                      ? 'bg-gradient-to-r from-[#cb6ce6] to-[#9c4bc7] text-white shadow-lg' 
+                      : 'text-gray-600 hover:bg-white/60'
+                  }`}
+                >
+                  <Users className="h-4 w-4" />
+                  <span>Patient History</span>
+                </Button>
+              </div>
+            </div>
           </div>
           
           {/* Main Content with mobile-optimized spacing */}
@@ -83,7 +119,11 @@ const Index = () => {
               <div className="absolute top-0 left-0 h-full w-px bg-gradient-to-b from-transparent via-white/15 lg:via-white/20 to-transparent"></div>
               
               <div className="relative">
-                <PrescriptionForm />
+                {activeTab === 'prescription' ? (
+                  <PrescriptionForm />
+                ) : (
+                  <PatientHistory />
+                )}
               </div>
             </div>
           </div>
