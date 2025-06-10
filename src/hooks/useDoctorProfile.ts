@@ -20,6 +20,7 @@ export interface DoctorProfile {
   regulatory_body: string | null;
   license_number: string | null;
   is_profile_complete: boolean;
+  public_profile: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -37,6 +38,7 @@ interface CreateProfileData {
   pincode?: string | null;
   regulatory_body?: string | null;
   license_number?: string | null;
+  public_profile?: boolean;
 }
 
 export const useDoctorProfile = () => {
@@ -92,6 +94,7 @@ export const useDoctorProfile = () => {
           pincode: profileData.pincode,
           regulatory_body: profileData.regulatory_body,
           license_number: profileData.license_number,
+          public_profile: profileData.public_profile || false,
           is_profile_complete: true
         })
         .select()

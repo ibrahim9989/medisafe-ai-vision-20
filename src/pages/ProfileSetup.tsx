@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from '@/hooks/use-toast';
 import { useDoctorProfile } from '@/hooks/useDoctorProfile';
-import { User, Stethoscope, Upload } from 'lucide-react';
+import { User, Stethoscope, Eye } from 'lucide-react';
 
 const INDIAN_REGULATORY_BODIES = [
   'Medical Council of India (MCI)',
@@ -43,6 +44,7 @@ const ProfileSetup = () => {
   const { createProfile, updateProfile, profile } = useDoctorProfile();
   const [loading, setLoading] = useState(false);
   const [selectedSpecializations, setSelectedSpecializations] = useState<string[]>([]);
+  const [publicProfile, setPublicProfile] = useState(false);
   
   const [formData, setFormData] = useState({
     full_name: profile?.full_name || '',
@@ -74,6 +76,7 @@ const ProfileSetup = () => {
         profile_picture_url: profile.profile_picture_url || ''
       });
       setSelectedSpecializations(profile.specialization || []);
+      setPublicProfile(profile.public_profile || false);
     }
   }, [profile]);
 
@@ -98,7 +101,8 @@ const ProfileSetup = () => {
         ...formData,
         age: formData.age ? parseInt(formData.age.toString()) : null,
         years_of_experience: formData.years_of_experience ? parseInt(formData.years_of_experience.toString()) : null,
-        specialization: selectedSpecializations
+        specialization: selectedSpecializations,
+        public_profile: publicProfile
       };
 
       if (profile) {
@@ -335,6 +339,28 @@ const ProfileSetup = () => {
                     rows={3}
                   />
                 </div>
+
+                {/* Public Profile Option */}
+                <Card className="bg-white/40 backdrop-blur-sm border-white/30">
+                  <CardContent className="p-4">
+                    <div className="flex items-start space-x-3">
+                      <Checkbox
+                        id="public_profile"
+                        checked={publicProfile}
+                        onCheckedChange={(checked) => setPublicProfile(checked as boolean)}
+                      />
+                      <div className="flex-1">
+                        <Label htmlFor="public_profile" className="flex items-center space-x-2 cursor-pointer">
+                          <Eye className="h-4 w-4" />
+                          <span className="font-medium">Make my profile public in the doctors directory</span>
+                        </Label>
+                        <p className="text-sm text-gray-600 mt-1">
+                          Allow other users to see your basic professional information (name, specializations, experience, and general location) in our public doctors directory. This helps build trust and showcases our medical community.
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
                 <Button
                   type="submit"

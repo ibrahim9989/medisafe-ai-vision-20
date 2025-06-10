@@ -1,8 +1,9 @@
 
 import React from 'react';
-import { Stethoscope, Menu, LogOut, User } from 'lucide-react';
+import { Stethoscope, Menu, LogOut, User, Users } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
+import { useNavigate } from 'react-router-dom';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,6 +13,7 @@ import {
 
 const Header = () => {
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
 
   const handleSignOut = async () => {
     await signOut();
@@ -23,7 +25,7 @@ const Header = () => {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3 lg:space-x-6">
             {/* Mobile-optimized logo */}
-            <div className="relative">
+            <div className="relative cursor-pointer" onClick={() => navigate('/')}>
               <div className="absolute inset-0 bg-gradient-to-br from-[#cb6ce6] via-[#b84fd9] to-[#9c4bc7] rounded-2xl lg:rounded-3xl blur-lg lg:blur-xl opacity-30 transform scale-110"></div>
               <div className="relative flex items-center justify-center w-12 h-12 lg:w-16 lg:h-16 bg-gradient-to-br from-[#cb6ce6] via-[#b84fd9] to-[#9c4bc7] rounded-2xl lg:rounded-3xl shadow-xl lg:shadow-2xl shadow-purple-500/25 ring-1 ring-white/20 backdrop-blur-sm">
                 <Stethoscope className="h-6 w-6 lg:h-8 lg:w-8 text-white" />
@@ -32,7 +34,7 @@ const Header = () => {
             </div>
             
             <div>
-              <h1 className="text-xl lg:text-3xl xl:text-4xl font-light text-gray-900 tracking-tight">
+              <h1 className="text-xl lg:text-3xl xl:text-4xl font-light text-gray-900 tracking-tight cursor-pointer" onClick={() => navigate('/')}>
                 MediSafe{' '}
                 <span className="bg-gradient-to-r from-[#cb6ce6] to-[#9c4bc7] bg-clip-text text-transparent font-medium">
                   AI
@@ -44,8 +46,18 @@ const Header = () => {
             </div>
           </div>
           
-          {/* User menu */}
-          <div className="flex items-center space-x-2">
+          {/* Navigation and User menu */}
+          <div className="flex items-center space-x-2 lg:space-x-4">
+            {/* Directory Link */}
+            <Button
+              variant="ghost"
+              onClick={() => navigate('/directory')}
+              className="hidden sm:flex items-center space-x-2 text-gray-600 hover:text-gray-900"
+            >
+              <Users className="h-4 w-4" />
+              <span>Directory</span>
+            </Button>
+
             {user && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

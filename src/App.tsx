@@ -7,9 +7,11 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import ProfileGuard from "@/components/ProfileGuard";
+import Header from "@/components/Header";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import ProfileSetup from "./pages/ProfileSetup";
+import DoctorsDirectory from "./pages/DoctorsDirectory";
 
 const queryClient = new QueryClient();
 
@@ -22,6 +24,15 @@ const App = () => (
         <AuthProvider>
           <Routes>
             <Route path="/auth" element={<Auth />} />
+            <Route 
+              path="/directory" 
+              element={
+                <>
+                  <Header />
+                  <DoctorsDirectory />
+                </>
+              } 
+            />
             <Route 
               path="/profile-setup" 
               element={

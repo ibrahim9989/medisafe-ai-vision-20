@@ -70,6 +70,7 @@ export type Database = {
           phone_number: string | null
           pincode: string | null
           profile_picture_url: string | null
+          public_profile: boolean
           regulatory_body: string | null
           specialization: string[] | null
           updated_at: string
@@ -89,6 +90,7 @@ export type Database = {
           phone_number?: string | null
           pincode?: string | null
           profile_picture_url?: string | null
+          public_profile?: boolean
           regulatory_body?: string | null
           specialization?: string[] | null
           updated_at?: string
@@ -108,6 +110,7 @@ export type Database = {
           phone_number?: string | null
           pincode?: string | null
           profile_picture_url?: string | null
+          public_profile?: boolean
           regulatory_body?: string | null
           specialization?: string[] | null
           updated_at?: string
