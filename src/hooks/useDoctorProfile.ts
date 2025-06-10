@@ -24,6 +24,21 @@ export interface DoctorProfile {
   updated_at: string;
 }
 
+interface CreateProfileData {
+  full_name: string;
+  age?: number | null;
+  gender?: string | null;
+  country?: string | null;
+  profile_picture_url?: string | null;
+  phone_number?: string | null;
+  years_of_experience?: number | null;
+  specialization?: string[] | null;
+  clinical_address?: string | null;
+  pincode?: string | null;
+  regulatory_body?: string | null;
+  license_number?: string | null;
+}
+
 export const useDoctorProfile = () => {
   const [profile, setProfile] = useState<DoctorProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -57,7 +72,7 @@ export const useDoctorProfile = () => {
     }
   };
 
-  const createProfile = async (profileData: Partial<DoctorProfile>) => {
+  const createProfile = async (profileData: CreateProfileData) => {
     if (!user) throw new Error('User not authenticated');
 
     try {
@@ -65,7 +80,18 @@ export const useDoctorProfile = () => {
         .from('doctor_profiles')
         .insert({
           user_id: user.id,
-          ...profileData,
+          full_name: profileData.full_name,
+          age: profileData.age,
+          gender: profileData.gender,
+          country: profileData.country,
+          profile_picture_url: profileData.profile_picture_url,
+          phone_number: profileData.phone_number,
+          years_of_experience: profileData.years_of_experience,
+          specialization: profileData.specialization,
+          clinical_address: profileData.clinical_address,
+          pincode: profileData.pincode,
+          regulatory_body: profileData.regulatory_body,
+          license_number: profileData.license_number,
           is_profile_complete: true
         })
         .select()
@@ -81,16 +107,18 @@ export const useDoctorProfile = () => {
     }
   };
 
-  const updateProfile = async (profileData: Partial<DoctorProfile>) => {
+  const updateProfile = async (profileData: Partial<CreateProfileData>) => {
     if (!user || !profile) throw new Error('User not authenticated or profile not found');
 
     try {
+      const updateData: any = {
+        ...profileData,
+        is_profile_complete: true
+      };
+
       const { data, error } = await supabase
         .from('doctor_profiles')
-        .update({
-          ...profileData,
-          is_profile_complete: true
-        })
+        .update(updateData)
         .eq('id', profile.id)
         .select()
         .single();
