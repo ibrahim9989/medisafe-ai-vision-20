@@ -230,6 +230,7 @@ export type Database = {
           bp: string | null
           contact: string | null
           created_at: string
+          diagnosis: string | null
           doctor_name: string
           follow_up_date: string | null
           gender: string
@@ -246,6 +247,7 @@ export type Database = {
           bp?: string | null
           contact?: string | null
           created_at?: string
+          diagnosis?: string | null
           doctor_name: string
           follow_up_date?: string | null
           gender: string
@@ -262,6 +264,7 @@ export type Database = {
           bp?: string | null
           contact?: string | null
           created_at?: string
+          diagnosis?: string | null
           doctor_name?: string
           follow_up_date?: string | null
           gender?: string
