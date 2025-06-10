@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -44,7 +43,7 @@ const ProfileSetup = () => {
   const { createProfile, updateProfile, profile } = useDoctorProfile();
   const [loading, setLoading] = useState(false);
   const [selectedSpecializations, setSelectedSpecializations] = useState<string[]>([]);
-  const [publicProfile, setPublicProfile] = useState(false);
+  const [publicProfile, setPublicProfile] = useState(true); // Default to true for all doctors
   
   const [formData, setFormData] = useState({
     full_name: profile?.full_name || '',
@@ -340,7 +339,7 @@ const ProfileSetup = () => {
                   />
                 </div>
 
-                {/* Public Profile Option */}
+                {/* Public Profile Option - Updated messaging */}
                 <Card className="bg-white/40 backdrop-blur-sm border-white/30">
                   <CardContent className="p-4">
                     <div className="flex items-start space-x-3">
@@ -352,10 +351,10 @@ const ProfileSetup = () => {
                       <div className="flex-1">
                         <Label htmlFor="public_profile" className="flex items-center space-x-2 cursor-pointer">
                           <Eye className="h-4 w-4" />
-                          <span className="font-medium">Make my profile public in the doctors directory</span>
+                          <span className="font-medium">Include my profile in the MediSafe AI doctors directory</span>
                         </Label>
                         <p className="text-sm text-gray-600 mt-1">
-                          Allow other users to see your basic professional information (name, specializations, experience, and general location) in our public doctors directory. This helps build trust and showcases our medical community.
+                          Allow your professional information (name, specializations, experience, and general location) to be showcased in our doctors directory. This helps build trust in our medical community and shows potential users the quality of professionals using MediSafe AI.
                         </p>
                       </div>
                     </div>

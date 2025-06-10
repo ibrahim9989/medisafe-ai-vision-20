@@ -27,19 +27,19 @@ const DoctorsDirectory = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    fetchPublicDoctors();
+    fetchRegisteredDoctors();
   }, []);
 
   useEffect(() => {
     filterDoctors();
   }, [doctors, searchTerm, selectedSpecialization, selectedCountry]);
 
-  const fetchPublicDoctors = async () => {
+  const fetchRegisteredDoctors = async () => {
     try {
+      // Fetch all doctors with complete profiles - they are all registered doctors
       const { data, error } = await supabase
         .from('doctor_profiles')
         .select('*')
-        .eq('public_profile', true)
         .eq('is_profile_complete', true);
 
       if (error) throw error;
@@ -137,11 +137,11 @@ const DoctorsDirectory = () => {
                 </div>
               </div>
               <h1 className="text-3xl font-light text-gray-900 tracking-tight">
-                Doctors Directory
+                Registered Doctors Directory
               </h1>
             </div>
             <p className="text-gray-600 text-lg mb-6">
-              Discover healthcare professionals using MediSafe AI
+              Discover the registered healthcare professionals using MediSafe AI
             </p>
             <Button 
               onClick={() => navigate('/auth')}
