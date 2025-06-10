@@ -549,5 +549,3 @@ Format the response as JSON with the following structure:
 };
 
 export default PrescriptionForm;
-
-}
