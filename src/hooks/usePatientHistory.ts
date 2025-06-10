@@ -103,8 +103,13 @@ export const usePatientHistory = () => {
           )
       )];
 
-      // Get current medications from most recent prescription
-      const currentMedications = lastVisit?.prescriptions?.medications || [];
+      // Get current medications from most recent prescription - fix the type issue
+      let currentMedications: any[] = [];
+      if (lastVisit?.prescriptions?.medications) {
+        const meds = lastVisit.prescriptions.medications;
+        // Ensure medications is always treated as an array
+        currentMedications = Array.isArray(meds) ? meds : [];
+      }
 
       const historyData: PatientHistoryData = {
         patient,
