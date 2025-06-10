@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Brain, Search, Zap } from 'lucide-react';
+import { AlertCircle, Brain, Search, Zap, Stethoscope } from 'lucide-react';
 import PatientInfo from './PatientInfo';
 import VitalSigns from './VitalSigns';
 import AIAnalysis from './AIAnalysis';
@@ -24,6 +24,7 @@ export interface PrescriptionData {
     frequency: string;
     duration: string;
   }>;
+  diagnosis: string;
   notes: string;
   followUpDate: string;
 }
@@ -38,6 +39,7 @@ const PrescriptionForm = () => {
     temperature: 98.6,
     bp: '',
     medications: [{ name: '', dosage: '', frequency: '', duration: '' }],
+    diagnosis: '',
     notes: '',
     followUpDate: ''
   });
@@ -102,13 +104,15 @@ Patient Information:
 - Temperature: ${data.temperature}°F
 - Blood Pressure: ${data.bp}
 
+Current Diagnosis: ${data.diagnosis}
+
 Medications to Analyze (USE GENERIC NAMES):
 ${medicationDetails}
 
 Active Ingredients Summary:
 ${resolvedMedications.map(med => `${med.genericName}: ${med.activeIngredients.join(', ')}`).join('\n')}
 
-Clinical Notes: ${data.notes}
+Underlying Medical Conditions/Clinical Notes: ${data.notes}
 
 Please provide a comprehensive analysis based on the GENERIC DRUG NAMES and active ingredients including:
 1. Drug-drug interactions (analyze interactions between the GENERIC medications)
@@ -404,6 +408,45 @@ Format the response as JSON with the following structure:
           </div>
         </div>
         
+        {/* Diagnosis Section */}
+        <Card className="border-0 bg-white/40 backdrop-blur-xl shadow-lg shadow-gray-900/5 rounded-xl lg:rounded-2xl ring-1 ring-white/20 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-blue-50/10 rounded-xl lg:rounded-2xl pointer-events-none"></div>
+          <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+          
+          <CardHeader className="pb-4 lg:pb-6 relative">
+            <CardTitle className="flex items-center space-x-3 lg:space-x-6">
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl opacity-20 blur-lg"></div>
+                <div className="relative p-2 lg:p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
+                  <Stethoscope className="h-4 w-4 lg:h-6 lg:w-6 text-white" />
+                </div>
+              </div>
+              <span className="text-lg lg:text-2xl xl:text-3xl font-medium text-gray-900 tracking-wide">Diagnosis</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6 lg:space-y-8 p-4 lg:p-6 pt-0 relative">
+            <div className="space-y-2">
+              <label className="block text-sm lg:text-lg font-medium text-gray-900 mb-3 tracking-wide">
+                Current Diagnosis *
+              </label>
+              <div className="relative">
+                <textarea
+                  value={prescriptionData.diagnosis}
+                  onChange={(e) => setPrescriptionData({
+                    ...prescriptionData,
+                    diagnosis: e.target.value
+                  })}
+                  className="w-full p-4 lg:p-6 border-0 bg-white/60 backdrop-blur-sm rounded-xl focus:ring-2 focus:ring-[#cb6ce6]/30 focus:outline-none transition-all duration-300 text-gray-700 placeholder-gray-400 shadow-inner ring-1 ring-white/30 text-base leading-relaxed resize-none"
+                  rows={3}
+                  placeholder="Enter the current medical diagnosis for this visit (e.g., Acute bronchitis, Type 2 diabetes mellitus, Essential hypertension)..."
+                  required
+                />
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent rounded-xl pointer-events-none"></div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
         <EnhancedMedicationList 
           data={prescriptionData} 
           onChange={setPrescriptionData} 
@@ -422,13 +465,13 @@ Format the response as JSON with the following structure:
                   <AlertCircle className="h-4 w-4 lg:h-6 lg:w-6 text-white" />
                 </div>
               </div>
-              <span className="text-lg lg:text-2xl xl:text-3xl font-medium text-gray-900 tracking-wide">Clinical Notes</span>
+              <span className="text-lg lg:text-2xl xl:text-3xl font-medium text-gray-900 tracking-wide">Clinical Notes & Underlying Conditions</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6 lg:space-y-8 p-4 lg:p-6 pt-0 relative">
             <div className="space-y-2">
               <label className="block text-sm lg:text-lg font-medium text-gray-900 mb-3 tracking-wide">
-                Additional Observations
+                Underlying Medical Conditions & Additional Observations
               </label>
               <div className="relative">
                 <textarea
@@ -439,7 +482,7 @@ Format the response as JSON with the following structure:
                   })}
                   className="w-full p-4 lg:p-6 border-0 bg-white/60 backdrop-blur-sm rounded-xl focus:ring-2 focus:ring-[#cb6ce6]/30 focus:outline-none transition-all duration-300 text-gray-700 placeholder-gray-400 shadow-inner ring-1 ring-white/30 text-base leading-relaxed resize-none"
                   rows={4}
-                  placeholder="Clinical observations, patient concerns, or additional notes..."
+                  placeholder="Enter underlying conditions (e.g., hypertension, diabetes), patient concerns, allergies, or additional clinical observations..."
                 />
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent rounded-xl pointer-events-none"></div>
               </div>
@@ -506,3 +549,5 @@ Format the response as JSON with the following structure:
 };
 
 export default PrescriptionForm;
+
+}
