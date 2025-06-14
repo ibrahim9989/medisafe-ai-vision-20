@@ -232,7 +232,7 @@ Parse this command with MAXIMUM INTELLIGENCE: "${transcript}"`;
     
     return new Response(JSON.stringify({ 
       action: 'help',
-      response: 'I encountered an error processing your command, but I'm learning from it. Please try again.'
+      response: 'I encountered an error processing your command, but I am learning from it. Please try again.'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
