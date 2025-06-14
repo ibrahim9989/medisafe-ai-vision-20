@@ -63,16 +63,20 @@ const VoiceAssistant = ({ prescriptionData, onPrescriptionChange, className }: V
         Object.keys(data.updates).forEach(field => {
           if (field in updatedData) {
             (updatedData as any)[field] = data.updates[field];
+            console.log(`Updated ${field} to:`, data.updates[field]);
           }
         });
 
         onPrescriptionChange(updatedData);
-        speakResponse(data.response || "Updated successfully");
         
+        // Show success message immediately
         toast({
           title: "Voice Command Processed",
           description: data.response || "Field updated successfully",
         });
+        
+        // Try to speak response, but don't fail if TTS doesn't work
+        speakResponse(data.response || "Updated successfully");
         
       } else if (data.action === 'add_medication' && data.updates?.medication) {
         const newMedications = [...prescriptionData.medications];
@@ -100,12 +104,12 @@ const VoiceAssistant = ({ prescriptionData, onPrescriptionChange, className }: V
           medications: newMedications
         });
         
-        speakResponse(data.response || "Medication added successfully");
-        
         toast({
           title: "Medication Added",
           description: data.response || "Medication added to prescription",
         });
+        
+        speakResponse(data.response || "Medication added successfully");
         
       } else if (data.action === 'help' || transcript.toLowerCase().includes('help')) {
         const helpMessage = `I can help you fill out prescriptions with voice commands. You can say things like: 
@@ -138,14 +142,20 @@ const VoiceAssistant = ({ prescriptionData, onPrescriptionChange, className }: V
   };
 
   const speakResponse = (text: string) => {
-    // Add assistant response to conversation
+    // Add assistant response to conversation first
     setConversationHistory(prev => [...prev, {
       type: 'assistant',
       text: text,
       timestamp: new Date()
     }]);
     
-    speakText(text);
+    // Try to speak, but don't block form updates if it fails
+    try {
+      speakText(text);
+    } catch (error) {
+      console.log('TTS failed, but continuing with form updates:', error);
+      // Don't show error toast for TTS failures since the main functionality still works
+    }
   };
 
   const {

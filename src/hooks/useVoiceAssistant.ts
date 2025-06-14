@@ -203,14 +203,11 @@ export const useVoiceAssistant = (config: VoiceAssistantConfig = {}) => {
 
     } catch (error) {
       console.error('Error generating speech:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to generate speech';
-      config.onError?.(errorMessage);
-      toast({
-        title: "Speech Generation Error",
-        description: errorMessage,
-        variant: "destructive"
-      });
+      // Don't show toast for TTS errors since they don't affect core functionality
       setIsSpeaking(false);
+      
+      // Log the error but don't block the main functionality
+      console.log('TTS failed, but voice command processing continues to work');
     }
   };
 
