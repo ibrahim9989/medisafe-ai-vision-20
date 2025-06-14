@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,9 +24,8 @@ const VoiceAssistant = ({ prescriptionData, onPrescriptionChange, className }: V
   }>>([]);
 
   const processVoiceCommand = async (transcript: string) => {
-    console.log('=== VOICE COMMAND PROCESSING START ===');
-    console.log('Processing voice command:', transcript);
-    console.log('Current prescription data before update:', prescriptionData);
+    console.log('🎤 VOICE COMMAND START:', transcript);
+    console.log('📋 Current form data BEFORE update:', JSON.stringify(prescriptionData, null, 2));
     
     // Add user message to conversation
     setConversationHistory(prev => [...prev, {
@@ -35,8 +35,7 @@ const VoiceAssistant = ({ prescriptionData, onPrescriptionChange, className }: V
     }]);
 
     try {
-      // Use Gemini to intelligently parse the voice command
-      console.log('Calling parse-voice-command function...');
+      // Call Gemini to parse the voice command
       const { data, error } = await supabase.functions.invoke('parse-voice-command', {
         body: { 
           transcript: transcript.trim(),
@@ -45,130 +44,85 @@ const VoiceAssistant = ({ prescriptionData, onPrescriptionChange, className }: V
       });
 
       if (error) {
-        console.error('Voice command parsing error:', error);
+        console.error('❌ Voice command parsing error:', error);
         speakResponse("Sorry, I had trouble understanding that command. Please try again.");
-        toast({
-          title: "Voice Command Error",
-          description: "Failed to process voice command. Please try again.",
-          variant: "destructive"
-        });
         return;
       }
 
-      console.log('Parsed voice command result:', data);
+      console.log('🤖 Gemini parsed result:', JSON.stringify(data, null, 2));
 
-      // Apply the updates based on the parsed command
       if (data.action === 'update_field' && data.updates) {
-        console.log('=== APPLYING FIELD UPDATES ===');
-        const updatedData = { ...prescriptionData };
-        console.log('Starting with prescription data:', updatedData);
+        // Create a completely new prescription data object
+        const newPrescriptionData = { ...prescriptionData };
         
-        // Handle each field update with enhanced debugging
+        console.log('🔄 Processing field updates...');
+        
+        // Handle each field update
         Object.keys(data.updates).forEach(field => {
-          console.log(`\n--- Processing field: ${field} ---`);
-          console.log('Field value:', data.updates[field]);
-          console.log('Field type:', typeof data.updates[field]);
+          const value = data.updates[field];
+          console.log(`\n📝 Updating field: ${field} with value:`, value);
           
-          if (field === 'medications' && Array.isArray(data.updates.medications)) {
-            console.log('=== MEDICATION HANDLING ===');
-            console.log('New medications from voice:', data.updates.medications);
-            console.log('Current medications in form:', updatedData.medications);
+          if (field === 'medications' && Array.isArray(value)) {
+            console.log('💊 MEDICATION UPDATE DETECTED');
+            console.log('Current medications:', newPrescriptionData.medications);
+            console.log('New medications from voice:', value);
             
-            // Simplified medication handling - always update the first medication slot
-            const newMedications = [...updatedData.medications];
+            // FORCE UPDATE: Replace the first medication completely
+            const newMedications = [...newPrescriptionData.medications];
+            const voiceMedication = value[0]; // Take the first medication from voice
             
-            data.updates.medications.forEach((voiceMed: any, index: number) => {
-              console.log(`Processing voice medication ${index}:`, voiceMed);
-              
-              const medicationToAdd = {
-                name: voiceMed.name || '',
-                dosage: voiceMed.dosage || '',
-                frequency: voiceMed.frequency || '',
-                duration: voiceMed.duration || ''
+            if (voiceMedication) {
+              // COMPLETELY replace the first medication slot
+              newMedications[0] = {
+                name: voiceMedication.name || '',
+                dosage: voiceMedication.dosage || '',
+                frequency: voiceMedication.frequency || '',
+                duration: voiceMedication.duration || ''
               };
               
-              console.log('Formatted medication:', medicationToAdd);
-              
-              // Simple logic: replace the first medication or add new one
-              if (index === 0) {
-                // Always put the first voice medication in the first slot
-                newMedications[0] = medicationToAdd;
-                console.log('Updated first medication slot');
-              } else if (index < newMedications.length) {
-                // Replace existing medication at this index
-                newMedications[index] = medicationToAdd;
-                console.log(`Updated medication slot ${index}`);
-              } else {
-                // Add new medication
-                newMedications.push(medicationToAdd);
-                console.log('Added new medication slot');
-              }
-            });
-            
-            updatedData.medications = newMedications;
-            console.log('Final medications array:', updatedData.medications);
-            
-          } else {
-            // Handle all other fields with validation
-            console.log(`=== UPDATING FIELD: ${field} ===`);
-            console.log('Available fields in updatedData:', Object.keys(updatedData));
-            
-            if (field in updatedData) {
-              const oldValue = (updatedData as any)[field];
-              (updatedData as any)[field] = data.updates[field];
-              console.log(`✅ Updated ${field}: "${oldValue}" → "${data.updates[field]}"`);
-            } else {
-              console.warn(`❌ Field ${field} not found in prescription data structure`);
-              console.log('Available fields:', Object.keys(updatedData));
+              console.log('✅ Updated first medication to:', newMedications[0]);
+              newPrescriptionData.medications = newMedications;
             }
+            
+          } else if (field in newPrescriptionData) {
+            // Handle all other fields
+            console.log(`✅ Setting ${field}: "${(newPrescriptionData as any)[field]}" → "${value}"`);
+            (newPrescriptionData as any)[field] = value;
+          } else {
+            console.warn(`❌ Field ${field} not found in prescription data`);
           }
         });
 
-        console.log('=== FINAL UPDATE ===');
-        console.log('Updated prescription data:', updatedData);
-        console.log('Calling onPrescriptionChange...');
+        console.log('📋 FINAL prescription data AFTER update:', JSON.stringify(newPrescriptionData, null, 2));
         
-        // Force update the form state
-        onPrescriptionChange(updatedData);
+        // FORCE the form update with the new data
+        console.log('🚀 Calling onPrescriptionChange with new data...');
+        onPrescriptionChange(newPrescriptionData);
         
-        console.log('Form update completed');
+        // Verify the update worked by checking if the parent received it
+        setTimeout(() => {
+          console.log('🔍 Verification - Current prescriptionData after update:', JSON.stringify(prescriptionData, null, 2));
+        }, 100);
         
         // Show success message
         toast({
-          title: "Voice Command Processed",
-          description: data.response || "Information updated successfully",
+          title: "✅ Voice Command Processed",
+          description: data.response || "Form updated successfully!",
         });
         
-        // Try to speak response
+        // Speak response
         speakResponse(data.response || "Updated successfully");
         
       } else if (data.action === 'help' || transcript.toLowerCase().includes('help')) {
-        const helpMessage = `I can help you fill out prescriptions with voice commands. You can say things like: 
-          Patient name is John Smith, 
-          Age is 45, 
-          Gender is female,
-          Temperature is 101.2, 
-          Blood pressure is 140 over 90, 
-          Add medication amoxicillin 500mg three times daily for 7 days, 
-          Clinical notes patient has kidney disease,
-          Follow up on June 23rd 2025,
-          or Diagnosis is acute bronchitis.`;
+        const helpMessage = `I can help you fill out prescriptions with voice commands. Try saying: Patient name is John Smith, Age 45, Add medication amoxicillin 500mg three times daily, or Blood pressure 120 over 80.`;
         speakResponse(helpMessage);
       } else {
-        console.log('Unknown action or no updates:', data);
-        speakResponse(data.response || "I didn't understand that command. Try saying 'help' to see what I can do.");
-        
-        toast({
-          title: "Command Not Recognized",
-          description: "Try being more specific or say 'help' for examples.",
-          variant: "destructive"
-        });
+        console.log('❓ Unknown action or no updates:', data);
+        speakResponse(data.response || "I didn't understand that command. Try being more specific.");
       }
       
-      console.log('=== VOICE COMMAND PROCESSING END ===\n');
-      
     } catch (error) {
-      console.error('Error processing voice command:', error);
+      console.error('💥 Error processing voice command:', error);
       speakResponse("Sorry, I had trouble processing that command. Please try again.");
       
       toast({
@@ -180,18 +134,18 @@ const VoiceAssistant = ({ prescriptionData, onPrescriptionChange, className }: V
   };
 
   const speakResponse = (text: string) => {
-    // Add assistant response to conversation first
+    // Add assistant response to conversation
     setConversationHistory(prev => [...prev, {
       type: 'assistant',
       text: text,
       timestamp: new Date()
     }]);
     
-    // Try to speak, but don't block form updates if it fails
+    // Try to speak
     try {
       speakText(text);
     } catch (error) {
-      console.log('TTS failed, but continuing with form updates:', error);
+      console.log('🔇 TTS failed, but continuing:', error);
     }
   };
 
@@ -206,7 +160,7 @@ const VoiceAssistant = ({ prescriptionData, onPrescriptionChange, className }: V
     stopSpeaking
   } = useVoiceAssistant({
     onTranscript: processVoiceCommand,
-    voiceId: 'EXAVITQu4vr4xnSDxMaL' // Sarah voice
+    voiceId: 'EXAVITQu4vr4xnSDxMaL'
   });
 
   return (
@@ -337,21 +291,25 @@ const VoiceAssistant = ({ prescriptionData, onPrescriptionChange, className }: V
           </div>
         )}
 
+        {/* Debug Info */}
+        <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+          <div className="text-sm font-medium text-yellow-700 mb-2">Debug Info:</div>
+          <div className="text-xs text-yellow-600 space-y-1">
+            <div>Current Medication Name: "{prescriptionData.medications[0]?.name || 'empty'}"</div>
+            <div>Current Medication Dosage: "{prescriptionData.medications[0]?.dosage || 'empty'}"</div>
+            <div>Patient Name: "{prescriptionData.patientName || 'empty'}"</div>
+          </div>
+        </div>
+
         {/* Voice Commands Help */}
         <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-          <div className="text-sm font-medium text-gray-700 mb-2">Smart Voice Commands:</div>
+          <div className="text-sm font-medium text-gray-700 mb-2">Try these commands:</div>
           <div className="text-xs text-gray-600 space-y-1">
-            <div>• "Patient name is John Smith"</div>
-            <div>• "Age is 45" or "Age is forty-five"</div>
-            <div>• "Gender is male" or "Gender is female"</div>
-            <div>• "Temperature is 101.2 degrees"</div>
-            <div>• "Blood pressure is 140 over 90"</div>
             <div>• "Add medication amoxicillin 500mg three times daily for 7 days"</div>
+            <div>• "Patient name is John Smith"</div>
+            <div>• "Age is 45"</div>
+            <div>• "Blood pressure is 140 over 90"</div>
             <div>• "Diagnosis is acute bronchitis"</div>
-            <div>• "Clinical notes patient has underlying kidney disease"</div>
-            <div>• "Follow up date is next week" or specific date</div>
-            <div>• "Help" - for more commands</div>
-            <div className="text-purple-600 font-medium">✨ Enhanced with smarter parsing</div>
           </div>
         </div>
       </div>
