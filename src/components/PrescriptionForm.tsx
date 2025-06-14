@@ -59,25 +59,46 @@ const PrescriptionForm = () => {
       if (prescription) {
         console.log('Filling prescription from voice command:', prescription);
         
-        // Map the voice command data to prescription format
+        // Enhanced mapping with proper field validation
         const updatedData: PrescriptionData = {
           doctorName: prescription.doctorName || prescriptionData.doctorName,
           patientName: prescription.patientName || prescriptionData.patientName,
-          age: prescription.age ? parseInt(prescription.age) : prescriptionData.age,
+          age: prescription.age ? (typeof prescription.age === 'number' ? prescription.age : parseInt(prescription.age)) : prescriptionData.age,
           gender: prescription.gender || prescriptionData.gender,
           contact: prescription.contact || prescriptionData.contact,
-          temperature: prescription.temperature ? parseFloat(prescription.temperature) : prescriptionData.temperature,
-          bp: prescription.bloodPressure || prescriptionData.bp,
+          temperature: prescription.temperature ? (typeof prescription.temperature === 'number' ? prescription.temperature : parseFloat(prescription.temperature)) : prescriptionData.temperature,
+          bp: prescription.bp || prescriptionData.bp, // Direct mapping to bp field
           diagnosis: prescription.diagnosis || prescriptionData.diagnosis,
-          notes: prescription.clinicalNotes || prescriptionData.notes,
-          followUpDate: prescriptionData.followUpDate,
+          notes: prescription.notes || prescriptionData.notes,
+          followUpDate: prescription.followUpDate || prescriptionData.followUpDate, // Already in MM/DD/YYYY format
           medications: prescription.medication ? [{
             name: prescription.medication,
             dosage: prescription.dosage || '',
-            frequency: prescription.frequency || '',
+            frequency: prescription.frequency || '', // Already standardized by Gemini
             duration: prescription.duration || ''
           }] : prescriptionData.medications
         };
+        
+        // Validate gender mapping
+        if (prescription.gender && !['Male', 'Female', 'Other'].includes(prescription.gender)) {
+          console.warn('Invalid gender value from voice command:', prescription.gender);
+          // Keep existing value if invalid
+          updatedData.gender = prescriptionData.gender;
+        }
+        
+        // Validate blood pressure format
+        if (prescription.bp && !/^\d+\/\d+$/.test(prescription.bp)) {
+          console.warn('Invalid blood pressure format from voice command:', prescription.bp);
+          // Keep existing value if invalid format
+          updatedData.bp = prescriptionData.bp;
+        }
+        
+        // Validate follow-up date format (MM/DD/YYYY)
+        if (prescription.followUpDate && !/^\d{2}\/\d{2}\/\d{4}$/.test(prescription.followUpDate)) {
+          console.warn('Invalid follow-up date format from voice command:', prescription.followUpDate);
+          // Keep existing value if invalid format
+          updatedData.followUpDate = prescriptionData.followUpDate;
+        }
         
         setPrescriptionData(updatedData);
         toast({
