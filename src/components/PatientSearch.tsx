@@ -38,6 +38,20 @@ const PatientSearch = ({
     }
   }, [voiceSearchTerm, autoSearch]);
 
+  // Auto-search as user types (debounced)
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setSearchResults([]);
+      return;
+    }
+
+    const searchTimeout = setTimeout(() => {
+      performSearch(searchTerm);
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(searchTimeout);
+  }, [searchTerm]);
+
   const performSearchAndAutoSelect = async (term: string) => {
     if (!term.trim()) return;
     
@@ -105,13 +119,13 @@ const PatientSearch = ({
       return;
     }
     
-    console.log('🔍 Performing manual search for:', term);
+    console.log('🔍 Performing search for:', term);
     try {
       const results = await searchPatient(term);
-      console.log('📊 Manual search results:', results);
+      console.log('📊 Search results:', results);
       
       if (!results || results.length === 0) {
-        console.log('❌ No patients found for manual search');
+        console.log('❌ No patients found');
         setSearchResults([]);
         return;
       }
@@ -122,10 +136,10 @@ const PatientSearch = ({
         visit_count: Math.floor(Math.random() * 20) + 1 // Mock visit count for demo
       }));
       
-      console.log('📊 Manual search results with visit counts:', enhancedResults);
+      console.log('📊 Search results with visit counts:', enhancedResults);
       setSearchResults(enhancedResults);
     } catch (error) {
-      console.error('❌ Error in manual search:', error);
+      console.error('❌ Error in search:', error);
       setSearchResults([]);
     }
   };
