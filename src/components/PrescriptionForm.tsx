@@ -1,11 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, Brain, Search, Zap, Stethoscope } from 'lucide-react';
 import VitalSigns from './VitalSigns';
 import AIAnalysisSection from './AIAnalysisSection';
 import PrescriptionPDFExport from './PrescriptionPDFExport';
-import VoiceAssistant from './VoiceAssistant';
 import { toast } from '@/hooks/use-toast';
 import EnhancedMedicationList from './EnhancedMedicationList';
 import EnhancedPrescriptionForm from './EnhancedPrescriptionForm';
@@ -52,6 +51,89 @@ const PrescriptionForm = () => {
   const [currentPrescriptionId, setCurrentPrescriptionId] = useState<string | null>(null);
   
   const { savePrescription, saveAIAnalysis } = usePrescriptions();
+
+  // Add event listeners for global voice commands
+  useEffect(() => {
+    const handleVoiceFillForm = (event: CustomEvent) => {
+      const { prescription } = event.detail;
+      if (prescription) {
+        console.log('Filling prescription from voice command:', prescription);
+        
+        // Map the voice command data to prescription format
+        const updatedData: PrescriptionData = {
+          doctorName: prescription.doctorName || prescriptionData.doctorName,
+          patientName: prescription.patientName || prescriptionData.patientName,
+          age: prescription.age ? parseInt(prescription.age) : prescriptionData.age,
+          gender: prescription.gender || prescriptionData.gender,
+          contact: prescription.contact || prescriptionData.contact,
+          temperature: prescription.temperature ? parseFloat(prescription.temperature) : prescriptionData.temperature,
+          bp: prescription.bloodPressure || prescriptionData.bp,
+          diagnosis: prescription.diagnosis || prescriptionData.diagnosis,
+          notes: prescription.clinicalNotes || prescriptionData.notes,
+          followUpDate: prescriptionData.followUpDate,
+          medications: prescription.medication ? [{
+            name: prescription.medication,
+            dosage: prescription.dosage || '',
+            frequency: prescription.frequency || '',
+            duration: prescription.duration || ''
+          }] : prescriptionData.medications
+        };
+        
+        setPrescriptionData(updatedData);
+        toast({
+          title: "✅ Voice Command Processed",
+          description: "Prescription form has been filled with voice data",
+        });
+      }
+    };
+
+    const handleVoiceClearForm = () => {
+      setPrescriptionData({
+        doctorName: '',
+        patientName: '',
+        age: 0,
+        gender: '',
+        contact: '',
+        temperature: 98.6,
+        bp: '',
+        medications: [{ name: '', dosage: '', frequency: '', duration: '' }],
+        diagnosis: '',
+        notes: '',
+        followUpDate: ''
+      });
+      toast({
+        title: "✅ Form Cleared",
+        description: "All prescription data has been cleared",
+      });
+    };
+
+    const handleVoiceDownloadPdf = () => {
+      // Trigger the PDF download if form has data
+      if (prescriptionData.patientName && prescriptionData.doctorName) {
+        const downloadEvent = new CustomEvent('download-pdf', {
+          detail: { type: 'prescription' }
+        });
+        window.dispatchEvent(downloadEvent);
+      } else {
+        toast({
+          title: "Cannot Download PDF",
+          description: "Please fill in patient and doctor information first",
+          variant: "destructive"
+        });
+      }
+    };
+
+    // Listen for voice commands
+    window.addEventListener('voice-fill-form', handleVoiceFillForm as EventListener);
+    window.addEventListener('voice-clear-form', handleVoiceClearForm);
+    window.addEventListener('voice-download-pdf', handleVoiceDownloadPdf);
+
+    return () => {
+      window.removeEventListener('voice-fill-form', handleVoiceFillForm as EventListener);
+      window.removeEventListener('voice-clear-form', handleVoiceClearForm);
+      window.removeEventListener('voice-download-pdf', handleVoiceDownloadPdf);
+    };
+  }, [prescriptionData]);
 
   const analyzePrescriptionWithLyzr = async (data: PrescriptionData) => {
     console.log('Resolving medicine names...');
@@ -399,13 +481,6 @@ Format the response as JSON with the following structure:
           data={prescriptionData} 
           onChange={setPrescriptionData}
         >
-          {/* Voice Assistant Section */}
-          <VoiceAssistant
-            prescriptionData={prescriptionData}
-            onPrescriptionChange={setPrescriptionData}
-            className="mb-8"
-          />
-
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-12">
             <div className="space-y-6 lg:space-y-12">
               <VitalSigns 

@@ -222,7 +222,7 @@ export const useGlobalVoiceAgent = () => {
           break;
 
         case 'help':
-          speakResponse(command.response || "I can help you navigate, download PDFs, fill forms, search for patients, and much more. Just tell me what you want to do!");
+          speakResponse(command.response || "I can help you navigate, download PDFs, fill complete prescriptions, search for patients, and much more. Just tell me what you want to do!");
           break;
 
         default:

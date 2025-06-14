@@ -67,7 +67,7 @@ const GlobalVoiceControl = ({ className }: GlobalVoiceControlProps) => {
                   <MessageCircle className="h-4 w-4 text-white" />
                 </div>
               </div>
-              <span className="font-medium text-gray-900">Voice Agent</span>
+              <span className="font-medium text-gray-900">Global Voice Agent</span>
             </div>
             
             <div className="flex space-x-1">
@@ -168,6 +168,7 @@ const GlobalVoiceControl = ({ className }: GlobalVoiceControlProps) => {
                 <div>• "Download PDF" - Export documents</div>
                 <div>• "Switch to history" - Change tabs</div>
                 <div>• "Clear form" - Reset current form</div>
+                <div>• "Fill prescription..." - Complete form with voice data</div>
                 <div>• "Sign out" - Logout</div>
               </div>
             </div>

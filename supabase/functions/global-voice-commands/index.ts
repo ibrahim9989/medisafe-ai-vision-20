@@ -35,7 +35,7 @@ CURRENT CONTEXT:
 AVAILABLE ACTIONS:
 1. NAVIGATION: navigate to different pages
 2. PDF/EXPORT: download or export documents  
-3. FORM OPERATIONS: fill, clear, or modify forms
+3. FORM OPERATIONS: fill entire prescriptions, clear forms, or modify specific fields
 4. TAB SWITCHING: switch between tabs (prescription/history)
 5. SEARCH: search for patients or data
 6. AUTHENTICATION: sign out
@@ -47,10 +47,33 @@ RESPONSE FORMAT - Return valid JSON only:
   "target": "specific target (page name, tab name, search term, etc)",
   "navigation": "/path" (only for navigate action),
   "parameters": {
-    // Additional parameters for the action
+    // For fill_form action, include complete prescription data:
+    "prescription": {
+      "doctorName": "extracted doctor name",
+      "patientName": "extracted patient name", 
+      "age": "extracted age",
+      "gender": "extracted gender (male/female)",
+      "contact": "extracted phone/contact",
+      "temperature": "extracted temperature",
+      "bloodPressure": "extracted BP as systolic/diastolic",
+      "diagnosis": "extracted diagnosis",
+      "medication": "extracted medication name",
+      "dosage": "extracted dosage",
+      "frequency": "extracted frequency", 
+      "duration": "extracted duration",
+      "clinicalNotes": "extracted clinical notes/conditions"
+    }
+    // For other actions, include relevant parameters
   },
   "response": "Human-friendly response to speak back"
 }
+
+PRESCRIPTION FILLING EXAMPLES:
+- "Fill the prescription. Doctor Ibrahim, patient John Smith, age 35, male, contact 9989201545, temperature 99, blood pressure 120/80, diagnosis acute bronchitis, medication amoxicillin 500mg twice daily for 7 days, notes hypertension" 
+→ {"action": "fill_form", "parameters": {"prescription": {"doctorName": "Ibrahim", "patientName": "John Smith", "age": "35", "gender": "male", "contact": "9989201545", "temperature": "99", "bloodPressure": "120/80", "diagnosis": "acute bronchitis", "medication": "amoxicillin", "dosage": "500mg", "frequency": "twice daily", "duration": "7 days", "clinicalNotes": "hypertension"}}, "response": "Prescription form filled. Please review and submit."}
+
+- "Doctor name is Dr. Sarah, patient Maria Garcia, 28 years old, female, phone 555-1234, temp 98.6, BP 110/70, diagnosed with UTI, prescribe ciprofloxacin 250mg once daily for 5 days"
+→ {"action": "fill_form", "parameters": {"prescription": {"doctorName": "Dr. Sarah", "patientName": "Maria Garcia", "age": "28", "gender": "female", "contact": "555-1234", "temperature": "98.6", "bloodPressure": "110/70", "diagnosis": "UTI", "medication": "ciprofloxacin", "dosage": "250mg", "frequency": "once daily", "duration": "5 days"}}, "response": "Complete prescription filled successfully."}
 
 NAVIGATION EXAMPLES:
 - "go home" → {"action": "navigate", "navigation": "/", "response": "Going to homepage"}
@@ -63,7 +86,6 @@ PDF/EXPORT EXAMPLES:
 
 FORM EXAMPLES:
 - "clear form" → {"action": "clear_form", "response": "Clearing form"}
-- "patient name john smith" → {"action": "fill_form", "parameters": {"patientName": "John Smith"}, "response": "Setting patient name to John Smith"}
 
 TAB EXAMPLES:
 - "switch to history" → {"action": "switch_tab", "target": "history", "response": "Switching to patient history"}
@@ -72,7 +94,17 @@ TAB EXAMPLES:
 OTHER EXAMPLES:
 - "search for john" → {"action": "search", "target": "john", "response": "Searching for john"}
 - "sign out" → {"action": "sign_out", "response": "Signing you out"}
-- "help" → {"action": "help", "response": "I can help you navigate, download PDFs, fill forms, and more!"}
+- "help" → {"action": "help", "response": "I can help you navigate, download PDFs, fill complete prescriptions, and more!"}
+
+INTELLIGENT PARSING RULES:
+1. Extract ALL available information from the voice command
+2. Be flexible with natural language - users may not follow perfect structure
+3. Fill as many prescription fields as possible from the given information
+4. Convert spoken numbers to digits (e.g., "thirty-five" → "35")
+5. Standardize formats (e.g., "one twenty over eighty" → "120/80")
+6. Infer missing information when context allows
+7. Handle multiple medications if mentioned
+8. Capture underlying conditions, allergies, or additional notes
 
 Parse this command: "${transcript}"`;
 
@@ -123,7 +155,7 @@ Parse this command: "${transcript}"`;
       // Fallback response
       parsedCommand = {
         action: 'help',
-        response: "I didn't understand that command. Try saying things like 'go home', 'download PDF', or 'clear form'."
+        response: "I didn't understand that command. Try saying things like 'go home', 'download PDF', 'fill prescription', or 'clear form'."
       };
     }
 
