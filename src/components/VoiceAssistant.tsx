@@ -59,17 +59,20 @@ const VoiceAssistant = ({ prescriptionData, onPrescriptionChange, className }: V
       if (data.action === 'update_field' && data.updates) {
         const updatedData = { ...prescriptionData };
         
-        // Apply field updates directly - no more field mapping needed since Gemini now returns correct fields
+        // Handle each field update
         Object.keys(data.updates).forEach(field => {
+          console.log(`Processing field: ${field} with value:`, data.updates[field]);
+          
           if (field === 'medications' && Array.isArray(data.updates.medications)) {
             // Handle medications array specially
             console.log('Processing medication updates:', data.updates.medications);
             
-            // Add new medications to existing ones
-            const existingMedications = [...updatedData.medications];
-            data.updates.medications.forEach((newMed: any) => {
-              // Find first empty medication slot or add new one
-              const emptyIndex = existingMedications.findIndex(med => !med.name.trim());
+            // Get current medications array
+            const currentMedications = [...updatedData.medications];
+            
+            // Process each new medication from voice command
+            data.updates.medications.forEach((newMed: any, index: number) => {
+              console.log(`Processing medication ${index}:`, newMed);
               
               const medicationToAdd = {
                 name: newMed.name || '',
@@ -78,25 +81,39 @@ const VoiceAssistant = ({ prescriptionData, onPrescriptionChange, className }: V
                 duration: newMed.duration || ''
               };
               
-              if (emptyIndex !== -1) {
-                existingMedications[emptyIndex] = medicationToAdd;
+              // Find first empty medication slot or replace the first one
+              if (currentMedications.length > 0 && !currentMedications[0].name.trim()) {
+                // Replace the first empty medication
+                currentMedications[0] = medicationToAdd;
               } else {
-                existingMedications.push(medicationToAdd);
+                // Add as new medication or replace first one if all are filled
+                if (index < currentMedications.length) {
+                  currentMedications[index] = medicationToAdd;
+                } else {
+                  currentMedications.push(medicationToAdd);
+                }
               }
             });
             
-            updatedData.medications = existingMedications;
-            console.log('Updated medications:', updatedData.medications);
-          } else if (field in updatedData) {
+            updatedData.medications = currentMedications;
+            console.log('Updated medications array:', updatedData.medications);
+            
+          } else {
             // Handle all other fields directly
-            (updatedData as any)[field] = data.updates[field];
-            console.log(`Updated ${field} to:`, data.updates[field]);
+            if (field in updatedData) {
+              (updatedData as any)[field] = data.updates[field];
+              console.log(`Updated ${field} to:`, data.updates[field]);
+            } else {
+              console.warn(`Field ${field} not found in prescription data`);
+            }
           }
         });
 
+        // Update the form immediately
+        console.log('Updating prescription data:', updatedData);
         onPrescriptionChange(updatedData);
         
-        // Show success message immediately
+        // Show success message
         toast({
           title: "Voice Command Processed",
           description: data.response || "Information updated successfully",
