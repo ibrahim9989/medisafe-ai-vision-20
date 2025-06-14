@@ -53,7 +53,7 @@ const AIAnalysisPDFExport = ({ prescriptionData, analysis }: AIAnalysisPDFExport
       doc.setFont(undefined, 'normal');
       const riskColor = analysis.overallRisk === 'High' ? [220, 38, 38] : 
                        analysis.overallRisk === 'Medium' ? [217, 119, 6] : [22, 163, 74];
-      doc.setTextColor(...riskColor);
+      doc.setTextColor(riskColor[0], riskColor[1], riskColor[2]);
       doc.text(`Risk Level: ${analysis.overallRisk}`, margin, yPosition);
       doc.setTextColor(0, 0, 0);
       yPosition += lineHeight * 2;
