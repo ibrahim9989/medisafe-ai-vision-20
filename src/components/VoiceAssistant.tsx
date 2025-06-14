@@ -7,6 +7,7 @@ import { useVoiceAssistant } from '@/hooks/useVoiceAssistant';
 import { PrescriptionData } from './PrescriptionForm';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
 interface VoiceAssistantProps {
   prescriptionData: PrescriptionData;
@@ -23,6 +24,8 @@ const VoiceAssistant = ({ prescriptionData, onPrescriptionChange, className }: V
   }>>([]);
 
   const processVoiceCommand = async (transcript: string) => {
+    console.log('Processing voice command:', transcript);
+    
     // Add user message to conversation
     setConversationHistory(prev => [...prev, {
       type: 'user',
@@ -34,18 +37,23 @@ const VoiceAssistant = ({ prescriptionData, onPrescriptionChange, className }: V
       // Use Gemini to intelligently parse the voice command
       const { data, error } = await supabase.functions.invoke('parse-voice-command', {
         body: { 
-          transcript: transcript,
+          transcript: transcript.trim(),
           currentData: prescriptionData
         }
       });
 
       if (error) {
         console.error('Voice command parsing error:', error);
-        speakResponse("Sorry, I had trouble understanding that command.");
+        speakResponse("Sorry, I had trouble understanding that command. Please try again.");
+        toast({
+          title: "Voice Command Error",
+          description: "Failed to process voice command. Please try again.",
+          variant: "destructive"
+        });
         return;
       }
 
-      console.log('Parsed voice command:', data);
+      console.log('Parsed voice command result:', data);
 
       // Apply the updates based on the parsed command
       if (data.action === 'update_field' && data.updates) {
@@ -60,9 +68,15 @@ const VoiceAssistant = ({ prescriptionData, onPrescriptionChange, className }: V
 
         onPrescriptionChange(updatedData);
         speakResponse(data.response || "Updated successfully");
+        
+        toast({
+          title: "Voice Command Processed",
+          description: data.response || "Field updated successfully",
+        });
+        
       } else if (data.action === 'add_medication' && data.updates?.medication) {
         const newMedications = [...prescriptionData.medications];
-        const emptyIndex = newMedications.findIndex(med => !med.name);
+        const emptyIndex = newMedications.findIndex(med => !med.name.trim());
         
         if (emptyIndex !== -1) {
           newMedications[emptyIndex] = {
@@ -87,6 +101,12 @@ const VoiceAssistant = ({ prescriptionData, onPrescriptionChange, className }: V
         });
         
         speakResponse(data.response || "Medication added successfully");
+        
+        toast({
+          title: "Medication Added",
+          description: data.response || "Medication added to prescription",
+        });
+        
       } else if (data.action === 'help' || transcript.toLowerCase().includes('help')) {
         const helpMessage = `I can help you fill out prescriptions with voice commands. You can say things like: 
           Patient name is John Smith, 
@@ -98,10 +118,22 @@ const VoiceAssistant = ({ prescriptionData, onPrescriptionChange, className }: V
         speakResponse(helpMessage);
       } else {
         speakResponse(data.response || "I didn't understand that command. Try saying 'help' to see what I can do.");
+        
+        toast({
+          title: "Command Not Recognized",
+          description: "Try being more specific or say 'help' for examples.",
+          variant: "destructive"
+        });
       }
     } catch (error) {
       console.error('Error processing voice command:', error);
-      speakResponse("Sorry, I had trouble processing that command.");
+      speakResponse("Sorry, I had trouble processing that command. Please try again.");
+      
+      toast({
+        title: "Processing Error",
+        description: "Unable to process voice command. Please try again.",
+        variant: "destructive"
+      });
     }
   };
 
