@@ -6,6 +6,7 @@ import { Mic, MicOff, Volume2, VolumeX, MessageCircle } from 'lucide-react';
 import { useVoiceAssistant } from '@/hooks/useVoiceAssistant';
 import { PrescriptionData } from './PrescriptionForm';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
 
 interface VoiceAssistantProps {
   prescriptionData: PrescriptionData;
@@ -21,7 +22,7 @@ const VoiceAssistant = ({ prescriptionData, onPrescriptionChange, className }: V
     timestamp: Date;
   }>>([]);
 
-  const processVoiceCommand = (transcript: string) => {
+  const processVoiceCommand = async (transcript: string) => {
     // Add user message to conversation
     setConversationHistory(prev => [...prev, {
       type: 'user',
@@ -29,70 +30,54 @@ const VoiceAssistant = ({ prescriptionData, onPrescriptionChange, className }: V
       timestamp: new Date()
     }]);
 
-    // Process different types of voice commands
-    const lowerTranscript = transcript.toLowerCase();
+    try {
+      // Use Gemini to intelligently parse the voice command
+      const { data, error } = await supabase.functions.invoke('parse-voice-command', {
+        body: { 
+          transcript: transcript,
+          currentData: prescriptionData
+        }
+      });
 
-    if (lowerTranscript.includes('patient name') || lowerTranscript.includes('add patient')) {
-      const nameMatch = transcript.match(/(?:patient name|add patient)\s+(?:is\s+)?([a-zA-Z\s]+)/i);
-      if (nameMatch) {
-        const patientName = nameMatch[1].trim();
-        onPrescriptionChange({
-          ...prescriptionData,
-          patientName: patientName
-        });
-        speakResponse(`Patient name set to ${patientName}`);
+      if (error) {
+        console.error('Voice command parsing error:', error);
+        speakResponse("Sorry, I had trouble understanding that command.");
+        return;
       }
-    } else if (lowerTranscript.includes('age')) {
-      const ageMatch = transcript.match(/age\s+(?:is\s+)?(\d+)/i);
-      if (ageMatch) {
-        const age = parseInt(ageMatch[1]);
-        onPrescriptionChange({
-          ...prescriptionData,
-          age: age
-        });
-        speakResponse(`Age set to ${age} years old`);
-      }
-    } else if (lowerTranscript.includes('temperature')) {
-      const tempMatch = transcript.match(/temperature\s+(?:is\s+)?(\d+\.?\d*)/i);
-      if (tempMatch) {
-        const temperature = parseFloat(tempMatch[1]);
-        onPrescriptionChange({
-          ...prescriptionData,
-          temperature: temperature
-        });
-        speakResponse(`Temperature set to ${temperature} degrees`);
-      }
-    } else if (lowerTranscript.includes('blood pressure')) {
-      const bpMatch = transcript.match(/blood pressure\s+(?:is\s+)?(\d+\/\d+)/i);
-      if (bpMatch) {
-        const bp = bpMatch[1];
-        onPrescriptionChange({
-          ...prescriptionData,
-          bp: bp
-        });
-        speakResponse(`Blood pressure set to ${bp}`);
-      }
-    } else if (lowerTranscript.includes('add medication') || lowerTranscript.includes('medication')) {
-      const medicationMatch = transcript.match(/(?:add medication|medication)\s+([a-zA-Z\s]+?)(?:\s+(\d+\s*mg|\d+\s*ml))?/i);
-      if (medicationMatch) {
-        const medicationName = medicationMatch[1].trim();
-        const dosage = medicationMatch[2] || '';
+
+      console.log('Parsed voice command:', data);
+
+      // Apply the updates based on the parsed command
+      if (data.action === 'update_field' && data.updates) {
+        const updatedData = { ...prescriptionData };
         
+        // Apply field updates
+        Object.keys(data.updates).forEach(field => {
+          if (field in updatedData) {
+            (updatedData as any)[field] = data.updates[field];
+          }
+        });
+
+        onPrescriptionChange(updatedData);
+        speakResponse(data.response || "Updated successfully");
+      } else if (data.action === 'add_medication' && data.updates?.medication) {
         const newMedications = [...prescriptionData.medications];
         const emptyIndex = newMedications.findIndex(med => !med.name);
         
         if (emptyIndex !== -1) {
           newMedications[emptyIndex] = {
             ...newMedications[emptyIndex],
-            name: medicationName,
-            dosage: dosage
+            name: data.updates.medication.name || '',
+            dosage: data.updates.medication.dosage || '',
+            frequency: data.updates.medication.frequency || '',
+            duration: data.updates.medication.duration || ''
           };
         } else {
           newMedications.push({
-            name: medicationName,
-            dosage: dosage,
-            frequency: '',
-            duration: ''
+            name: data.updates.medication.name || '',
+            dosage: data.updates.medication.dosage || '',
+            frequency: data.updates.medication.frequency || '',
+            duration: data.updates.medication.duration || ''
           });
         }
         
@@ -101,29 +86,22 @@ const VoiceAssistant = ({ prescriptionData, onPrescriptionChange, className }: V
           medications: newMedications
         });
         
-        speakResponse(`Added medication ${medicationName}${dosage ? ` with dosage ${dosage}` : ''}`);
+        speakResponse(data.response || "Medication added successfully");
+      } else if (data.action === 'help' || transcript.toLowerCase().includes('help')) {
+        const helpMessage = `I can help you fill out prescriptions with voice commands. You can say things like: 
+          Patient name is John Smith, 
+          Age is 45, 
+          Temperature is 101.2, 
+          Blood pressure is 140 over 90, 
+          Add medication amoxicillin 500mg, 
+          or Diagnosis is acute bronchitis.`;
+        speakResponse(helpMessage);
+      } else {
+        speakResponse(data.response || "I didn't understand that command. Try saying 'help' to see what I can do.");
       }
-    } else if (lowerTranscript.includes('diagnosis')) {
-      const diagnosisMatch = transcript.match(/diagnosis\s+(?:is\s+)?(.+)/i);
-      if (diagnosisMatch) {
-        const diagnosis = diagnosisMatch[1].trim();
-        onPrescriptionChange({
-          ...prescriptionData,
-          diagnosis: diagnosis
-        });
-        speakResponse(`Diagnosis set to ${diagnosis}`);
-      }
-    } else if (lowerTranscript.includes('help') || lowerTranscript.includes('what can you do')) {
-      const helpMessage = `I can help you fill out prescriptions with voice commands. You can say things like: 
-        Patient name is John Smith, 
-        Age is 45, 
-        Temperature is 101.2, 
-        Blood pressure is 140 over 90, 
-        Add medication amoxicillin 500mg, 
-        or Diagnosis is acute bronchitis.`;
-      speakResponse(helpMessage);
-    } else {
-      speakResponse("I didn't understand that command. Try saying 'help' to see what I can do.");
+    } catch (error) {
+      console.error('Error processing voice command:', error);
+      speakResponse("Sorry, I had trouble processing that command.");
     }
   };
 
@@ -169,7 +147,7 @@ const VoiceAssistant = ({ prescriptionData, onPrescriptionChange, className }: V
                 <MessageCircle className="h-4 w-4 lg:h-5 lg:w-5 text-white" />
               </div>
             </div>
-            <span className="text-lg lg:text-xl font-medium text-gray-900 tracking-wide">Voice Assistant</span>
+            <span className="text-lg lg:text-xl font-medium text-gray-900 tracking-wide">AI Voice Assistant</span>
           </div>
           
           <Button
@@ -269,7 +247,7 @@ const VoiceAssistant = ({ prescriptionData, onPrescriptionChange, className }: V
                     "font-medium mb-1",
                     message.type === 'user' ? "text-gray-700" : "text-purple-700"
                   )}>
-                    {message.type === 'user' ? 'You:' : 'Assistant:'}
+                    {message.type === 'user' ? 'You:' : 'AI Assistant:'}
                   </div>
                   <div className={message.type === 'user' ? "text-gray-900" : "text-purple-900"}>
                     {message.text}
@@ -282,15 +260,16 @@ const VoiceAssistant = ({ prescriptionData, onPrescriptionChange, className }: V
 
         {/* Voice Commands Help */}
         <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-          <div className="text-sm font-medium text-gray-700 mb-2">Voice Commands:</div>
+          <div className="text-sm font-medium text-gray-700 mb-2">Smart Voice Commands:</div>
           <div className="text-xs text-gray-600 space-y-1">
             <div>• "Patient name is John Smith"</div>
-            <div>• "Age is 45"</div>
-            <div>• "Temperature is 101.2"</div>
+            <div>• "Age is 45" or "Age is forty-five"</div>
+            <div>• "Temperature is 101.2 degrees"</div>
             <div>• "Blood pressure is 140 over 90"</div>
             <div>• "Add medication amoxicillin 500mg"</div>
             <div>• "Diagnosis is acute bronchitis"</div>
             <div>• "Help" - for more commands</div>
+            <div className="text-purple-600 font-medium">✨ Powered by Gemini AI for smart recognition</div>
           </div>
         </div>
       </div>
