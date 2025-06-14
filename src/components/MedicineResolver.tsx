@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Search, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Search, CheckCircle, AlertCircle, Loader2, AlertTriangle } from 'lucide-react';
 import { tavilyService, MedicineResolution } from '../services/tavilyService';
 import { Card, CardContent } from '@/components/ui/card';
 
@@ -13,21 +13,35 @@ const MedicineResolver = ({ medicineName, onResolutionChange }: MedicineResolver
   const [resolution, setResolution] = useState<MedicineResolution | null>(null);
   const [isResolving, setIsResolving] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log('MedicineResolver: Medicine name changed to:', medicineName);
     if (medicineName.trim().length > 2) {
+      console.log('MedicineResolver: Starting resolution for:', medicineName);
       resolveMedicine();
+    } else {
+      console.log('MedicineResolver: Medicine name too short, clearing resolution');
+      setResolution(null);
+      setError(null);
+      onResolutionChange(null);
     }
   }, [medicineName]);
 
   const resolveMedicine = async () => {
     setIsResolving(true);
+    setError(null);
+    console.log('MedicineResolver: Calling Tavily service for:', medicineName);
+    
     try {
       const result = await tavilyService.resolveMedicineName(medicineName);
+      console.log('MedicineResolver: Received result:', result);
       setResolution(result);
       onResolutionChange(result);
     } catch (error) {
-      console.error('Failed to resolve medicine:', error);
+      console.error('MedicineResolver: Failed to resolve medicine:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      setError(`Resolution failed: ${errorMessage}`);
       setResolution(null);
       onResolutionChange(null);
     } finally {
@@ -54,6 +68,13 @@ const MedicineResolver = ({ medicineName, onResolutionChange }: MedicineResolver
         <div className="flex items-center space-x-2 text-blue-600 text-sm">
           <Loader2 className="h-4 w-4 animate-spin" />
           <span>Resolving medicine name...</span>
+        </div>
+      )}
+
+      {error && (
+        <div className="flex items-center space-x-2 text-red-600 text-sm bg-red-50 p-2 rounded-lg border border-red-200">
+          <AlertTriangle className="h-4 w-4" />
+          <span>{error}</span>
         </div>
       )}
 

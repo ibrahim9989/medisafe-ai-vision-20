@@ -1,4 +1,3 @@
-
 const TAVILY_API_KEY = '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';
 const TAVILY_ENDPOINT = 'https://api.tavily.com/search';
 
@@ -24,13 +23,17 @@ class TavilyService {
   private cache = new Map<string, MedicineResolution>();
 
   async resolveMedicineName(medicineName: string): Promise<MedicineResolution> {
+    console.log('TavilyService: Starting resolution for:', medicineName);
+    
     // Check cache first
     const cacheKey = medicineName.toLowerCase().trim();
     if (this.cache.has(cacheKey)) {
+      console.log('TavilyService: Found in cache:', cacheKey);
       return this.cache.get(cacheKey)!;
     }
 
     try {
+      console.log('TavilyService: Making API request to Tavily...');
       const options = {
         method: 'POST',
         headers: {
@@ -51,20 +54,41 @@ class TavilyService {
         })
       };
 
+      console.log('TavilyService: Request options:', {
+        ...options,
+        headers: { ...options.headers, 'Authorization': 'Bearer [HIDDEN]' }
+      });
+
       const response = await fetch(TAVILY_ENDPOINT, options);
+      console.log('TavilyService: Response status:', response.status);
+      console.log('TavilyService: Response headers:', Object.fromEntries(response.headers.entries()));
+      
       if (!response.ok) {
-        throw new Error(`Tavily API error: ${response.status}`);
+        const errorText = await response.text();
+        console.error('TavilyService: API error response:', errorText);
+        throw new Error(`Tavily API error: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();
+      console.log('TavilyService: API response data:', data);
+      
       const resolution = this.parseMedicineResolution(medicineName, data);
+      console.log('TavilyService: Parsed resolution:', resolution);
       
       // Cache the result
       this.cache.set(cacheKey, resolution);
       return resolution;
     } catch (error) {
-      console.error('Error resolving medicine name:', error);
-      // Return fallback resolution
+      console.error('TavilyService: Error resolving medicine name:', error);
+      
+      // Check if it's a network error
+      if (error instanceof TypeError && error.message.includes('fetch')) {
+        console.error('TavilyService: Network error - check CORS or connectivity');
+        throw new Error('Network error: Unable to connect to medicine database. Please check your internet connection.');
+      }
+      
+      // Return fallback resolution with error indication
+      console.log('TavilyService: Returning fallback resolution');
       return {
         originalName: medicineName,
         genericName: medicineName,
