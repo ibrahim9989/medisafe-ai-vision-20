@@ -42,22 +42,34 @@ const PatientSearch = ({
     if (!term.trim()) return;
     
     console.log('🔍 Auto-performing search for:', term);
-    const results = await searchPatient(term);
-    
-    // Enhanced results with visit count - mock data for now since we need to enhance the backend
-    const enhancedResults = (results || []).map(patient => ({
-      ...patient,
-      visit_count: Math.floor(Math.random() * 20) + 1 // Mock visit count for demo
-    }));
-    
-    console.log('📊 Search results with visit counts:', enhancedResults);
-    setSearchResults(enhancedResults);
+    try {
+      const results = await searchPatient(term);
+      console.log('📊 Raw search results:', results);
+      
+      if (!results || results.length === 0) {
+        console.log('❌ No patients found in search results');
+        setSearchResults([]);
+        return;
+      }
+      
+      // Enhanced results with visit count - mock data for now since we need to enhance the backend
+      const enhancedResults = results.map(patient => ({
+        ...patient,
+        visit_count: Math.floor(Math.random() * 20) + 1 // Mock visit count for demo
+      }));
+      
+      console.log('📊 Search results with visit counts:', enhancedResults);
+      setSearchResults(enhancedResults);
 
-    // Auto-select patient based on criteria immediately after search
-    if (enhancedResults.length > 0 && autoSelectCriteria) {
-      setTimeout(() => {
-        autoSelectPatient(enhancedResults);
-      }, 500); // Small delay to show results before selection
+      // Auto-select patient based on criteria immediately after search
+      if (enhancedResults.length > 0 && autoSelectCriteria) {
+        setTimeout(() => {
+          autoSelectPatient(enhancedResults);
+        }, 500); // Small delay to show results before selection
+      }
+    } catch (error) {
+      console.error('❌ Error in performSearchAndAutoSelect:', error);
+      setSearchResults([]);
     }
   };
 
@@ -88,19 +100,34 @@ const PatientSearch = ({
   };
 
   const performSearch = async (term: string) => {
-    if (!term.trim()) return;
+    if (!term.trim()) {
+      setSearchResults([]);
+      return;
+    }
     
-    console.log('Performing manual search for:', term);
-    const results = await searchPatient(term);
-    
-    // Enhanced results with visit count - mock data for now since we need to enhance the backend
-    const enhancedResults = (results || []).map(patient => ({
-      ...patient,
-      visit_count: Math.floor(Math.random() * 20) + 1 // Mock visit count for demo
-    }));
-    
-    console.log('Search results with visit counts:', enhancedResults);
-    setSearchResults(enhancedResults);
+    console.log('🔍 Performing manual search for:', term);
+    try {
+      const results = await searchPatient(term);
+      console.log('📊 Manual search results:', results);
+      
+      if (!results || results.length === 0) {
+        console.log('❌ No patients found for manual search');
+        setSearchResults([]);
+        return;
+      }
+      
+      // Enhanced results with visit count - mock data for now since we need to enhance the backend
+      const enhancedResults = results.map(patient => ({
+        ...patient,
+        visit_count: Math.floor(Math.random() * 20) + 1 // Mock visit count for demo
+      }));
+      
+      console.log('📊 Manual search results with visit counts:', enhancedResults);
+      setSearchResults(enhancedResults);
+    } catch (error) {
+      console.error('❌ Error in manual search:', error);
+      setSearchResults([]);
+    }
   };
 
   const handleSearch = () => {
@@ -158,9 +185,16 @@ const PatientSearch = ({
           </div>
         )}
 
+        {/* Debug information */}
+        {searchTerm && (
+          <div className="text-xs text-gray-500 p-2 bg-gray-50 rounded">
+            Searching for: "{searchTerm}" | Results count: {searchResults.length} | Loading: {loading ? 'Yes' : 'No'}
+          </div>
+        )}
+
         {searchResults.length > 0 && (
           <div className="space-y-3 max-h-96 overflow-y-auto">
-            <h4 className="font-medium text-gray-700">Search Results:</h4>
+            <h4 className="font-medium text-gray-700">Search Results ({searchResults.length} found):</h4>
             {searchResults.map((patient) => (
               <div 
                 key={patient.id}

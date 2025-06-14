@@ -21,10 +21,15 @@ export const usePatientHistory = () => {
   const { profile } = useDoctorProfile();
 
   const searchPatient = async (searchTerm: string) => {
-    if (!profile || !searchTerm.trim()) return null;
+    if (!profile || !searchTerm.trim()) {
+      console.log('❌ Search cancelled: missing profile or search term');
+      return [];
+    }
 
     setLoading(true);
     try {
+      console.log('🔍 Searching patients with:', { doctorId: profile.id, searchTerm });
+      
       // Search by name or phone number with fuzzy matching
       const { data: patients, error } = await supabase
         .from('patients')
@@ -32,14 +37,18 @@ export const usePatientHistory = () => {
         .eq('doctor_id', profile.id)
         .or(`full_name.ilike.%${searchTerm}%,phone_number.ilike.%${searchTerm}%`);
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Database search error:', error);
+        throw error;
+      }
 
+      console.log('✅ Database search results:', patients);
       return patients || [];
     } catch (error) {
-      console.error('Error searching patients:', error);
+      console.error('❌ Error searching patients:', error);
       toast({
         title: "Search Error",
-        description: "Failed to search patients",
+        description: "Failed to search patients. Please check your connection.",
         variant: "destructive"
       });
       return [];
