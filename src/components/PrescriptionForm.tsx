@@ -5,6 +5,7 @@ import { AlertCircle, Brain, Search, Zap, Stethoscope } from 'lucide-react';
 import VitalSigns from './VitalSigns';
 import AIAnalysisSection from './AIAnalysisSection';
 import PrescriptionPDFExport from './PrescriptionPDFExport';
+import VoiceAssistant from './VoiceAssistant';
 import { toast } from '@/hooks/use-toast';
 import EnhancedMedicationList from './EnhancedMedicationList';
 import EnhancedPrescriptionForm from './EnhancedPrescriptionForm';
@@ -398,6 +399,13 @@ Format the response as JSON with the following structure:
           data={prescriptionData} 
           onChange={setPrescriptionData}
         >
+          {/* Voice Assistant Section */}
+          <VoiceAssistant
+            prescriptionData={prescriptionData}
+            onPrescriptionChange={setPrescriptionData}
+            className="mb-8"
+          />
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-12">
             <div className="space-y-6 lg:space-y-12">
               <VitalSigns 
@@ -452,7 +460,6 @@ Format the response as JSON with the following structure:
           />
 
           <Card className="border-0 bg-white/40 backdrop-blur-xl shadow-lg shadow-gray-900/5 rounded-xl lg:rounded-2xl ring-1 ring-white/20 relative overflow-hidden">
-            {/* Ultra-subtle inner glow */}
             <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-purple-50/10 rounded-xl lg:rounded-2xl pointer-events-none"></div>
             <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
             
@@ -515,7 +522,6 @@ Format the response as JSON with the following structure:
             
             {/* AI Analysis Button */}
             <div className="relative group w-full max-w-md lg:max-w-lg">
-              {/* Multi-layered glow effect */}
               <div className="absolute inset-0 bg-gradient-to-r from-[#cb6ce6] via-[#b84fd9] to-[#9c4bc7] rounded-xl lg:rounded-2xl blur-xl lg:blur-2xl opacity-30 group-hover:opacity-50 transition-all duration-700 transform scale-105 lg:scale-110"></div>
               <div className="absolute inset-0 bg-gradient-to-r from-[#cb6ce6] via-[#b84fd9] to-[#9c4bc7] rounded-xl lg:rounded-2xl blur-lg opacity-40 group-hover:opacity-60 transition-all duration-700 transform scale-102 lg:scale-105"></div>
               
@@ -541,7 +547,6 @@ Format the response as JSON with the following structure:
                   </>
                 )}
                 
-                {/* Ultra-premium inner highlights */}
                 <div className="absolute inset-0 bg-gradient-to-r from-white/15 via-white/8 to-white/5 rounded-xl lg:rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
                 <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/40 to-transparent group-hover:opacity-100 opacity-0 transition-opacity duration-700"></div>
               </Button>
