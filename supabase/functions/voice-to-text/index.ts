@@ -25,7 +25,7 @@ serve(async (req) => {
 
     console.log('Processing audio data, length:', audioData.length);
 
-    // Convert base64 audio to blob
+    // Convert base64 audio to blob with proper audio format
     const audioBuffer = Uint8Array.from(atob(audioData), c => c.charCodeAt(0));
     const audioBlob = new Blob([audioBuffer], { type: 'audio/webm' });
 
@@ -33,8 +33,9 @@ serve(async (req) => {
 
     // Create form data for ElevenLabs speech-to-text
     const formData = new FormData();
-    formData.append('file', audioBlob, 'audio.webm'); // Changed from 'audio' to 'file'
+    formData.append('file', audioBlob, 'recording.webm');
     formData.append('model_id', 'eleven_multilingual_v2');
+    formData.append('language_code', 'en');
 
     console.log('Sending request to ElevenLabs API...');
 
