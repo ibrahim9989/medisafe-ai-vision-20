@@ -1,4 +1,4 @@
-const TAVILY_API_KEY = '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';
+const TAVILY_API_KEY = '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';
 const TAVILY_ENDPOINT = 'https://api.tavily.com/search';
 
 export interface MedicineResolution {
