@@ -23,14 +23,20 @@ serve(async (req) => {
       throw new Error('ElevenLabs API key not configured');
     }
 
+    console.log('Processing audio data, length:', audioData.length);
+
     // Convert base64 audio to blob
     const audioBuffer = Uint8Array.from(atob(audioData), c => c.charCodeAt(0));
     const audioBlob = new Blob([audioBuffer], { type: 'audio/webm' });
 
+    console.log('Audio blob size:', audioBlob.size, 'bytes');
+
     // Create form data for ElevenLabs speech-to-text
     const formData = new FormData();
-    formData.append('audio', audioBlob, 'audio.webm');
+    formData.append('file', audioBlob, 'audio.webm'); // Changed from 'audio' to 'file'
     formData.append('model_id', 'eleven_multilingual_v2');
+
+    console.log('Sending request to ElevenLabs API...');
 
     const response = await fetch('https://api.elevenlabs.io/v1/speech-to-text', {
       method: 'POST',
@@ -40,13 +46,16 @@ serve(async (req) => {
       body: formData,
     });
 
+    console.log('ElevenLabs API response status:', response.status);
+
     if (!response.ok) {
       const errorText = await response.text();
       console.error('ElevenLabs API error:', errorText);
-      throw new Error(`ElevenLabs API error: ${response.status}`);
+      throw new Error(`ElevenLabs API error: ${response.status} - ${errorText}`);
     }
 
     const result = await response.json();
+    console.log('ElevenLabs API result:', result);
     
     return new Response(
       JSON.stringify({ 
