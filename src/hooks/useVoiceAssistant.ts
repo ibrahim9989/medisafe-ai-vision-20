@@ -31,26 +31,40 @@ export const useVoiceAssistant = (config: VoiceAssistantConfig = {}) => {
         }
       });
 
-      const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus'
-      });
+      // Use WAV format for better compatibility with ElevenLabs
+      const options = {
+        mimeType: 'audio/wav'
+      };
+
+      // Fallback to webm if wav is not supported
+      if (!MediaRecorder.isTypeSupported('audio/wav')) {
+        console.log('WAV not supported, falling back to webm');
+        options.mimeType = 'audio/webm;codecs=opus';
+      }
+
+      const mediaRecorder = new MediaRecorder(stream, options);
+      console.log('MediaRecorder created with MIME type:', mediaRecorder.mimeType);
 
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
+          console.log('Audio chunk received, size:', event.data.size);
           audioChunksRef.current.push(event.data);
         }
       };
 
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const audioBlob = new Blob(audioChunksRef.current, { 
+          type: mediaRecorder.mimeType 
+        });
+        console.log('Recording stopped, total blob size:', audioBlob.size);
         await processAudio(audioBlob);
         stream.getTracks().forEach(track => track.stop());
       };
 
-      mediaRecorder.start();
+      mediaRecorder.start(1000); // Collect data every second
       setIsListening(true);
       
       toast({
@@ -71,6 +85,7 @@ export const useVoiceAssistant = (config: VoiceAssistantConfig = {}) => {
 
   const stopListening = useCallback(() => {
     if (mediaRecorderRef.current && isListening) {
+      console.log('Stopping recording...');
       mediaRecorderRef.current.stop();
       setIsListening(false);
     }
@@ -80,17 +95,30 @@ export const useVoiceAssistant = (config: VoiceAssistantConfig = {}) => {
     setIsProcessing(true);
     
     try {
+      console.log('Processing audio blob:', audioBlob.size, 'bytes, type:', audioBlob.type);
+
+      // Validate audio blob
+      if (audioBlob.size < 1000) {
+        throw new Error('Audio recording too short. Please try speaking for longer.');
+      }
+
       // Convert audio blob to base64
       const reader = new FileReader();
       const base64Audio = await new Promise<string>((resolve, reject) => {
         reader.onload = () => {
           const result = reader.result as string;
           const base64 = result.split(',')[1];
+          console.log('Base64 conversion complete, length:', base64.length);
           resolve(base64);
         };
-        reader.onerror = reject;
+        reader.onerror = () => {
+          console.error('FileReader error:', reader.error);
+          reject(new Error('Failed to convert audio to base64'));
+        };
         reader.readAsDataURL(audioBlob);
       });
+
+      console.log('Calling voice-to-text function...');
 
       // Call voice-to-text edge function
       const { data, error } = await supabase.functions.invoke('voice-to-text', {
@@ -98,8 +126,11 @@ export const useVoiceAssistant = (config: VoiceAssistantConfig = {}) => {
       });
 
       if (error) {
+        console.error('Supabase function error:', error);
         throw new Error(error.message || 'Failed to process speech');
       }
+
+      console.log('Voice-to-text response:', data);
 
       const transcriptText = data.transcript || '';
       setTranscript(transcriptText);
@@ -108,7 +139,12 @@ export const useVoiceAssistant = (config: VoiceAssistantConfig = {}) => {
       if (!transcriptText.trim()) {
         toast({
           title: "No Speech Detected",
-          description: "Please try speaking more clearly."
+          description: "Please try speaking more clearly and for a longer duration."
+        });
+      } else {
+        toast({
+          title: "Speech Recognized",
+          description: `"${transcriptText.substring(0, 50)}${transcriptText.length > 50 ? '...' : ''}"`
         });
       }
 
