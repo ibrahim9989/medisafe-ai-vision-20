@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Pill, Plus, Trash2, CheckCircle } from 'lucide-react';
@@ -24,6 +24,24 @@ const EnhancedMedicationList = ({ data, onChange }: EnhancedMedicationListProps)
   const [medicationsWithResolutions, setMedicationsWithResolutions] = useState<MedicationWithResolution[]>(
     data.medications.map(med => ({ ...med, resolution: null }))
   );
+
+  // Sync internal state when data.medications changes (e.g., from voice commands)
+  useEffect(() => {
+    console.log('EnhancedMedicationList: data.medications changed:', data.medications);
+    
+    // Only update if the medication data has actually changed
+    const currentMedNames = medicationsWithResolutions.map(med => med.name).join('|');
+    const newMedNames = data.medications.map(med => med.name).join('|');
+    
+    if (currentMedNames !== newMedNames) {
+      console.log('EnhancedMedicationList: Syncing medications from voice command');
+      const updatedMedications = data.medications.map((med, index) => ({
+        ...med,
+        resolution: medicationsWithResolutions[index]?.resolution || null
+      }));
+      setMedicationsWithResolutions(updatedMedications);
+    }
+  }, [data.medications]);
 
   const updateMedication = (index: number, field: keyof MedicationWithResolution, value: any) => {
     const updatedMedications = [...medicationsWithResolutions];
