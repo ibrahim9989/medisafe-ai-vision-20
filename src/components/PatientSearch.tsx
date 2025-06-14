@@ -27,36 +27,70 @@ const PatientSearch = ({
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const { searchPatient, loading } = usePatientHistory();
 
-  // Handle voice search commands
+  // Handle voice search commands - Auto-execute everything
   useEffect(() => {
     if (voiceSearchTerm && autoSearch) {
-      console.log('Voice search triggered:', voiceSearchTerm);
+      console.log('🎤 Voice search auto-execution triggered:', voiceSearchTerm);
       setSearchTerm(voiceSearchTerm);
-      performSearch(voiceSearchTerm);
+      
+      // Automatically trigger the search
+      performSearchAndAutoSelect(voiceSearchTerm);
     }
   }, [voiceSearchTerm, autoSearch]);
 
-  // Auto-select patient based on criteria
-  useEffect(() => {
-    if (searchResults.length > 0 && autoSelectCriteria === 'most_visits') {
-      console.log('Auto-selecting patient with most visits from results:', searchResults);
+  const performSearchAndAutoSelect = async (term: string) => {
+    if (!term.trim()) return;
+    
+    console.log('🔍 Auto-performing search for:', term);
+    const results = await searchPatient(term);
+    
+    // Enhanced results with visit count - mock data for now since we need to enhance the backend
+    const enhancedResults = (results || []).map(patient => ({
+      ...patient,
+      visit_count: Math.floor(Math.random() * 20) + 1 // Mock visit count for demo
+    }));
+    
+    console.log('📊 Search results with visit counts:', enhancedResults);
+    setSearchResults(enhancedResults);
+
+    // Auto-select patient based on criteria immediately after search
+    if (enhancedResults.length > 0 && autoSelectCriteria) {
+      setTimeout(() => {
+        autoSelectPatient(enhancedResults);
+      }, 500); // Small delay to show results before selection
+    }
+  };
+
+  const autoSelectPatient = (results: any[]) => {
+    if (autoSelectCriteria === 'most_visits') {
+      console.log('🎯 Auto-selecting patient with most visits from results:', results);
       
       // Find patient with most visits
-      const patientWithMostVisits = searchResults.reduce((prev, current) => {
+      const patientWithMostVisits = results.reduce((prev, current) => {
         const prevVisits = prev.visit_count || 0;
         const currentVisits = current.visit_count || 0;
         return currentVisits > prevVisits ? current : prev;
       });
       
-      console.log('Selected patient with most visits:', patientWithMostVisits);
+      console.log('✅ Auto-selected patient:', patientWithMostVisits);
       onPatientSelect(patientWithMostVisits.id);
+    } else if (autoSelectCriteria === 'latest_visit') {
+      // Find patient with most recent visit
+      const patientWithLatestVisit = results.reduce((prev, current) => {
+        const prevDate = new Date(prev.created_at || 0);
+        const currentDate = new Date(current.created_at || 0);
+        return currentDate > prevDate ? current : prev;
+      });
+      
+      console.log('✅ Auto-selected most recent patient:', patientWithLatestVisit);
+      onPatientSelect(patientWithLatestVisit.id);
     }
-  }, [searchResults, autoSelectCriteria, onPatientSelect]);
+  };
 
   const performSearch = async (term: string) => {
     if (!term.trim()) return;
     
-    console.log('Performing search for:', term);
+    console.log('Performing manual search for:', term);
     const results = await searchPatient(term);
     
     // Enhanced results with visit count - mock data for now since we need to enhance the backend
@@ -107,14 +141,20 @@ const PatientSearch = ({
           </Button>
         </div>
 
-        {/* Voice command indicator */}
+        {/* Voice command indicator with enhanced status */}
         {voiceSearchTerm && (
-          <div className="flex items-center space-x-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
+          <div className="flex items-center space-x-2 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
             <Search className="h-4 w-4 text-blue-600" />
-            <span className="text-sm text-blue-700">
-              Voice search: "{voiceSearchTerm}"
-              {autoSelectCriteria === 'most_visits' && ' (auto-selecting patient with most visits)'}
-            </span>
+            <div className="flex-1">
+              <div className="text-sm font-medium text-blue-700">
+                🎤 Voice Command: "{voiceSearchTerm}"
+              </div>
+              <div className="text-xs text-blue-600">
+                {autoSelectCriteria === 'most_visits' && '🎯 Auto-selecting patient with most visits...'}
+                {autoSelectCriteria === 'latest_visit' && '🎯 Auto-selecting most recent patient...'}
+                {!autoSelectCriteria && '🔍 Searching...'}
+              </div>
+            </div>
           </div>
         )}
 
@@ -126,8 +166,8 @@ const PatientSearch = ({
                 key={patient.id}
                 className={`p-4 rounded-lg border cursor-pointer transition-all ${
                   selectedPatientId === patient.id
-                    ? 'bg-blue-50 border-blue-300 ring-2 ring-blue-200'
-                    : 'bg-white/60 border-white/30 hover:bg-white/80'
+                    ? 'bg-blue-50 border-blue-300 ring-2 ring-blue-200 shadow-md'
+                    : 'bg-white/60 border-white/30 hover:bg-white/80 hover:shadow-sm'
                 }`}
                 onClick={() => onPatientSelect(patient.id)}
               >
@@ -158,13 +198,19 @@ const PatientSearch = ({
                       <span>ID: {patient.patient_id}</span>
                     </div>
 
-                    {/* Visit count display */}
+                    {/* Visit count display with enhanced visual feedback */}
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <Users className="h-3 w-3" />
-                      <span>{patient.visit_count} visit{patient.visit_count !== 1 ? 's' : ''}</span>
+                      <span className="font-medium">{patient.visit_count} visit{patient.visit_count !== 1 ? 's' : ''}</span>
                       {patient.visit_count >= 10 && (
-                        <Badge variant="outline" className="text-green-600 border-green-300">
+                        <Badge variant="outline" className="text-green-600 border-green-300 bg-green-50">
                           Frequent Patient
+                        </Badge>
+                      )}
+                      {autoSelectCriteria === 'most_visits' && 
+                       patient.visit_count === Math.max(...searchResults.map(p => p.visit_count)) && (
+                        <Badge className="bg-yellow-100 text-yellow-800 border-yellow-300 animate-pulse">
+                          🎯 Highest Visits
                         </Badge>
                       )}
                     </div>
@@ -172,11 +218,9 @@ const PatientSearch = ({
                   
                   <div className="flex flex-col items-end space-y-1">
                     {selectedPatientId === patient.id && (
-                      <Badge className="bg-blue-100 text-blue-700">Selected</Badge>
-                    )}
-                    {autoSelectCriteria === 'most_visits' && 
-                     patient.visit_count === Math.max(...searchResults.map(p => p.visit_count)) && (
-                      <Badge className="bg-green-100 text-green-700">Most Visits</Badge>
+                      <Badge className="bg-blue-100 text-blue-700 border-blue-300">
+                        ✅ Selected
+                      </Badge>
                     )}
                   </div>
                 </div>
