@@ -59,20 +59,57 @@ const VoiceAssistant = ({ prescriptionData, onPrescriptionChange, className }: V
       if (data.action === 'update_field' && data.updates) {
         const updatedData = { ...prescriptionData };
         
-        // Apply field updates
+        // Apply field updates with proper field mapping
         Object.keys(data.updates).forEach(field => {
-          if (field in updatedData) {
-            (updatedData as any)[field] = data.updates[field];
-            console.log(`Updated ${field} to:`, data.updates[field]);
+          let actualField = field;
+          
+          // Handle field name mappings
+          if (field === 'clinicalNotes') {
+            actualField = 'notes';
+          } else if (field === 'followUpDate') {
+            actualField = 'followUpDate';
+          }
+          
+          if (actualField in updatedData) {
+            (updatedData as any)[actualField] = data.updates[field];
+            console.log(`Updated ${actualField} to:`, data.updates[field]);
           }
         });
+
+        // Handle medications if present in updates
+        if (data.updates.currentMedications && Array.isArray(data.updates.currentMedications)) {
+          console.log('Processing medication updates:', data.updates.currentMedications);
+          
+          // Add new medications to existing ones
+          const existingMedications = [...updatedData.medications];
+          data.updates.currentMedications.forEach((newMed: any) => {
+            // Find first empty medication slot or add new one
+            const emptyIndex = existingMedications.findIndex(med => !med.name.trim());
+            
+            const medicationToAdd = {
+              name: newMed.name || '',
+              dosage: newMed.dosage || '',
+              frequency: newMed.frequency || '',
+              duration: newMed.duration || ''
+            };
+            
+            if (emptyIndex !== -1) {
+              existingMedications[emptyIndex] = medicationToAdd;
+            } else {
+              existingMedications.push(medicationToAdd);
+            }
+          });
+          
+          updatedData.medications = existingMedications;
+          console.log('Updated medications:', updatedData.medications);
+        }
 
         onPrescriptionChange(updatedData);
         
         // Show success message immediately
         toast({
           title: "Voice Command Processed",
-          description: data.response || "Field updated successfully",
+          description: data.response || "Information updated successfully",
         });
         
         // Try to speak response, but don't fail if TTS doesn't work
@@ -82,21 +119,17 @@ const VoiceAssistant = ({ prescriptionData, onPrescriptionChange, className }: V
         const newMedications = [...prescriptionData.medications];
         const emptyIndex = newMedications.findIndex(med => !med.name.trim());
         
+        const medicationToAdd = {
+          name: data.updates.medication.name || '',
+          dosage: data.updates.medication.dosage || '',
+          frequency: data.updates.medication.frequency || '',
+          duration: data.updates.medication.duration || ''
+        };
+        
         if (emptyIndex !== -1) {
-          newMedications[emptyIndex] = {
-            ...newMedications[emptyIndex],
-            name: data.updates.medication.name || '',
-            dosage: data.updates.medication.dosage || '',
-            frequency: data.updates.medication.frequency || '',
-            duration: data.updates.medication.duration || ''
-          };
+          newMedications[emptyIndex] = medicationToAdd;
         } else {
-          newMedications.push({
-            name: data.updates.medication.name || '',
-            dosage: data.updates.medication.dosage || '',
-            frequency: data.updates.medication.frequency || '',
-            duration: data.updates.medication.duration || ''
-          });
+          newMedications.push(medicationToAdd);
         }
         
         onPrescriptionChange({
@@ -306,10 +339,13 @@ const VoiceAssistant = ({ prescriptionData, onPrescriptionChange, className }: V
           <div className="text-xs text-gray-600 space-y-1">
             <div>• "Patient name is John Smith"</div>
             <div>• "Age is 45" or "Age is forty-five"</div>
+            <div>• "Gender is male" or "Gender is female"</div>
             <div>• "Temperature is 101.2 degrees"</div>
             <div>• "Blood pressure is 140 over 90"</div>
-            <div>• "Add medication amoxicillin 500mg"</div>
+            <div>• "Add medication amoxicillin 500mg twice daily for 7 days"</div>
             <div>• "Diagnosis is acute bronchitis"</div>
+            <div>• "Clinical notes patient has underlying kidney disease"</div>
+            <div>• "Follow up date is next week" or specific date</div>
             <div>• "Help" - for more commands</div>
             <div className="text-purple-600 font-medium">✨ Powered by Gemini AI for smart recognition</div>
           </div>
