@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -7,6 +8,7 @@ import PatientSearch from './PatientSearch';
 import PatientHistoryView from './PatientHistoryView';
 import PatientInfo from './PatientInfo';
 import { usePatientHistory } from '@/hooks/usePatientHistory';
+import { toast } from '@/hooks/use-toast';
 
 interface EnhancedPrescriptionFormProps {
   data: PrescriptionData;
@@ -17,9 +19,70 @@ interface EnhancedPrescriptionFormProps {
 const EnhancedPrescriptionForm = ({ data, onChange, children }: EnhancedPrescriptionFormProps) => {
   const [mode, setMode] = useState<'new' | 'existing'>('new');
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
+  const [voiceSearchTerm, setVoiceSearchTerm] = useState<string>('');
+  const [autoSearch, setAutoSearch] = useState(false);
+  const [autoSelectCriteria, setAutoSelectCriteria] = useState<'most_visits' | 'latest_visit' | null>(null);
   const { patientHistory, getPatientHistory, loading } = usePatientHistory();
 
+  // Listen for voice search commands
+  useEffect(() => {
+    const handleVoiceSearch = (event: CustomEvent) => {
+      const { query } = event.detail;
+      console.log('Voice search command received:', query);
+      
+      // Switch to existing patient mode
+      setMode('existing');
+      
+      // Set search parameters
+      setVoiceSearchTerm(query);
+      setAutoSearch(true);
+      
+      // Check if command includes selection criteria
+      const lowerQuery = query.toLowerCase();
+      if (lowerQuery.includes('most visits') || lowerQuery.includes('most visit')) {
+        setAutoSelectCriteria('most_visits');
+        toast({
+          title: "🎤 Voice Search",
+          description: `Searching for "${query}" and will auto-select patient with most visits`,
+        });
+      } else if (lowerQuery.includes('latest') || lowerQuery.includes('recent')) {
+        setAutoSelectCriteria('latest_visit');
+        toast({
+          title: "🎤 Voice Search", 
+          description: `Searching for "${query}" and will auto-select most recent patient`,
+        });
+      } else {
+        setAutoSelectCriteria(null);
+        toast({
+          title: "🎤 Voice Search",
+          description: `Searching for "${query}"`,
+        });
+      }
+    };
+
+    window.addEventListener('voice-search', handleVoiceSearch as EventListener);
+    
+    return () => {
+      window.removeEventListener('voice-search', handleVoiceSearch as EventListener);
+    };
+  }, []);
+
+  // Reset voice search state after use
+  useEffect(() => {
+    if (autoSearch && voiceSearchTerm) {
+      // Reset after a short delay to allow the search to complete
+      const timer = setTimeout(() => {
+        setAutoSearch(false);
+        setVoiceSearchTerm('');
+        setAutoSelectCriteria(null);
+      }, 3000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [autoSearch, voiceSearchTerm]);
+
   const handlePatientSelect = async (patientId: string) => {
+    console.log('Patient selected:', patientId);
     setSelectedPatientId(patientId);
     const history = await getPatientHistory(patientId);
     
@@ -31,6 +94,12 @@ const EnhancedPrescriptionForm = ({ data, onChange, children }: EnhancedPrescrip
         age: history.patient.age || 0,
         gender: history.patient.gender || '',
         contact: history.patient.phone_number || '',
+      });
+
+      // Show success toast
+      toast({
+        title: "✅ Patient Selected",
+        description: `${history.patient.full_name} has been selected and form updated`,
       });
     }
   };
@@ -84,6 +153,9 @@ const EnhancedPrescriptionForm = ({ data, onChange, children }: EnhancedPrescrip
             <PatientSearch
               onPatientSelect={handlePatientSelect}
               selectedPatientId={selectedPatientId}
+              voiceSearchTerm={voiceSearchTerm}
+              autoSearch={autoSearch}
+              autoSelectCriteria={autoSelectCriteria}
             />
           )}
         </CardContent>

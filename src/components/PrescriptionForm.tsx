@@ -209,15 +209,29 @@ const PrescriptionForm = () => {
       }
     };
 
+    // NEW: Add voice search handler
+    const handleVoiceSearch = (event: CustomEvent) => {
+      const { query } = event.detail;
+      console.log('Voice search command received in PrescriptionForm:', query);
+      
+      // Forward to EnhancedPrescriptionForm via custom event
+      const searchEvent = new CustomEvent('voice-search', {
+        detail: { query }
+      });
+      window.dispatchEvent(searchEvent);
+    };
+
     // Listen for voice commands
     window.addEventListener('voice-fill-form', handleVoiceFillForm as EventListener);
     window.addEventListener('voice-clear-form', handleVoiceClearForm);
     window.addEventListener('voice-download-pdf', handleVoiceDownloadPdf);
+    window.addEventListener('voice-search', handleVoiceSearch as EventListener);
 
     return () => {
       window.removeEventListener('voice-fill-form', handleVoiceFillForm as EventListener);
       window.removeEventListener('voice-clear-form', handleVoiceClearForm);
       window.removeEventListener('voice-download-pdf', handleVoiceDownloadPdf);
+      window.removeEventListener('voice-search', handleVoiceSearch as EventListener);
     };
   }, [prescriptionData]);
 
