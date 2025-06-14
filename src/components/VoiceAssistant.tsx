@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,7 +23,9 @@ const VoiceAssistant = ({ prescriptionData, onPrescriptionChange, className }: V
   }>>([]);
 
   const processVoiceCommand = async (transcript: string) => {
+    console.log('=== VOICE COMMAND PROCESSING START ===');
     console.log('Processing voice command:', transcript);
+    console.log('Current prescription data before update:', prescriptionData);
     
     // Add user message to conversation
     setConversationHistory(prev => [...prev, {
@@ -35,6 +36,7 @@ const VoiceAssistant = ({ prescriptionData, onPrescriptionChange, className }: V
 
     try {
       // Use Gemini to intelligently parse the voice command
+      console.log('Calling parse-voice-command function...');
       const { data, error } = await supabase.functions.invoke('parse-voice-command', {
         body: { 
           transcript: transcript.trim(),
@@ -57,61 +59,79 @@ const VoiceAssistant = ({ prescriptionData, onPrescriptionChange, className }: V
 
       // Apply the updates based on the parsed command
       if (data.action === 'update_field' && data.updates) {
+        console.log('=== APPLYING FIELD UPDATES ===');
         const updatedData = { ...prescriptionData };
+        console.log('Starting with prescription data:', updatedData);
         
-        // Handle each field update
+        // Handle each field update with enhanced debugging
         Object.keys(data.updates).forEach(field => {
-          console.log(`Processing field: ${field} with value:`, data.updates[field]);
+          console.log(`\n--- Processing field: ${field} ---`);
+          console.log('Field value:', data.updates[field]);
+          console.log('Field type:', typeof data.updates[field]);
           
           if (field === 'medications' && Array.isArray(data.updates.medications)) {
-            // Handle medications array specially
-            console.log('Processing medication updates:', data.updates.medications);
+            console.log('=== MEDICATION HANDLING ===');
+            console.log('New medications from voice:', data.updates.medications);
+            console.log('Current medications in form:', updatedData.medications);
             
-            // Get current medications array
-            const currentMedications = [...updatedData.medications];
+            // Simplified medication handling - always update the first medication slot
+            const newMedications = [...updatedData.medications];
             
-            // Process each new medication from voice command
-            data.updates.medications.forEach((newMed: any, index: number) => {
-              console.log(`Processing medication ${index}:`, newMed);
+            data.updates.medications.forEach((voiceMed: any, index: number) => {
+              console.log(`Processing voice medication ${index}:`, voiceMed);
               
               const medicationToAdd = {
-                name: newMed.name || '',
-                dosage: newMed.dosage || '',
-                frequency: newMed.frequency || '',
-                duration: newMed.duration || ''
+                name: voiceMed.name || '',
+                dosage: voiceMed.dosage || '',
+                frequency: voiceMed.frequency || '',
+                duration: voiceMed.duration || ''
               };
               
-              // Find first empty medication slot or replace the first one
-              if (currentMedications.length > 0 && !currentMedications[0].name.trim()) {
-                // Replace the first empty medication
-                currentMedications[0] = medicationToAdd;
+              console.log('Formatted medication:', medicationToAdd);
+              
+              // Simple logic: replace the first medication or add new one
+              if (index === 0) {
+                // Always put the first voice medication in the first slot
+                newMedications[0] = medicationToAdd;
+                console.log('Updated first medication slot');
+              } else if (index < newMedications.length) {
+                // Replace existing medication at this index
+                newMedications[index] = medicationToAdd;
+                console.log(`Updated medication slot ${index}`);
               } else {
-                // Add as new medication or replace first one if all are filled
-                if (index < currentMedications.length) {
-                  currentMedications[index] = medicationToAdd;
-                } else {
-                  currentMedications.push(medicationToAdd);
-                }
+                // Add new medication
+                newMedications.push(medicationToAdd);
+                console.log('Added new medication slot');
               }
             });
             
-            updatedData.medications = currentMedications;
-            console.log('Updated medications array:', updatedData.medications);
+            updatedData.medications = newMedications;
+            console.log('Final medications array:', updatedData.medications);
             
           } else {
-            // Handle all other fields directly
+            // Handle all other fields with validation
+            console.log(`=== UPDATING FIELD: ${field} ===`);
+            console.log('Available fields in updatedData:', Object.keys(updatedData));
+            
             if (field in updatedData) {
+              const oldValue = (updatedData as any)[field];
               (updatedData as any)[field] = data.updates[field];
-              console.log(`Updated ${field} to:`, data.updates[field]);
+              console.log(`✅ Updated ${field}: "${oldValue}" → "${data.updates[field]}"`);
             } else {
-              console.warn(`Field ${field} not found in prescription data`);
+              console.warn(`❌ Field ${field} not found in prescription data structure`);
+              console.log('Available fields:', Object.keys(updatedData));
             }
           }
         });
 
-        // Update the form immediately
-        console.log('Updating prescription data:', updatedData);
+        console.log('=== FINAL UPDATE ===');
+        console.log('Updated prescription data:', updatedData);
+        console.log('Calling onPrescriptionChange...');
+        
+        // Force update the form state
         onPrescriptionChange(updatedData);
+        
+        console.log('Form update completed');
         
         // Show success message
         toast({
@@ -119,7 +139,7 @@ const VoiceAssistant = ({ prescriptionData, onPrescriptionChange, className }: V
           description: data.response || "Information updated successfully",
         });
         
-        // Try to speak response, but don't fail if TTS doesn't work
+        // Try to speak response
         speakResponse(data.response || "Updated successfully");
         
       } else if (data.action === 'help' || transcript.toLowerCase().includes('help')) {
@@ -135,6 +155,7 @@ const VoiceAssistant = ({ prescriptionData, onPrescriptionChange, className }: V
           or Diagnosis is acute bronchitis.`;
         speakResponse(helpMessage);
       } else {
+        console.log('Unknown action or no updates:', data);
         speakResponse(data.response || "I didn't understand that command. Try saying 'help' to see what I can do.");
         
         toast({
@@ -143,6 +164,9 @@ const VoiceAssistant = ({ prescriptionData, onPrescriptionChange, className }: V
           variant: "destructive"
         });
       }
+      
+      console.log('=== VOICE COMMAND PROCESSING END ===\n');
+      
     } catch (error) {
       console.error('Error processing voice command:', error);
       speakResponse("Sorry, I had trouble processing that command. Please try again.");
@@ -168,7 +192,6 @@ const VoiceAssistant = ({ prescriptionData, onPrescriptionChange, className }: V
       speakText(text);
     } catch (error) {
       console.log('TTS failed, but continuing with form updates:', error);
-      // Don't show error toast for TTS failures since the main functionality still works
     }
   };
 
@@ -328,7 +351,7 @@ const VoiceAssistant = ({ prescriptionData, onPrescriptionChange, className }: V
             <div>• "Clinical notes patient has underlying kidney disease"</div>
             <div>• "Follow up date is next week" or specific date</div>
             <div>• "Help" - for more commands</div>
-            <div className="text-purple-600 font-medium">✨ Powered by Gemini AI for smart recognition</div>
+            <div className="text-purple-600 font-medium">✨ Enhanced with smarter parsing</div>
           </div>
         </div>
       </div>

@@ -26,9 +26,9 @@ serve(async (req) => {
     console.log('Processing voice command:', transcript);
     console.log('Current prescription data:', currentData);
 
-    const prompt = `You are a medical prescription voice assistant. Parse the following voice command and extract structured medical information.
+    const prompt = `You are an intelligent medical prescription voice assistant. Your job is to parse natural language voice commands and extract structured medical information with high accuracy.
 
-Current prescription data:
+CONTEXT - Current prescription data:
 - Patient Name: ${currentData?.patientName || 'Not set'}
 - Age: ${currentData?.age || 'Not set'}
 - Gender: ${currentData?.gender || 'Not set'}
@@ -40,49 +40,66 @@ Current prescription data:
 - Clinical Notes: ${currentData?.notes || 'Not set'}
 - Follow-up Date: ${currentData?.followUpDate || 'Not set'}
 
-Voice Command: "${transcript}"
+VOICE COMMAND TO PARSE: "${transcript}"
 
-Instructions:
-1. Identify what medical information the user wants to update
-2. Extract the specific values mentioned
-3. For medication names, be flexible with brand/generic names
-4. For numeric values, convert words to numbers (e.g., "forty-nine" to "49")
-5. For blood pressure, format as "systolic/diastolic" (e.g., "120/80")
-6. For dates, convert to YYYY-MM-DD format
-7. Use EXACT field names that match the form structure
+INTELLIGENCE RULES:
+1. Be extremely flexible with natural language - users don't speak in perfect medical terminology
+2. Infer meaning from context - if someone says "patient has diabetes" and there's no diagnosis set, that's likely the diagnosis
+3. Handle multiple ways of expressing the same thing:
+   - "Patient name is..." / "The patient's name is..." / "Name John Smith" / "Patient John Smith"
+   - "Age 45" / "Patient is 45 years old" / "45 year old patient"
+   - "Blood pressure 120 over 80" / "BP 120/80" / "Blood pressure is 120 slash 80"
+   - "Follow up next week" / "See patient in one week" / "Appointment next Tuesday"
+4. For medications, extract ALL components even if mentioned separately:
+   - "Add amoxicillin" + dosage/frequency context from the sentence
+   - "Give patient 500mg amoxicillin three times a day for a week"
+   - "Prescribe medication amoxicillin 500 milligrams TID for 7 days"
+5. For clinical notes, capture underlying conditions, allergies, symptoms, or medical history
+6. Be smart about gender - "male"/"female"/"man"/"woman"/"he"/"she" all indicate gender
+7. Convert spoken numbers to digits: "forty-five" → 45, "one hundred and two" → 102
 
-IMPORTANT FIELD MAPPINGS:
-- Use "patientName" for patient name
-- Use "age" for age (as number)
-- Use "gender" for gender ("male" or "female")
-- Use "contact" for contact information
-- Use "temperature" for temperature (as number)
-- Use "bp" for blood pressure
-- Use "diagnosis" for diagnosis
-- Use "notes" for clinical notes/underlying conditions
-- Use "followUpDate" for follow-up appointment (YYYY-MM-DD format)
-- For medications, use "medications" array with objects containing: name, dosage, frequency, duration
+EXACT FIELD MAPPINGS (USE THESE EXACTLY):
+- patientName: Patient's full name
+- age: Numeric age value
+- gender: "male" or "female" only
+- contact: Phone number or contact information
+- temperature: Numeric temperature value (Fahrenheit)
+- bp: Blood pressure as "systolic/diastolic" format (e.g., "120/80")
+- diagnosis: Medical diagnosis or condition
+- notes: Clinical notes, underlying conditions, allergies, medical history
+- followUpDate: Date in YYYY-MM-DD format
+- medications: Array of objects with {name, dosage, frequency, duration}
 
-Expected JSON format:
+SMART EXAMPLES:
+Input: "Patient John Smith age 45 has diabetes"
+→ {"action": "update_field", "updates": {"patientName": "John Smith", "age": 45, "diagnosis": "diabetes"}, "response": "Updated patient John Smith, age 45, with diabetes diagnosis"}
+
+Input: "Blood pressure one twenty over eighty"
+→ {"action": "update_field", "updates": {"bp": "120/80"}, "response": "Blood pressure set to 120 over 80"}
+
+Input: "Give amoxicillin 500mg three times daily for one week"
+→ {"action": "update_field", "updates": {"medications": [{"name": "amoxicillin", "dosage": "500mg", "frequency": "three times daily", "duration": "1 week"}]}, "response": "Added amoxicillin medication"}
+
+Input: "Patient has underlying kidney disease and high blood pressure"
+→ {"action": "update_field", "updates": {"notes": "underlying kidney disease and high blood pressure"}, "response": "Added clinical notes about underlying conditions"}
+
+Input: "Follow up in two weeks" or "See patient next Tuesday"
+→ Calculate appropriate date and return {"action": "update_field", "updates": {"followUpDate": "YYYY-MM-DD"}, "response": "Follow-up scheduled"}
+
+Input: "Female patient" or "The patient is a woman"
+→ {"action": "update_field", "updates": {"gender": "female"}, "response": "Gender set to female"}
+
+RESPONSE FORMAT (JSON only, no extra text):
 {
   "action": "update_field",
   "updates": {
-    "fieldName": "newValue"
+    "fieldName": "value"
   },
-  "response": "confirmation message to speak back",
+  "response": "Natural confirmation message",
   "confidence": 0.9
 }
 
-Examples:
-- "Patient name is John Smith" → {"action": "update_field", "updates": {"patientName": "John Smith"}, "response": "Patient name set to John Smith", "confidence": 0.95}
-- "Age is forty-nine" → {"action": "update_field", "updates": {"age": 49}, "response": "Age set to 49 years old", "confidence": 0.9}
-- "Gender is female" → {"action": "update_field", "updates": {"gender": "female"}, "response": "Gender set to female", "confidence": 0.95}
-- "Clinical notes patient has kidney disease" → {"action": "update_field", "updates": {"notes": "patient has kidney disease"}, "response": "Clinical notes updated", "confidence": 0.9}
-- "Follow up on June 23rd 2025" → {"action": "update_field", "updates": {"followUpDate": "2025-06-23"}, "response": "Follow-up date set to June 23rd, 2025", "confidence": 0.9}
-- "Add medication amoxicillin 500mg three times daily for 7 days" → {"action": "update_field", "updates": {"medications": [{"name": "amoxicillin", "dosage": "500mg", "frequency": "three times daily", "duration": "7 days"}]}, "response": "Added amoxicillin medication", "confidence": 0.85}
-- "Blood pressure is 140 over 90" → {"action": "update_field", "updates": {"bp": "140/90"}, "response": "Blood pressure set to 140 over 90", "confidence": 0.9}
-
-Parse the command and return only the JSON response:`;
+PARSE THE COMMAND NOW AND RETURN ONLY THE JSON RESPONSE:`;
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${geminiApiKey}`, {
       method: 'POST',
@@ -114,6 +131,7 @@ Parse the command and return only the JSON response:`;
     console.log('Gemini API response:', result);
     
     const generatedText = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    console.log('Generated text from Gemini:', generatedText);
     
     // Extract JSON from the response
     let parsedCommand;
@@ -122,6 +140,7 @@ Parse the command and return only the JSON response:`;
       const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         parsedCommand = JSON.parse(jsonMatch[0]);
+        console.log('Successfully parsed JSON:', parsedCommand);
       } else {
         throw new Error('No JSON found in response');
       }
@@ -131,12 +150,10 @@ Parse the command and return only the JSON response:`;
       parsedCommand = {
         action: "unknown",
         updates: {},
-        response: "I didn't understand that command. Try saying 'help' to see what I can do.",
+        response: "I didn't understand that command. Try being more specific or say 'help' for examples.",
         confidence: 0.1
       };
     }
-
-    console.log('Parsed command:', parsedCommand);
 
     return new Response(
       JSON.stringify(parsedCommand),
