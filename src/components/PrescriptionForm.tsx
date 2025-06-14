@@ -10,6 +10,8 @@ import EnhancedMedicationList from './EnhancedMedicationList';
 import EnhancedPrescriptionForm from './EnhancedPrescriptionForm';
 import { tavilyService } from '../services/tavilyService';
 import { usePrescriptions } from '@/hooks/usePrescriptions';
+import { convertToDateInputFormat, isFutureDate } from '@/utils/dateUtils';
+import { processMedicationsFromVoice, validateFrequency } from '@/utils/medicationUtils';
 
 export interface PrescriptionData {
   doctorName: string;
@@ -59,51 +61,97 @@ const PrescriptionForm = () => {
       if (prescription) {
         console.log('Filling prescription from voice command:', prescription);
         
-        // Enhanced mapping with proper field validation
-        const updatedData: PrescriptionData = {
-          doctorName: prescription.doctorName || prescriptionData.doctorName,
-          patientName: prescription.patientName || prescriptionData.patientName,
-          age: prescription.age ? (typeof prescription.age === 'number' ? prescription.age : parseInt(prescription.age)) : prescriptionData.age,
-          gender: prescription.gender || prescriptionData.gender,
-          contact: prescription.contact || prescriptionData.contact,
-          temperature: prescription.temperature ? (typeof prescription.temperature === 'number' ? prescription.temperature : parseFloat(prescription.temperature)) : prescriptionData.temperature,
-          bp: prescription.bp || prescriptionData.bp, // Direct mapping to bp field
-          diagnosis: prescription.diagnosis || prescriptionData.diagnosis,
-          notes: prescription.notes || prescriptionData.notes,
-          followUpDate: prescription.followUpDate || prescriptionData.followUpDate, // Already in MM/DD/YYYY format
-          medications: prescription.medication ? [{
+        // Enhanced mapping with proper field validation and medication array handling
+        const updatedData: PrescriptionData = { ...prescriptionData };
+        
+        // Handle basic fields
+        if (prescription.doctorName) updatedData.doctorName = prescription.doctorName;
+        if (prescription.patientName) updatedData.patientName = prescription.patientName;
+        if (prescription.age) {
+          updatedData.age = typeof prescription.age === 'number' ? prescription.age : parseInt(prescription.age) || 0;
+        }
+        if (prescription.contact) updatedData.contact = prescription.contact;
+        if (prescription.temperature) {
+          updatedData.temperature = typeof prescription.temperature === 'number' ? prescription.temperature : parseFloat(prescription.temperature) || 98.6;
+        }
+        if (prescription.diagnosis) updatedData.diagnosis = prescription.diagnosis;
+        if (prescription.notes) updatedData.notes = prescription.notes;
+        
+        // Handle gender with validation
+        if (prescription.gender) {
+          const validGenders = ['Male', 'Female', 'Other'];
+          if (validGenders.includes(prescription.gender)) {
+            updatedData.gender = prescription.gender;
+          } else {
+            console.warn('Invalid gender value from voice command:', prescription.gender);
+          }
+        }
+        
+        // Handle blood pressure with validation  
+        if (prescription.bp) {
+          if (/^\d+\/\d+$/.test(prescription.bp)) {
+            updatedData.bp = prescription.bp;
+          } else {
+            console.warn('Invalid blood pressure format from voice command:', prescription.bp);
+          }
+        }
+        
+        // Handle follow-up date with format conversion
+        if (prescription.followUpDate) {
+          if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(prescription.followUpDate)) {
+            // Convert MM/DD/YYYY to YYYY-MM-DD for date input
+            const convertedDate = convertToDateInputFormat(prescription.followUpDate);
+            if (convertedDate && isFutureDate(convertedDate)) {
+              updatedData.followUpDate = convertedDate;
+            } else {
+              console.warn('Invalid or past follow-up date from voice command:', prescription.followUpDate);
+            }
+          } else {
+            console.warn('Invalid follow-up date format from voice command:', prescription.followUpDate);
+          }
+        }
+        
+        // Handle medications array
+        if (prescription.medications && Array.isArray(prescription.medications)) {
+          console.log('Processing medications array from voice:', prescription.medications);
+          
+          const voiceMedications = prescription.medications.map((med: any) => ({
+            name: med.name || '',
+            dosage: med.dosage || '',
+            frequency: validateFrequency(med.frequency || ''),
+            duration: med.duration || ''
+          }));
+          
+          updatedData.medications = processMedicationsFromVoice(
+            prescriptionData.medications,
+            voiceMedications
+          );
+        } else if (prescription.medication) {
+          // Handle single medication (legacy support)
+          console.log('Processing single medication from voice:', prescription.medication);
+          
+          const voiceMedication = {
             name: prescription.medication,
             dosage: prescription.dosage || '',
-            frequency: prescription.frequency || '', // Already standardized by Gemini
+            frequency: validateFrequency(prescription.frequency || ''),
             duration: prescription.duration || ''
-          }] : prescriptionData.medications
-        };
-        
-        // Validate gender mapping
-        if (prescription.gender && !['Male', 'Female', 'Other'].includes(prescription.gender)) {
-          console.warn('Invalid gender value from voice command:', prescription.gender);
-          // Keep existing value if invalid
-          updatedData.gender = prescriptionData.gender;
+          };
+          
+          updatedData.medications = processMedicationsFromVoice(
+            prescriptionData.medications,
+            [voiceMedication]
+          );
         }
         
-        // Validate blood pressure format
-        if (prescription.bp && !/^\d+\/\d+$/.test(prescription.bp)) {
-          console.warn('Invalid blood pressure format from voice command:', prescription.bp);
-          // Keep existing value if invalid format
-          updatedData.bp = prescriptionData.bp;
-        }
+        console.log('Final prescription data after voice update:', updatedData);
         
-        // Validate follow-up date format (MM/DD/YYYY)
-        if (prescription.followUpDate && !/^\d{2}\/\d{2}\/\d{4}$/.test(prescription.followUpDate)) {
-          console.warn('Invalid follow-up date format from voice command:', prescription.followUpDate);
-          // Keep existing value if invalid format
-          updatedData.followUpDate = prescriptionData.followUpDate;
-        }
-        
+        // Update the form data
         setPrescriptionData(updatedData);
+        
+        // Show success message
         toast({
           title: "✅ Voice Command Processed",
-          description: "Prescription form has been filled with voice data",
+          description: "Prescription form has been updated with voice data",
         });
       }
     };

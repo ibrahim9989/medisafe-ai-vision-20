@@ -58,16 +58,24 @@ CRITICAL FIELD MAPPING RULES:
    - "After meals" → "After meals"
    - "At bedtime" → "At bedtime"
 4. FOLLOW-UP DATE: Must be in MM/DD/YYYY format (e.g., "12/15/2024")
+5. MEDICATIONS: Must be an array of medication objects with name, dosage, frequency, duration
 
 DATE PARSING INTELLIGENCE:
-- "next week" → calculate date 7 days from today
-- "in 2 weeks" → calculate date 14 days from today  
-- "in a month" → calculate date 30 days from today
+- "next week" → calculate date 7 days from today (convert to MM/DD/YYYY)
+- "in 2 weeks" → calculate date 14 days from today (convert to MM/DD/YYYY)
+- "in a month" → calculate date 30 days from today (convert to MM/DD/YYYY)
 - "December 15th" or "Dec 15" → convert to MM/DD/YYYY format for current year
 - "15th December 2024" → convert to 12/15/2024
-- "tomorrow" → calculate next day
+- "tomorrow" → calculate next day (convert to MM/DD/YYYY)
 - Always ensure future dates only
 - Convert all dates to MM/DD/YYYY format
+
+MEDICATION PARSING INTELLIGENCE:
+- Support multiple medications in one command
+- Parse each medication as separate object in medications array
+- Handle commands like "add amoxicillin 500mg twice daily for 7 days and ibuprofen 200mg as needed"
+- Map natural language frequencies to exact dropdown values
+- Extract dosage, frequency, and duration for each medication
 
 RESPONSE FORMAT - Return valid JSON only:
 {
@@ -85,10 +93,14 @@ RESPONSE FORMAT - Return valid JSON only:
       "temperature": "extracted temperature as number",
       "bp": "systolic/diastolic format (e.g., 120/80)",
       "diagnosis": "extracted diagnosis",
-      "medication": "extracted medication name",
-      "dosage": "extracted dosage",
-      "frequency": "exact dropdown value from frequency mapping above", 
-      "duration": "extracted duration (e.g., 7 days, 2 weeks)",
+      "medications": [
+        {
+          "name": "medication name",
+          "dosage": "dosage amount",
+          "frequency": "exact dropdown value from frequency mapping above",
+          "duration": "duration (e.g., 7 days, 2 weeks)"
+        }
+      ],
       "notes": "extracted clinical notes/conditions",
       "followUpDate": "MM/DD/YYYY format only"
     }
@@ -99,8 +111,8 @@ RESPONSE FORMAT - Return valid JSON only:
 
 ENHANCED PRESCRIPTION FILLING EXAMPLES:
 
-1. Complex prescription with date:
-"Fill the prescription. Doctor Ibrahim, patient John Smith, age 35, male, contact 9989201545, temperature 99, blood pressure 120 over 80, diagnosis acute bronchitis, medication amoxicillin 500mg twice daily for 7 days, notes hypertension, follow up next week"
+1. Complex prescription with multiple medications:
+"Fill prescription for Dr. Ibrahim, patient John Smith, age 35, male, contact 9989201545, temperature 99, blood pressure 120 over 80, diagnosis acute bronchitis, amoxicillin 500mg twice daily for 7 days and ibuprofen 200mg as needed, notes hypertension, follow up next week"
 → Calculate next week's date and return:
 {
   "action": "fill_form", 
@@ -114,39 +126,56 @@ ENHANCED PRESCRIPTION FILLING EXAMPLES:
       "temperature": 99,
       "bp": "120/80",
       "diagnosis": "acute bronchitis",
-      "medication": "amoxicillin",
-      "dosage": "500mg", 
-      "frequency": "Twice daily",
-      "duration": "7 days",
+      "medications": [
+        {
+          "name": "amoxicillin",
+          "dosage": "500mg",
+          "frequency": "Twice daily",
+          "duration": "7 days"
+        },
+        {
+          "name": "ibuprofen", 
+          "dosage": "200mg",
+          "frequency": "As needed",
+          "duration": ""
+        }
+      ],
       "notes": "hypertension",
       "followUpDate": "06/21/2025"
     }
   },
-  "response": "Complete prescription filled with follow-up appointment scheduled."
+  "response": "Complete prescription filled with multiple medications and follow-up appointment scheduled."
 }
 
-2. Female patient with specific date:
-"Doctor Sarah, patient Maria Garcia, 28 years old, female, phone 555-1234, temp 98.6, BP 110/70, diagnosed with UTI, prescribe ciprofloxacin 250mg once daily for 5 days, follow up December 20th"
+2. Single medication update:
+"Add medication metformin 500mg once daily for 30 days"
 → {
   "action": "fill_form",
   "parameters": {
     "prescription": {
-      "doctorName": "Sarah",
-      "patientName": "Maria Garcia",
-      "age": 28, 
-      "gender": "Female",
-      "contact": "555-1234",
-      "temperature": 98.6,
-      "bp": "110/70", 
-      "diagnosis": "UTI",
-      "medication": "ciprofloxacin",
-      "dosage": "250mg",
-      "frequency": "Once daily",
-      "duration": "5 days",
+      "medications": [
+        {
+          "name": "metformin",
+          "dosage": "500mg", 
+          "frequency": "Once daily",
+          "duration": "30 days"
+        }
+      ]
+    }
+  },
+  "response": "Added metformin to the prescription."
+}
+
+3. Follow-up date only:
+"Set follow up for December 20th"
+→ {
+  "action": "fill_form",
+  "parameters": {
+    "prescription": {
       "followUpDate": "12/20/2024"
     }
   },
-  "response": "Complete prescription filled with December 20th follow-up."
+  "response": "Follow-up appointment set for December 20th."
 }
 
 NAVIGATION EXAMPLES:
@@ -174,9 +203,10 @@ INTELLIGENT PARSING RULES:
 4. Map frequency to exact dropdown options
 5. Parse and convert dates to MM/DD/YYYY format
 6. Convert spoken numbers to digits (e.g., "thirty-five" → 35)
-7. Handle multiple medications if mentioned
+7. Handle multiple medications as separate objects in medications array
 8. Capture underlying conditions, allergies, or additional notes
 9. Always ensure follow-up dates are in the future
+10. Support partial form filling (only fill provided fields)
 
 Parse this command: "${transcript}"`;
 
