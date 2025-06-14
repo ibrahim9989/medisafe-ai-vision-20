@@ -8,6 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import ProfileGuard from "@/components/ProfileGuard";
 import Header from "@/components/Header";
+import GlobalVoiceControl from "@/components/GlobalVoiceControl";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import ProfileSetup from "./pages/ProfileSetup";
@@ -30,6 +31,7 @@ const App = () => (
                 <>
                   <Header />
                   <DoctorsDirectory />
+                  <GlobalVoiceControl />
                 </>
               } 
             />
@@ -38,6 +40,7 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <ProfileSetup />
+                  <GlobalVoiceControl />
                 </ProtectedRoute>
               } 
             />
@@ -47,6 +50,7 @@ const App = () => (
                 <ProtectedRoute>
                   <ProfileGuard>
                     <Index />
+                    <GlobalVoiceControl />
                   </ProfileGuard>
                 </ProtectedRoute>
               } 

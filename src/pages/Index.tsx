@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PrescriptionForm from '../components/PrescriptionForm';
 import PatientHistory from '../components/PatientHistory';
 import Header from '../components/Header';
@@ -8,6 +8,43 @@ import { Button } from '@/components/ui/button';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState<'prescription' | 'history'>('prescription');
+
+  useEffect(() => {
+    // Listen for voice commands to switch tabs
+    const handleVoiceSwitchTab = (event: CustomEvent) => {
+      const { tab } = event.detail;
+      if (tab === 'history' || tab === 'prescription') {
+        setActiveTab(tab);
+      }
+    };
+
+    // Listen for PDF download commands
+    const handleVoiceDownloadPdf = (event: CustomEvent) => {
+      // Trigger PDF download based on current tab
+      const downloadEvent = new CustomEvent('download-pdf', {
+        detail: { type: activeTab }
+      });
+      window.dispatchEvent(downloadEvent);
+    };
+
+    // Listen for export commands
+    const handleVoiceExportData = (event: CustomEvent) => {
+      const exportEvent = new CustomEvent('export-data', {
+        detail: { type: activeTab, ...event.detail }
+      });
+      window.dispatchEvent(exportEvent);
+    };
+
+    window.addEventListener('voice-switch-tab', handleVoiceSwitchTab as EventListener);
+    window.addEventListener('voice-download-pdf', handleVoiceDownloadPdf as EventListener);
+    window.addEventListener('voice-export-data', handleVoiceExportData as EventListener);
+
+    return () => {
+      window.removeEventListener('voice-switch-tab', handleVoiceSwitchTab as EventListener);
+      window.removeEventListener('voice-download-pdf', handleVoiceDownloadPdf as EventListener);
+      window.removeEventListener('voice-export-data', handleVoiceExportData as EventListener);
+    };
+  }, [activeTab]);
 
   return (
     <div className="min-h-screen relative overflow-hidden floating-particles">
@@ -35,10 +72,10 @@ const Index = () => {
               </div>
               <div className="hidden lg:block">
                 <p className="text-sm font-medium text-gray-800 dark:text-gray-200">AI Status</p>
-                <p className="text-xs text-gray-600 dark:text-gray-400">Analysis Ready</p>
+                <p className="text-xs text-gray-600 dark:text-gray-400">Voice Ready</p>
               </div>
               <div className="lg:hidden">
-                <p className="text-xs font-medium text-gray-800 dark:text-gray-200">AI Ready</p>
+                <p className="text-xs font-medium text-gray-800 dark:text-gray-200">Voice Ready</p>
               </div>
               <Sparkles className="w-3 h-3 lg:w-4 lg:h-4 text-[#cb6ce6] opacity-60" />
             </div>
@@ -51,7 +88,7 @@ const Index = () => {
           {/* Hero Section with glass morphism */}
           <div className="text-center mb-8 lg:mb-16">
             <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-light text-gray-900 dark:text-gray-100 mb-4 lg:mb-6 tracking-tight leading-[1.1] px-2">
-              <span className="block">Intelligent</span>
+              <span className="block">Voice-Controlled</span>
               <span className="bg-gradient-to-r from-[#cb6ce6] via-[#b84fd9] to-[#9c4bc7] bg-clip-text text-transparent font-medium">
                 Prescription
               </span>
@@ -59,7 +96,7 @@ const Index = () => {
             </h1>
             
             <p className="text-sm sm:text-base lg:text-xl xl:text-2xl font-light text-gray-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed tracking-wide px-4">
-              Advanced AI-powered medication analysis and patient history management
+              Control everything with your voice - Navigate, export PDFs, fill forms, and more
             </p>
           </div>
 
