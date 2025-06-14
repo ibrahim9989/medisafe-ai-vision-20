@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, Brain, Search, Zap, Stethoscope } from 'lucide-react';
 import VitalSigns from './VitalSigns';
-import AIAnalysis from './AIAnalysis';
+import AIAnalysisSection from './AIAnalysisSection';
+import PrescriptionPDFExport from './PrescriptionPDFExport';
 import { toast } from '@/hooks/use-toast';
 import EnhancedMedicationList from './EnhancedMedicationList';
 import EnhancedPrescriptionForm from './EnhancedPrescriptionForm';
@@ -505,7 +506,14 @@ Format the response as JSON with the following structure:
             </CardContent>
           </Card>
 
-          <div className="flex justify-center pt-8 lg:pt-12">
+          {/* Prescription Actions */}
+          <div className="flex flex-col sm:flex-row justify-center items-center gap-4 pt-8 lg:pt-12">
+            {/* Prescription PDF Export - Available after form is filled */}
+            {prescriptionData.patientName && prescriptionData.doctorName && prescriptionData.medications.some(med => med.name) && (
+              <PrescriptionPDFExport prescriptionData={prescriptionData} />
+            )}
+            
+            {/* AI Analysis Button */}
             <div className="relative group w-full max-w-md lg:max-w-lg">
               {/* Multi-layered glow effect */}
               <div className="absolute inset-0 bg-gradient-to-r from-[#cb6ce6] via-[#b84fd9] to-[#9c4bc7] rounded-xl lg:rounded-2xl blur-xl lg:blur-2xl opacity-30 group-hover:opacity-50 transition-all duration-700 transform scale-105 lg:scale-110"></div>
@@ -542,7 +550,12 @@ Format the response as JSON with the following structure:
         </EnhancedPrescriptionForm>
       </form>
 
-      {analysis && <AIAnalysis analysis={analysis} prescriptionData={prescriptionData} />}
+      {/* AI Analysis Section - Separated from prescription */}
+      {analysis && (
+        <div className="border-t border-gray-200/50 pt-8 lg:pt-16">
+          <AIAnalysisSection analysis={analysis} prescriptionData={prescriptionData} />
+        </div>
+      )}
     </div>
   );
 };

@@ -22,6 +22,7 @@ import {
   Clock
 } from 'lucide-react';
 import { usePrescriptions } from '@/hooks/usePrescriptions';
+import PatientHistoryPDFExport from './PatientHistoryPDFExport';
 import { format } from 'date-fns';
 
 const PatientHistory = () => {
@@ -169,6 +170,8 @@ const PatientHistory = () => {
           <CardContent>
             {(() => {
               const visits = getPatientVisits(selectedPatient);
+              const patient = patients.find(p => p.id === selectedPatient);
+              
               if (visits.length === 0) {
                 return (
                   <div className="text-center py-4 text-gray-500">
@@ -195,9 +198,18 @@ const PatientHistory = () => {
                               {format(new Date(visit.visit_date), 'PPP')}
                             </span>
                           </div>
-                          <Badge variant="outline">
-                            Visit #{visit.id.slice(-8)}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline">
+                              Visit #{visit.id.slice(-8)}
+                            </Badge>
+                            {patient && (
+                              <PatientHistoryPDFExport 
+                                visit={visit} 
+                                patient={patient} 
+                                prescription={prescription} 
+                              />
+                            )}
+                          </div>
                         </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
