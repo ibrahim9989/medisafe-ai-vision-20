@@ -37,6 +37,8 @@ Current prescription data:
 - Blood Pressure: ${currentData?.bp || 'Not set'}
 - Diagnosis: ${currentData?.diagnosis || 'Not set'}
 - Current Medications: ${JSON.stringify(currentData?.medications || [])}
+- Clinical Notes: ${currentData?.notes || 'Not set'}
+- Follow-up Date: ${currentData?.followUpDate || 'Not set'}
 
 Voice Command: "${transcript}"
 
@@ -46,7 +48,20 @@ Instructions:
 3. For medication names, be flexible with brand/generic names
 4. For numeric values, convert words to numbers (e.g., "forty-nine" to "49")
 5. For blood pressure, format as "systolic/diastolic" (e.g., "120/80")
-6. Return ONLY a JSON object with the fields to update
+6. For dates, convert to YYYY-MM-DD format
+7. Use EXACT field names that match the form structure
+
+IMPORTANT FIELD MAPPINGS:
+- Use "patientName" for patient name
+- Use "age" for age (as number)
+- Use "gender" for gender ("male" or "female")
+- Use "contact" for contact information
+- Use "temperature" for temperature (as number)
+- Use "bp" for blood pressure
+- Use "diagnosis" for diagnosis
+- Use "notes" for clinical notes/underlying conditions
+- Use "followUpDate" for follow-up appointment (YYYY-MM-DD format)
+- For medications, use "medications" array with objects containing: name, dosage, frequency, duration
 
 Expected JSON format:
 {
@@ -61,7 +76,10 @@ Expected JSON format:
 Examples:
 - "Patient name is John Smith" → {"action": "update_field", "updates": {"patientName": "John Smith"}, "response": "Patient name set to John Smith", "confidence": 0.95}
 - "Age is forty-nine" → {"action": "update_field", "updates": {"age": 49}, "response": "Age set to 49 years old", "confidence": 0.9}
-- "Add medication amoxicillin 500mg" → {"action": "add_medication", "updates": {"medication": {"name": "amoxicillin", "dosage": "500mg"}}, "response": "Added amoxicillin 500mg to medications", "confidence": 0.85}
+- "Gender is female" → {"action": "update_field", "updates": {"gender": "female"}, "response": "Gender set to female", "confidence": 0.95}
+- "Clinical notes patient has kidney disease" → {"action": "update_field", "updates": {"notes": "patient has kidney disease"}, "response": "Clinical notes updated", "confidence": 0.9}
+- "Follow up on June 23rd 2025" → {"action": "update_field", "updates": {"followUpDate": "2025-06-23"}, "response": "Follow-up date set to June 23rd, 2025", "confidence": 0.9}
+- "Add medication amoxicillin 500mg three times daily for 7 days" → {"action": "update_field", "updates": {"medications": [{"name": "amoxicillin", "dosage": "500mg", "frequency": "three times daily", "duration": "7 days"}]}, "response": "Added amoxicillin medication", "confidence": 0.85}
 - "Blood pressure is 140 over 90" → {"action": "update_field", "updates": {"bp": "140/90"}, "response": "Blood pressure set to 140 over 90", "confidence": 0.9}
 
 Parse the command and return only the JSON response:`;

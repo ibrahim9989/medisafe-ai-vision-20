@@ -59,50 +59,40 @@ const VoiceAssistant = ({ prescriptionData, onPrescriptionChange, className }: V
       if (data.action === 'update_field' && data.updates) {
         const updatedData = { ...prescriptionData };
         
-        // Apply field updates with proper field mapping
+        // Apply field updates directly - no more field mapping needed since Gemini now returns correct fields
         Object.keys(data.updates).forEach(field => {
-          let actualField = field;
-          
-          // Handle field name mappings
-          if (field === 'clinicalNotes') {
-            actualField = 'notes';
-          } else if (field === 'followUpDate') {
-            actualField = 'followUpDate';
-          }
-          
-          if (actualField in updatedData) {
-            (updatedData as any)[actualField] = data.updates[field];
-            console.log(`Updated ${actualField} to:`, data.updates[field]);
+          if (field === 'medications' && Array.isArray(data.updates.medications)) {
+            // Handle medications array specially
+            console.log('Processing medication updates:', data.updates.medications);
+            
+            // Add new medications to existing ones
+            const existingMedications = [...updatedData.medications];
+            data.updates.medications.forEach((newMed: any) => {
+              // Find first empty medication slot or add new one
+              const emptyIndex = existingMedications.findIndex(med => !med.name.trim());
+              
+              const medicationToAdd = {
+                name: newMed.name || '',
+                dosage: newMed.dosage || '',
+                frequency: newMed.frequency || '',
+                duration: newMed.duration || ''
+              };
+              
+              if (emptyIndex !== -1) {
+                existingMedications[emptyIndex] = medicationToAdd;
+              } else {
+                existingMedications.push(medicationToAdd);
+              }
+            });
+            
+            updatedData.medications = existingMedications;
+            console.log('Updated medications:', updatedData.medications);
+          } else if (field in updatedData) {
+            // Handle all other fields directly
+            (updatedData as any)[field] = data.updates[field];
+            console.log(`Updated ${field} to:`, data.updates[field]);
           }
         });
-
-        // Handle medications if present in updates
-        if (data.updates.currentMedications && Array.isArray(data.updates.currentMedications)) {
-          console.log('Processing medication updates:', data.updates.currentMedications);
-          
-          // Add new medications to existing ones
-          const existingMedications = [...updatedData.medications];
-          data.updates.currentMedications.forEach((newMed: any) => {
-            // Find first empty medication slot or add new one
-            const emptyIndex = existingMedications.findIndex(med => !med.name.trim());
-            
-            const medicationToAdd = {
-              name: newMed.name || '',
-              dosage: newMed.dosage || '',
-              frequency: newMed.frequency || '',
-              duration: newMed.duration || ''
-            };
-            
-            if (emptyIndex !== -1) {
-              existingMedications[emptyIndex] = medicationToAdd;
-            } else {
-              existingMedications.push(medicationToAdd);
-            }
-          });
-          
-          updatedData.medications = existingMedications;
-          console.log('Updated medications:', updatedData.medications);
-        }
 
         onPrescriptionChange(updatedData);
         
@@ -115,42 +105,16 @@ const VoiceAssistant = ({ prescriptionData, onPrescriptionChange, className }: V
         // Try to speak response, but don't fail if TTS doesn't work
         speakResponse(data.response || "Updated successfully");
         
-      } else if (data.action === 'add_medication' && data.updates?.medication) {
-        const newMedications = [...prescriptionData.medications];
-        const emptyIndex = newMedications.findIndex(med => !med.name.trim());
-        
-        const medicationToAdd = {
-          name: data.updates.medication.name || '',
-          dosage: data.updates.medication.dosage || '',
-          frequency: data.updates.medication.frequency || '',
-          duration: data.updates.medication.duration || ''
-        };
-        
-        if (emptyIndex !== -1) {
-          newMedications[emptyIndex] = medicationToAdd;
-        } else {
-          newMedications.push(medicationToAdd);
-        }
-        
-        onPrescriptionChange({
-          ...prescriptionData,
-          medications: newMedications
-        });
-        
-        toast({
-          title: "Medication Added",
-          description: data.response || "Medication added to prescription",
-        });
-        
-        speakResponse(data.response || "Medication added successfully");
-        
       } else if (data.action === 'help' || transcript.toLowerCase().includes('help')) {
         const helpMessage = `I can help you fill out prescriptions with voice commands. You can say things like: 
           Patient name is John Smith, 
           Age is 45, 
+          Gender is female,
           Temperature is 101.2, 
           Blood pressure is 140 over 90, 
-          Add medication amoxicillin 500mg, 
+          Add medication amoxicillin 500mg three times daily for 7 days, 
+          Clinical notes patient has kidney disease,
+          Follow up on June 23rd 2025,
           or Diagnosis is acute bronchitis.`;
         speakResponse(helpMessage);
       } else {
@@ -342,7 +306,7 @@ const VoiceAssistant = ({ prescriptionData, onPrescriptionChange, className }: V
             <div>• "Gender is male" or "Gender is female"</div>
             <div>• "Temperature is 101.2 degrees"</div>
             <div>• "Blood pressure is 140 over 90"</div>
-            <div>• "Add medication amoxicillin 500mg twice daily for 7 days"</div>
+            <div>• "Add medication amoxicillin 500mg three times daily for 7 days"</div>
             <div>• "Diagnosis is acute bronchitis"</div>
             <div>• "Clinical notes patient has underlying kidney disease"</div>
             <div>• "Follow up date is next week" or specific date</div>
