@@ -23,29 +23,30 @@ export const processMedicationsFromVoice = (
     return currentMedications;
   }
 
+  // Start with current medications as base
   const updatedMedications = [...currentMedications];
   
   voiceMedications.forEach((voiceMed, index) => {
     if (voiceMed.name && voiceMed.name.trim()) {
-      // If we have enough slots, update existing ones
-      if (index < updatedMedications.length) {
-        updatedMedications[index] = {
-          name: voiceMed.name.trim(),
-          dosage: voiceMed.dosage || updatedMedications[index].dosage,
-          frequency: voiceMed.frequency || updatedMedications[index].frequency,
-          duration: voiceMed.duration || updatedMedications[index].duration
-        };
-      } else {
-        // Add new medication slot
-        updatedMedications.push({
-          name: voiceMed.name.trim(),
-          dosage: voiceMed.dosage || '',
-          frequency: voiceMed.frequency || '',
-          duration: voiceMed.duration || ''
-        });
+      // Ensure we have enough medication slots
+      while (updatedMedications.length <= index) {
+        updatedMedications.push({ name: '', dosage: '', frequency: '', duration: '' });
       }
+      
+      // Update or fill the medication at the specific index
+      updatedMedications[index] = {
+        name: voiceMed.name.trim(),
+        dosage: voiceMed.dosage || updatedMedications[index].dosage || '',
+        frequency: voiceMed.frequency || updatedMedications[index].frequency || '',
+        duration: voiceMed.duration || updatedMedications[index].duration || ''
+      };
     }
   });
+
+  // Ensure we always have at least one medication slot
+  if (updatedMedications.length === 0) {
+    updatedMedications.push({ name: '', dosage: '', frequency: '', duration: '' });
+  }
 
   return updatedMedications;
 };
@@ -101,4 +102,24 @@ export const validateFrequency = (frequency: string): string => {
   );
   
   return partialMatch || frequency;
+};
+
+/**
+ * Process single medication into the medications array
+ */
+export const addSingleMedicationToArray = (
+  currentMedications: PrescriptionData['medications'],
+  medicationName: string,
+  dosage?: string,
+  frequency?: string,
+  duration?: string
+): PrescriptionData['medications'] => {
+  const voiceMedication: VoiceMedication = {
+    name: medicationName,
+    dosage: dosage || '',
+    frequency: validateFrequency(frequency || ''),
+    duration: duration || ''
+  };
+  
+  return processMedicationsFromVoice(currentMedications, [voiceMedication]);
 };

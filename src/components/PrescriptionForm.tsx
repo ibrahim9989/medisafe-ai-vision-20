@@ -111,27 +111,37 @@ const PrescriptionForm = () => {
           }
         }
         
-        // Handle medications array
-        if (prescription.medications && Array.isArray(prescription.medications)) {
+        // Handle medications array - ENHANCED PROCESSING
+        if (prescription.medications && Array.isArray(prescription.medications) && prescription.medications.length > 0) {
           console.log('Processing medications array from voice:', prescription.medications);
           
-          const voiceMedications = prescription.medications.map((med: any) => ({
-            name: med.name || '',
-            dosage: med.dosage || '',
-            frequency: validateFrequency(med.frequency || ''),
-            duration: med.duration || ''
-          }));
+          // Process each medication with proper validation
+          const voiceMedications = prescription.medications
+            .filter((med: any) => med && med.name) // Filter out empty medications
+            .map((med: any) => ({
+              name: med.name.trim(),
+              dosage: med.dosage || '',
+              frequency: validateFrequency(med.frequency || ''),
+              duration: med.duration || ''
+            }));
           
-          updatedData.medications = processMedicationsFromVoice(
-            prescriptionData.medications,
-            voiceMedications
-          );
+          console.log('Processed voice medications:', voiceMedications);
+          
+          if (voiceMedications.length > 0) {
+            // Use the medication utility to properly merge with existing medications
+            updatedData.medications = processMedicationsFromVoice(
+              prescriptionData.medications,
+              voiceMedications
+            );
+            
+            console.log('Final medications array after processing:', updatedData.medications);
+          }
         } else if (prescription.medication) {
           // Handle single medication (legacy support)
           console.log('Processing single medication from voice:', prescription.medication);
           
           const voiceMedication = {
-            name: prescription.medication,
+            name: prescription.medication.trim(),
             dosage: prescription.dosage || '',
             frequency: validateFrequency(prescription.frequency || ''),
             duration: prescription.duration || ''
@@ -145,13 +155,20 @@ const PrescriptionForm = () => {
         
         console.log('Final prescription data after voice update:', updatedData);
         
-        // Update the form data
-        setPrescriptionData(updatedData);
+        // Force re-render by creating a completely new object
+        setPrescriptionData({ ...updatedData });
         
-        // Show success message
+        // Show success message with details about what was filled
+        const filledFields = [];
+        if (prescription.patientName) filledFields.push('patient name');
+        if (prescription.doctorName) filledFields.push('doctor name');
+        if (prescription.medications?.length) filledFields.push(`${prescription.medications.length} medication(s)`);
+        if (prescription.followUpDate) filledFields.push('follow-up date');
+        if (prescription.diagnosis) filledFields.push('diagnosis');
+        
         toast({
           title: "✅ Voice Command Processed",
-          description: "Prescription form has been updated with voice data",
+          description: `Updated: ${filledFields.join(', ')}`,
         });
       }
     };
