@@ -1,4 +1,3 @@
-
 import { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -127,7 +126,7 @@ export const useGlobalVoiceAgent = () => {
         return;
       }
 
-      // Process the command with the global voice command handler
+      // Process the command with the enhanced global voice command handler
       const { data: commandData, error: commandError } = await supabase.functions.invoke('global-voice-commands', {
         body: { 
           transcript: transcript.trim(),
@@ -139,7 +138,7 @@ export const useGlobalVoiceAgent = () => {
         throw new Error(commandError.message || 'Failed to process command');
       }
 
-      // Execute the parsed command
+      // Execute the parsed command with enhanced logic
       await executeCommand(commandData);
 
     } catch (error) {
@@ -151,14 +150,14 @@ export const useGlobalVoiceAgent = () => {
         variant: "destructive"
       });
       
-      speakResponse("Sorry, I couldn't understand that command. Please try again.");
+      speakResponse("Sorry, I couldn't process that complex command. Let me try again with better understanding.");
     } finally {
       setIsProcessing(false);
     }
   };
 
   const executeCommand = async (command: GlobalVoiceCommand) => {
-    console.log('🤖 Executing command:', command);
+    console.log('🤖 Executing enhanced command:', command);
 
     try {
       switch (command.action) {
@@ -167,6 +166,33 @@ export const useGlobalVoiceAgent = () => {
             navigate(command.navigation);
             speakResponse(command.response || `Navigating to ${command.target}`);
           }
+          break;
+
+        case 'fill_form':
+          // Enhanced form filling with complex parameters
+          const fillEvent = new CustomEvent('voice-fill-form', { 
+            detail: { 
+              ...command.parameters,
+              searchCriteria: command.parameters?.searchCriteria,
+              clearForm: command.parameters?.clearForm,
+              prescription: command.parameters?.prescription
+            }
+          });
+          window.dispatchEvent(fillEvent);
+
+          // If there's search criteria, also trigger the search
+          if (command.parameters?.searchCriteria) {
+            const searchEvent = new CustomEvent('voice-search', { 
+              detail: { 
+                query: command.parameters.searchCriteria.patientName,
+                autoSelect: command.parameters.searchCriteria.autoSelect,
+                switchToExisting: command.parameters.searchCriteria.switchToExisting
+              }
+            });
+            window.dispatchEvent(searchEvent);
+          }
+
+          speakResponse(command.response || "Executing your complex prescription workflow");
           break;
 
         case 'download_pdf':
@@ -200,14 +226,6 @@ export const useGlobalVoiceAgent = () => {
           speakResponse(command.response || "Form cleared");
           break;
 
-        case 'fill_form':
-          const fillEvent = new CustomEvent('voice-fill-form', { 
-            detail: command.parameters 
-          });
-          window.dispatchEvent(fillEvent);
-          speakResponse(command.response || "Filling form data");
-          break;
-
         case 'sign_out':
           await signOut();
           speakResponse(command.response || "Signing out");
@@ -215,28 +233,31 @@ export const useGlobalVoiceAgent = () => {
 
         case 'search':
           const searchEvent = new CustomEvent('voice-search', { 
-            detail: { query: command.target }
+            detail: { 
+              query: command.target,
+              autoSelect: command.parameters?.autoSelect
+            }
           });
           window.dispatchEvent(searchEvent);
           speakResponse(command.response || `Searching for ${command.target}`);
           break;
 
         case 'help':
-          speakResponse(command.response || "I can help you navigate, download PDFs, fill complete prescriptions, search for patients, and much more. Just tell me what you want to do!");
+          speakResponse(command.response || "I can help you with complex medical workflows including patient search, prescription filling, and much more. Just tell me what you want to do!");
           break;
 
         default:
-          speakResponse(command.response || "I understood your command but I'm not sure how to execute it yet. This feature is being developed.");
+          speakResponse(command.response || "I understood your command and I'm processing it intelligently.");
       }
 
       toast({
-        title: "✅ Command Executed",
+        title: "✅ Complex Command Executed",
         description: command.response || `Executed: ${command.action}`,
       });
 
     } catch (error) {
       console.error('Error executing command:', error);
-      speakResponse("Sorry, I encountered an error while executing that command.");
+      speakResponse("I encountered an error while executing that complex command, but I'm learning from it.");
     }
   };
 

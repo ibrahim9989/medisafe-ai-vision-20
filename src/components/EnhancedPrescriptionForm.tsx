@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,37 +23,39 @@ const EnhancedPrescriptionForm = ({ data, onChange, children }: EnhancedPrescrip
   const [autoSelectCriteria, setAutoSelectCriteria] = useState<'most_visits' | 'latest_visit' | null>(null);
   const { patientHistory, getPatientHistory, loading } = usePatientHistory();
 
-  // Listen for voice search commands
+  // Enhanced voice search event listener
   useEffect(() => {
     const handleVoiceSearch = (event: CustomEvent) => {
-      const { query } = event.detail;
-      console.log('Voice search command received:', query);
+      const { query, autoSelect, switchToExisting } = event.detail;
+      console.log('🎤 Enhanced voice search command received in EnhancedPrescriptionForm:', event.detail);
       
-      // Switch to existing patient mode
-      setMode('existing');
+      // Auto-switch to existing patient mode if requested
+      if (switchToExisting) {
+        console.log('🔄 Auto-switching to existing patient mode');
+        setMode('existing');
+      }
       
-      // Set search parameters
+      // Set enhanced search parameters
       setVoiceSearchTerm(query);
       setAutoSearch(true);
       
-      // Check if command includes selection criteria
-      const lowerQuery = query.toLowerCase();
-      if (lowerQuery.includes('most visits') || lowerQuery.includes('most visit')) {
+      // Set auto-selection criteria based on command
+      if (autoSelect === 'most_visits') {
         setAutoSelectCriteria('most_visits');
         toast({
-          title: "🎤 Voice Search",
+          title: "🎤 Enhanced Voice Search",
           description: `Searching for "${query}" and will auto-select patient with most visits`,
         });
-      } else if (lowerQuery.includes('latest') || lowerQuery.includes('recent')) {
+      } else if (autoSelect === 'latest_visit') {
         setAutoSelectCriteria('latest_visit');
         toast({
-          title: "🎤 Voice Search", 
+          title: "🎤 Enhanced Voice Search", 
           description: `Searching for "${query}" and will auto-select most recent patient`,
         });
       } else {
         setAutoSelectCriteria(null);
         toast({
-          title: "🎤 Voice Search",
+          title: "🎤 Enhanced Voice Search",
           description: `Searching for "${query}"`,
         });
       }

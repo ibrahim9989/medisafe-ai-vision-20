@@ -54,15 +54,48 @@ const PrescriptionForm = () => {
   
   const { savePrescription, saveAIAnalysis } = usePrescriptions();
 
-  // Add event listeners for global voice commands
+  // Enhanced event listeners for complex global voice commands
   useEffect(() => {
     const handleVoiceFillForm = (event: CustomEvent) => {
-      const { prescription } = event.detail;
+      const { prescription, clearForm, searchCriteria } = event.detail;
+      
+      console.log('🎤 Enhanced voice command received:', event.detail);
+      
+      // Handle form clearing first if requested
+      if (clearForm) {
+        console.log('🧹 Clearing form as requested');
+        setPrescriptionData({
+          doctorName: '',
+          patientName: '',
+          age: 0,
+          gender: '',
+          contact: '',
+          temperature: 98.6,
+          bp: '',
+          medications: [{ name: '', dosage: '', frequency: '', duration: '' }],
+          diagnosis: '',
+          notes: '',
+          followUpDate: ''
+        });
+      }
+      
+      // Handle prescription data if provided
       if (prescription) {
-        console.log('Filling prescription from voice command:', prescription);
+        console.log('💊 Processing prescription data:', prescription);
         
-        // Enhanced mapping with proper field validation and medication array handling
-        const updatedData: PrescriptionData = { ...prescriptionData };
+        const updatedData: PrescriptionData = clearForm ? {
+          doctorName: '',
+          patientName: '',
+          age: 0,
+          gender: '',
+          contact: '',
+          temperature: 98.6,
+          bp: '',
+          medications: [{ name: '', dosage: '', frequency: '', duration: '' }],
+          diagnosis: '',
+          notes: '',
+          followUpDate: ''
+        } : { ...prescriptionData };
         
         // Handle basic fields
         if (prescription.doctorName) updatedData.doctorName = prescription.doctorName;
@@ -158,18 +191,33 @@ const PrescriptionForm = () => {
         // Force re-render by creating a completely new object
         setPrescriptionData({ ...updatedData });
         
-        // Show success message with details about what was filled
+        // Enhanced success message
         const filledFields = [];
         if (prescription.patientName) filledFields.push('patient name');
         if (prescription.doctorName) filledFields.push('doctor name');
         if (prescription.medications?.length) filledFields.push(`${prescription.medications.length} medication(s)`);
-        if (prescription.followUpDate) filledFields.push('follow-up date');
         if (prescription.diagnosis) filledFields.push('diagnosis');
+        if (prescription.notes) filledFields.push('clinical notes');
         
         toast({
-          title: "✅ Voice Command Processed",
-          description: `Updated: ${filledFields.join(', ')}`,
+          title: "✅ Complex Voice Command Processed",
+          description: `Updated: ${filledFields.join(', ')}${clearForm ? ' (form cleared first)' : ''}`,
         });
+      }
+      
+      // Handle search criteria for patient lookup
+      if (searchCriteria) {
+        console.log('🔍 Processing search criteria:', searchCriteria);
+        
+        // Forward enhanced search criteria to patient search
+        const enhancedSearchEvent = new CustomEvent('voice-search', {
+          detail: {
+            query: searchCriteria.patientName,
+            autoSelect: searchCriteria.autoSelect,
+            switchToExisting: searchCriteria.switchToExisting
+          }
+        });
+        window.dispatchEvent(enhancedSearchEvent);
       }
     };
 
@@ -209,16 +257,20 @@ const PrescriptionForm = () => {
       }
     };
 
-    // NEW: Add voice search handler
+    // Enhanced voice search handler
     const handleVoiceSearch = (event: CustomEvent) => {
-      const { query } = event.detail;
-      console.log('Voice search command received in PrescriptionForm:', query);
+      const { query, autoSelect, switchToExisting } = event.detail;
+      console.log('🎤 Enhanced voice search command received:', event.detail);
       
-      // Forward to EnhancedPrescriptionForm via custom event
-      const searchEvent = new CustomEvent('voice-search', {
-        detail: { query }
+      // Forward enhanced search to EnhancedPrescriptionForm
+      const enhancedSearchEvent = new CustomEvent('voice-search', {
+        detail: { 
+          query,
+          autoSelect,
+          switchToExisting
+        }
       });
-      window.dispatchEvent(searchEvent);
+      window.dispatchEvent(enhancedSearchEvent);
     };
 
     // Listen for voice commands

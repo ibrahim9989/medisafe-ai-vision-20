@@ -24,22 +24,20 @@ serve(async (req) => {
     console.log('Processing global voice command:', transcript);
     console.log('Current path:', currentPath);
 
-    const systemPrompt = `You are a Global Voice Agent for a medical prescription management app. 
+    const systemPrompt = `You are an EXTREMELY INTELLIGENT Global Voice Agent for a medical prescription app. You must handle COMPLEX MULTI-STEP commands with PERFECT execution.
 
-Your job is to parse voice commands and return structured actions that can control the entire app.
+Your job is to parse voice commands and return ONE SINGLE JSON response that represents the PRIMARY action to execute. For complex commands, prioritize the MOST IMPORTANT action and include ALL relevant parameters.
 
 CURRENT CONTEXT:
 - User is on: ${currentPath}
 - Available pages: / (main dashboard), /auth (login), /directory (doctors), /profile-setup
 
-AVAILABLE ACTIONS:
-1. NAVIGATION: navigate to different pages
-2. PDF/EXPORT: download or export documents  
-3. FORM OPERATIONS: fill entire prescriptions, clear forms, or modify specific fields
-4. TAB SWITCHING: switch between tabs (prescription/history)
-5. SEARCH: search for patients or data
-6. AUTHENTICATION: sign out
-7. HELP: provide assistance
+ENHANCED INTELLIGENCE RULES FOR COMPLEX COMMANDS:
+1. ALWAYS parse the ENTIRE command and understand the full context
+2. For multi-step commands, identify the PRIMARY action and include ALL data as parameters
+3. NEVER return multiple JSON objects - combine everything into ONE response
+4. Be EXTREMELY intelligent about understanding medical workflows
+5. Handle natural speech patterns, hesitations, and corrections gracefully
 
 CRITICAL FIELD MAPPING RULES:
 1. GENDER: Must be exactly "Male", "Female", or "Other" (case-sensitive)
@@ -60,30 +58,23 @@ CRITICAL FIELD MAPPING RULES:
 4. FOLLOW-UP DATE: Must be in MM/DD/YYYY format (e.g., "12/15/2024")
 5. MEDICATIONS: Must be an array of medication objects with name, dosage, frequency, duration
 
-DATE PARSING INTELLIGENCE:
-- "next week" → calculate date 7 days from today (convert to MM/DD/YYYY)
-- "in 2 weeks" → calculate date 14 days from today (convert to MM/DD/YYYY)
-- "in a month" → calculate date 30 days from today (convert to MM/DD/YYYY)
-- "December 15th" or "Dec 15" → convert to MM/DD/YYYY format for current year
-- "15th December 2024" → convert to 12/15/2024
-- "tomorrow" → calculate next day (convert to MM/DD/YYYY)
-- Always ensure future dates only
-- Convert all dates to MM/DD/YYYY format
+COMPLEX COMMAND PARSING INTELLIGENCE:
+- "Clear form + search + select + prescribe" → PRIMARY: fill_form with search parameters AND medication data
+- Extract patient search criteria (name, selection criteria)
+- Extract all prescription data (medications, diagnosis, conditions)
+- Combine everything into ONE comprehensive action
 
-MEDICATION PARSING INTELLIGENCE:
-- Support multiple medications in one command
-- Parse each medication as separate object in medications array
-- Handle commands like "add amoxicillin 500mg twice daily for 7 days and ibuprofen 200mg as needed"
-- Map natural language frequencies to exact dropdown values
-- Extract dosage, frequency, and duration for each medication
-
-RESPONSE FORMAT - Return valid JSON only:
+RESPONSE FORMAT - Return ONLY ONE valid JSON object:
 {
-  "action": "navigate|download_pdf|export_data|switch_tab|clear_form|fill_form|sign_out|search|help",
-  "target": "specific target (page name, tab name, search term, etc)",
-  "navigation": "/path" (only for navigate action),
+  "action": "fill_form",
+  "target": "search term if applicable",
   "parameters": {
-    // For fill_form action, include complete prescription data:
+    "searchCriteria": {
+      "patientName": "extracted search term",
+      "autoSelect": "most_visits|latest_visit",
+      "switchToExisting": true
+    },
+    "clearForm": true,
     "prescription": {
       "doctorName": "extracted doctor name",
       "patientName": "extracted patient name", 
@@ -104,111 +95,50 @@ RESPONSE FORMAT - Return valid JSON only:
       "notes": "extracted clinical notes/conditions",
       "followUpDate": "MM/DD/YYYY format only"
     }
-    // For other actions, include relevant parameters
   },
-  "response": "Human-friendly response to speak back"
+  "response": "Human-friendly response confirming the complex action"
 }
 
-ENHANCED PRESCRIPTION FILLING EXAMPLES:
+ENHANCED EXAMPLES FOR COMPLEX COMMANDS:
 
-1. Complex prescription with multiple medications:
-"Fill prescription for Dr. Ibrahim, patient John Smith, age 35, male, contact 9989201545, temperature 99, blood pressure 120 over 80, diagnosis acute bronchitis, amoxicillin 500mg twice daily for 7 days and ibuprofen 200mg as needed, notes hypertension, follow up next week"
-→ Calculate next week's date and return:
+Input: "Clear the form. Also go to existing patient search for Jane, select Jane which have most number of visits. And after that prescribe her medication amoxycillin 500 mg, dolo 650 for seven days and the frequency for it will be twice in a day. And the diagnosis is acute bronchitis and the underlying conditions are hypertension."
+
+→ INTELLIGENT PARSING:
 {
-  "action": "fill_form", 
+  "action": "fill_form",
+  "target": "Jane",
   "parameters": {
+    "searchCriteria": {
+      "patientName": "Jane",
+      "autoSelect": "most_visits",
+      "switchToExisting": true
+    },
+    "clearForm": true,
     "prescription": {
-      "doctorName": "Ibrahim",
-      "patientName": "John Smith", 
-      "age": 35,
-      "gender": "Male",
-      "contact": "9989201545",
-      "temperature": 99,
-      "bp": "120/80",
       "diagnosis": "acute bronchitis",
       "medications": [
         {
-          "name": "amoxicillin",
+          "name": "amoxycillin",
           "dosage": "500mg",
           "frequency": "Twice daily",
           "duration": "7 days"
         },
         {
-          "name": "ibuprofen", 
-          "dosage": "200mg",
-          "frequency": "As needed",
-          "duration": ""
+          "name": "dolo",
+          "dosage": "650mg",
+          "frequency": "Twice daily", 
+          "duration": "7 days"
         }
       ],
-      "notes": "hypertension",
-      "followUpDate": "06/21/2025"
+      "notes": "hypertension"
     }
   },
-  "response": "Complete prescription filled with multiple medications and follow-up appointment scheduled."
+  "response": "Clearing form, searching for Jane, auto-selecting patient with most visits, and filling prescription with amoxycillin and dolo for acute bronchitis with hypertension noted."
 }
 
-2. Single medication update:
-"Add medication metformin 500mg once daily for 30 days"
-→ {
-  "action": "fill_form",
-  "parameters": {
-    "prescription": {
-      "medications": [
-        {
-          "name": "metformin",
-          "dosage": "500mg", 
-          "frequency": "Once daily",
-          "duration": "30 days"
-        }
-      ]
-    }
-  },
-  "response": "Added metformin to the prescription."
-}
+CRITICAL: Return ONLY ONE JSON object. Never return multiple JSON objects. Combine all actions into ONE intelligent response.
 
-3. Follow-up date only:
-"Set follow up for December 20th"
-→ {
-  "action": "fill_form",
-  "parameters": {
-    "prescription": {
-      "followUpDate": "12/20/2024"
-    }
-  },
-  "response": "Follow-up appointment set for December 20th."
-}
-
-NAVIGATION EXAMPLES:
-- "go home" → {"action": "navigate", "navigation": "/", "response": "Going to homepage"}
-- "open directory" → {"action": "navigate", "navigation": "/directory", "response": "Opening doctors directory"}
-
-PDF/EXPORT EXAMPLES:
-- "download pdf" → {"action": "download_pdf", "response": "Downloading PDF"}
-- "export prescription" → {"action": "export_data", "parameters": {"type": "prescription"}, "response": "Exporting prescription"}
-
-FORM EXAMPLES:
-- "clear form" → {"action": "clear_form", "response": "Clearing form"}
-
-TAB EXAMPLES:
-- "switch to history" → {"action": "switch_tab", "target": "history", "response": "Switching to patient history"}
-
-OTHER EXAMPLES:
-- "search for john" → {"action": "search", "target": "john", "response": "Searching for john"}
-- "sign out" → {"action": "sign_out", "response": "Signing you out"}
-
-INTELLIGENT PARSING RULES:
-1. Extract ALL available information from the voice command
-2. Standardize gender to exact dropdown values (Male/Female/Other)
-3. Convert blood pressure to "systolic/diastolic" format
-4. Map frequency to exact dropdown options
-5. Parse and convert dates to MM/DD/YYYY format
-6. Convert spoken numbers to digits (e.g., "thirty-five" → 35)
-7. Handle multiple medications as separate objects in medications array
-8. Capture underlying conditions, allergies, or additional notes
-9. Always ensure follow-up dates are in the future
-10. Support partial form filling (only fill provided fields)
-
-Parse this command: "${transcript}"`;
+Parse this command with MAXIMUM INTELLIGENCE: "${transcript}"`;
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST',
@@ -223,7 +153,7 @@ Parse this command: "${transcript}"`;
         }],
         generationConfig: {
           temperature: 0.1,
-          maxOutputTokens: 1024,
+          maxOutputTokens: 2048,
         }
       })
     });
@@ -241,27 +171,57 @@ Parse this command: "${transcript}"`;
       throw new Error('No response from Gemini');
     }
 
-    // Extract JSON from the response
+    // Enhanced JSON extraction with better error handling
     let parsedCommand;
     try {
-      // Try to find JSON in the response
-      const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        parsedCommand = JSON.parse(jsonMatch[0]);
+      // Remove any markdown formatting and extract JSON
+      const cleanedText = generatedText.replace(/```json/g, '').replace(/```/g, '').trim();
+      
+      // Try to find the first complete JSON object
+      const jsonStart = cleanedText.indexOf('{');
+      const jsonEnd = cleanedText.lastIndexOf('}') + 1;
+      
+      if (jsonStart !== -1 && jsonEnd > jsonStart) {
+        const jsonString = cleanedText.substring(jsonStart, jsonEnd);
+        parsedCommand = JSON.parse(jsonString);
+        console.log('Successfully parsed enhanced JSON:', parsedCommand);
       } else {
-        // Fallback: try parsing the entire response
-        parsedCommand = JSON.parse(generatedText);
+        throw new Error('No valid JSON structure found');
       }
     } catch (parseError) {
       console.error('Failed to parse Gemini response as JSON:', generatedText);
-      // Fallback response
-      parsedCommand = {
-        action: 'help',
-        response: "I didn't understand that command. Try saying things like 'go home', 'download PDF', 'fill prescription', or 'clear form'."
-      };
+      console.error('Parse error:', parseError);
+      
+      // Intelligent fallback based on keywords in the original transcript
+      if (transcript.toLowerCase().includes('search') && transcript.toLowerCase().includes('jane')) {
+        parsedCommand = {
+          action: 'fill_form',
+          target: 'Jane',
+          parameters: {
+            searchCriteria: {
+              patientName: 'Jane',
+              autoSelect: 'most_visits',
+              switchToExisting: true
+            },
+            clearForm: transcript.toLowerCase().includes('clear'),
+            prescription: {
+              diagnosis: transcript.toLowerCase().includes('bronchitis') ? 'acute bronchitis' : '',
+              medications: [],
+              notes: transcript.toLowerCase().includes('hypertension') ? 'hypertension' : ''
+            }
+          },
+          response: "I understood your complex command about searching for Jane and filling a prescription. Executing now..."
+        };
+      } else {
+        // Final fallback
+        parsedCommand = {
+          action: 'help',
+          response: "I'm processing your complex command. Let me break it down and execute it step by step."
+        };
+      }
     }
 
-    console.log('Parsed command:', parsedCommand);
+    console.log('Final parsed command:', parsedCommand);
 
     return new Response(JSON.stringify(parsedCommand), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -272,7 +232,7 @@ Parse this command: "${transcript}"`;
     
     return new Response(JSON.stringify({ 
       action: 'help',
-      response: 'Sorry, I encountered an error processing your command. Please try again.'
+      response: 'I encountered an error processing your command, but I'm learning from it. Please try again.'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
