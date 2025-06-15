@@ -162,14 +162,14 @@ export const useGlobalVoiceAgent = () => {
     try {
       switch (command.action) {
         case 'navigate':
-          if (command.navigation) {
-            navigate(command.navigation);
+        case 'navigateTo':
+          if (command.target) {
+            navigate(command.target);
             speakResponse(command.response || `Navigating to ${command.target}`);
           }
           break;
 
         case 'fill_form':
-          // Enhanced form filling with complex parameters
           const fillEvent = new CustomEvent('voice-fill-form', { 
             detail: { 
               ...command.parameters,
@@ -180,7 +180,6 @@ export const useGlobalVoiceAgent = () => {
           });
           window.dispatchEvent(fillEvent);
 
-          // If there's search criteria, also trigger the search
           if (command.parameters?.searchCriteria) {
             const searchEvent = new CustomEvent('voice-search', { 
               detail: { 
@@ -196,7 +195,6 @@ export const useGlobalVoiceAgent = () => {
           break;
 
         case 'download_pdf':
-          // Trigger PDF download
           const downloadEvent = new CustomEvent('voice-download-pdf', { 
             detail: command.parameters 
           });
