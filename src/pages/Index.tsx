@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import PrescriptionForm from '../components/PrescriptionForm';
 import PatientHistory from '../components/PatientHistory';
@@ -6,9 +5,9 @@ import Header from '../components/Header';
 import { Sparkles, FileText, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import PWADownloadButton from '../components/PWADownloadButton';
-+import OfflineDetector from '../components/OfflineDetector';
-+import PushNotificationOptInDialog from '../components/PushNotificationOptInDialog';
-+import BarcodeScannerDialog from '../components/BarcodeScannerDialog';
+import OfflineDetector from '../components/OfflineDetector';
+import PushNotificationOptInDialog from '../components/PushNotificationOptInDialog';
+import BarcodeScannerDialog from '../components/BarcodeScannerDialog';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState<'prescription' | 'history'>('prescription');
@@ -52,9 +51,9 @@ const Index = () => {
 
   return (
     <div className="min-h-screen relative overflow-hidden floating-particles">
-+      <OfflineDetector />
-+      <PushNotificationOptInDialog />
-+      <BarcodeScannerDialog />
+      <OfflineDetector />
+      <PushNotificationOptInDialog />
+      <BarcodeScannerDialog />
       {/* SUNSHINE RAYS Animated BG */}
       <div className="sunshine-rays-bg"></div>
       {/* PREMIUM ANIMATED GLASSMORPHIC LIQUID DROP BACKGROUND */}
