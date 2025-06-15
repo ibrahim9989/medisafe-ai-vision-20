@@ -47,6 +47,9 @@ const Index = () => {
 
   return (
     <div className="min-h-screen relative overflow-hidden floating-particles">
+      {/* SUNSHINE RAYS Animated BG */}
+      <div className="sunshine-rays-bg"></div>
+      
       {/* PREMIUM ANIMATED GLASSMORPHIC LIQUID DROP BACKGROUND */}
       <div className="premium-liquid-drops-bg">
         <div className="animated-grid"></div>
