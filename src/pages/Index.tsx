@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import PrescriptionForm from '../components/PrescriptionForm';
 import PatientHistory from '../components/PatientHistory';
@@ -48,6 +47,21 @@ const Index = () => {
 
   return (
     <div className="min-h-screen relative overflow-hidden floating-particles">
+      {/* PREMIUM ANIMATED GLASSMORPHIC LIQUID DROP BACKGROUND */}
+      <div className="premium-liquid-drops-bg">
+        <div className="animated-grid"></div>
+        <div className="drop main-drop"></div>
+        <div className="drop drop2"></div>
+        <div className="drop drop3"></div>
+        <div className="drop sub-drop1"></div>
+        <div className="drop main-drop2"></div>
+        <div className="drop sub-drop2"></div>
+        <div className="drop main-drop3"></div>
+        <div className="drop sub-drop3"></div>
+        <div className="drop drop4"></div>
+        <div className="drop drop5"></div>
+      </div>
+      
       <Header />
       
       {/* Enhanced background with liquid glass effect */}

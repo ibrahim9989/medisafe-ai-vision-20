@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -131,11 +132,16 @@ const EnhancedPrescriptionForm = ({ data, onChange, children }: EnhancedPrescrip
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-4 mb-6">
+          {/* Responsive flex: stack on mobile, inline on desktop */}
+          <div className="flex flex-col xs:flex-row gap-3 xs:gap-4 mb-6 w-full max-w-none">
             <Button
               variant={mode === 'new' ? 'default' : 'outline'}
               onClick={handleNewPatient}
-              className={mode === 'new' ? 'bg-gradient-to-r from-blue-500 to-blue-600' : ''}
+              className={
+                mode === 'new'
+                  ? 'bg-gradient-to-r from-blue-500 to-blue-600 min-w-[150px]'
+                  : 'min-w-[150px]'
+              }
             >
               <Plus className="h-4 w-4 mr-2" />
               New Patient
@@ -143,7 +149,11 @@ const EnhancedPrescriptionForm = ({ data, onChange, children }: EnhancedPrescrip
             <Button
               variant={mode === 'existing' ? 'default' : 'outline'}
               onClick={() => setMode('existing')}
-              className={mode === 'existing' ? 'bg-gradient-to-r from-green-500 to-green-600' : ''}
+              className={
+                mode === 'existing'
+                  ? 'bg-gradient-to-r from-green-500 to-green-600 min-w-[150px]'
+                  : 'min-w-[150px]'
+              }
             >
               <History className="h-4 w-4 mr-2" />
               Existing Patient
