@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -6,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Search, User, Phone, Calendar, FileText, Users } from 'lucide-react';
 import { usePatientHistory } from '@/hooks/usePatientHistory';
+import { useDoctorProfile } from '@/hooks/useDoctorProfile';
 import { format } from 'date-fns';
 
 interface PatientSearchProps {
@@ -26,6 +26,7 @@ const PatientSearch = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const { searchPatient, loading } = usePatientHistory();
+  const { profile } = useDoctorProfile();
 
   // Handle voice search commands - Auto-execute everything
   useEffect(() => {
@@ -38,22 +39,38 @@ const PatientSearch = ({
     }
   }, [voiceSearchTerm, autoSearch]);
 
-  // Auto-search as user types (debounced)
+  // Auto-search as user types (debounced) but only if profile is ready
   useEffect(() => {
     if (!searchTerm.trim()) {
       setSearchResults([]);
       return;
     }
-
+    if (!profile) {
+      console.log("🟡 Profile not loaded yet, postponing search");
+      return;
+    }
     const searchTimeout = setTimeout(() => {
       performSearch(searchTerm);
     }, 300); // 300ms debounce
-
     return () => clearTimeout(searchTimeout);
-  }, [searchTerm]);
+    // eslint-disable-next-line
+  }, [searchTerm, profile]);
+
+  // When profile becomes available and there's a pending searchTerm, search!
+  useEffect(() => {
+    if (profile && searchTerm.trim()) {
+      console.log("🔷 Profile just loaded, re-running search for:", searchTerm);
+      performSearch(searchTerm);
+    }
+    // eslint-disable-next-line
+  }, [profile]);
 
   const performSearchAndAutoSelect = async (term: string) => {
     if (!term.trim()) return;
+    if (!profile) {
+      console.log("🟠 Cannot search patients: profile is not loaded");
+      return;
+    }
     
     console.log('🔍 Auto-performing search for:', term);
     try {
@@ -69,7 +86,7 @@ const PatientSearch = ({
       // Enhanced results with visit count - mock data for now since we need to enhance the backend
       const enhancedResults = results.map(patient => ({
         ...patient,
-        visit_count: Math.floor(Math.random() * 20) + 1 // Mock visit count for demo
+        visit_count: Math.floor(Math.random() * 20) + 1
       }));
       
       console.log('📊 Search results with visit counts:', enhancedResults);
@@ -118,6 +135,10 @@ const PatientSearch = ({
       setSearchResults([]);
       return;
     }
+    if (!profile) {
+      console.log("🟠 Cannot search patients: profile is not loaded (performSearch)");
+      return;
+    }
     
     console.log('🔍 Performing search for:', term);
     try {
@@ -133,7 +154,7 @@ const PatientSearch = ({
       // Enhanced results with visit count - mock data for now since we need to enhance the backend
       const enhancedResults = results.map(patient => ({
         ...patient,
-        visit_count: Math.floor(Math.random() * 20) + 1 // Mock visit count for demo
+        visit_count: Math.floor(Math.random() * 20) + 1
       }));
       
       console.log('📊 Search results with visit counts:', enhancedResults);
