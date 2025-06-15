@@ -15,7 +15,6 @@ import ProfileSetup from "./pages/ProfileSetup";
 import DoctorsDirectory from "./pages/DoctorsDirectory";
 import { TutorialProvider } from "@/components/tutorial/TutorialProvider";
 import TutorialOverlay from "@/components/tutorial/TutorialOverlay";
-import TutorialHelpButton from "@/components/tutorial/TutorialHelpButton";
 
 const queryClient = new QueryClient();
 
@@ -29,7 +28,6 @@ const App = () => (
           <TutorialProvider>
             {/* Seamless new user tutorial */}
             <TutorialOverlay />
-            <TutorialHelpButton />
             <Routes>
               <Route path="/auth" element={<Auth />} />
               <Route 
