@@ -30,11 +30,12 @@ const PatientSearch = ({
 
   // Handle voice search commands - Auto-execute everything
   useEffect(() => {
+    // Only perform when the voiceSearchTerm is freshly provided and autoSearch is true
     if (voiceSearchTerm && autoSearch) {
       console.log('🎤 Voice search auto-execution triggered:', voiceSearchTerm);
       setSearchTerm(voiceSearchTerm);
-      
-      // Automatically trigger the search
+
+      // Trigger the search immediately (no debounce)
       performSearchAndAutoSelect(voiceSearchTerm);
     }
   }, [voiceSearchTerm, autoSearch]);
