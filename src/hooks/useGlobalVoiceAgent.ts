@@ -161,25 +161,62 @@ export const useGlobalVoiceAgent = () => {
 
     try {
       switch (command.action) {
-        // Handle generic navigation by target
+        // Enhanced navigation handler: fallback for tab intent
         case 'navigate':
-        case 'navigateTo':
-          if (command.target) {
+        case 'navigateTo': {
+          // Voice agent: Try to detect tab intent for "history" or "prescription"
+          const tabTarget =
+            command.parameters?.navigateToPatientHistory ||
+            (typeof command.response === "string" &&
+              /history/i.test(command.response));
+          const prescriptionTab =
+            command.parameters?.navigateToPrescription ||
+            (typeof command.response === "string" &&
+              /prescription/i.test(command.response));
+
+          if (tabTarget) {
+            // Fire tab switch event
+            window.dispatchEvent(
+              new CustomEvent('voice-switch-tab', { detail: { tab: 'history' } })
+            );
+            speakResponse(command.response || `Navigating to history`);
+            break;
+          } else if (prescriptionTab) {
+            window.dispatchEvent(
+              new CustomEvent('voice-switch-tab', { detail: { tab: 'prescription' } })
+            );
+            speakResponse(command.response || `Navigating to prescription`);
+            break;
+          } else if (command.target) {
+            // Only navigate if a "proper" route is provided and not /profile-setup for a tab switch
+            if (
+              command.target === '/profile-setup'
+              && command.parameters?.navigateToPatientHistory
+            ) {
+              // Do NOT navigate, already switched tab above
+              break;
+            }
             navigate(command.target);
-            speakResponse(command.response || `Navigating to ${command.target}`);
+            speakResponse(
+              command.response || `Navigating to ${command.target}`
+            );
           }
           break;
-        // New: Handle tab navigation commands (INTELLIGENT TAB SWITCH)
+        }
+        // Still keep special commands for direct tab switching, to be robust with backend
         case 'navigateToPatientHistory':
-          // Trigger event to switch to patient history tab
-          window.dispatchEvent(new CustomEvent('voice-switch-tab', { detail: { tab: 'history' } }));
+          window.dispatchEvent(
+            new CustomEvent('voice-switch-tab', { detail: { tab: 'history' } })
+          );
           speakResponse(command.response || 'Navigating to patient history.');
           break;
         case 'navigateToPrescription':
-          window.dispatchEvent(new CustomEvent('voice-switch-tab', { detail: { tab: 'prescription' } }));
+          window.dispatchEvent(
+            new CustomEvent('voice-switch-tab', { detail: { tab: 'prescription' } })
+          );
           speakResponse(command.response || 'Navigating to prescription.');
           break;
-        // ... keep existing code (rest of case statements, like "fill_form", "download_pdf", etc.)
+        // ... keep existing code (fill_form, download_pdf, export_data, switch_tab, clear_form, sign_out, search, help, default) the same ...
         case 'fill_form':
           const fillEvent = new CustomEvent('voice-fill-form', { 
             detail: { 
