@@ -161,6 +161,7 @@ export const useGlobalVoiceAgent = () => {
 
     try {
       switch (command.action) {
+        // Handle generic navigation by target
         case 'navigate':
         case 'navigateTo':
           if (command.target) {
@@ -168,7 +169,17 @@ export const useGlobalVoiceAgent = () => {
             speakResponse(command.response || `Navigating to ${command.target}`);
           }
           break;
-
+        // New: Handle tab navigation commands (INTELLIGENT TAB SWITCH)
+        case 'navigateToPatientHistory':
+          // Trigger event to switch to patient history tab
+          window.dispatchEvent(new CustomEvent('voice-switch-tab', { detail: { tab: 'history' } }));
+          speakResponse(command.response || 'Navigating to patient history.');
+          break;
+        case 'navigateToPrescription':
+          window.dispatchEvent(new CustomEvent('voice-switch-tab', { detail: { tab: 'prescription' } }));
+          speakResponse(command.response || 'Navigating to prescription.');
+          break;
+        // ... keep existing code (rest of case statements, like "fill_form", "download_pdf", etc.)
         case 'fill_form':
           const fillEvent = new CustomEvent('voice-fill-form', { 
             detail: { 
@@ -190,7 +201,6 @@ export const useGlobalVoiceAgent = () => {
             });
             window.dispatchEvent(searchEvent);
           }
-
           speakResponse(command.response || "Executing your complex prescription workflow");
           break;
 
