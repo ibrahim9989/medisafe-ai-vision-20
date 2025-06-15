@@ -161,7 +161,6 @@ export const useGlobalVoiceAgent = () => {
 
     try {
       switch (command.action) {
-        // Enhanced navigation handler: fallback for tab intent
         case 'navigate':
         case 'navigateTo': {
           // Voice agent: Try to detect tab intent for "history" or "prescription"
@@ -203,7 +202,6 @@ export const useGlobalVoiceAgent = () => {
           }
           break;
         }
-        // Still keep special commands for direct tab switching, to be robust with backend
         case 'navigateToPatientHistory':
           window.dispatchEvent(
             new CustomEvent('voice-switch-tab', { detail: { tab: 'history' } })
@@ -216,7 +214,6 @@ export const useGlobalVoiceAgent = () => {
           );
           speakResponse(command.response || 'Navigating to prescription.');
           break;
-        // ... keep existing code (fill_form, download_pdf, export_data, switch_tab, clear_form, sign_out, search, help, default) the same ...
         case 'fill_form':
           const fillEvent = new CustomEvent('voice-fill-form', { 
             detail: { 
@@ -272,6 +269,8 @@ export const useGlobalVoiceAgent = () => {
           break;
 
         case 'sign_out':
+        case 'log_out':
+        case 'logout':
           await signOut();
           speakResponse(command.response || "Signing out");
           break;
