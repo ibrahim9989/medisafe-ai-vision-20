@@ -214,8 +214,7 @@ export const useGlobalVoiceAgent = () => {
           );
           speakResponse(command.response || 'Navigating to prescription.');
           break;
-        case 'fill_form':
-          {
+        case 'fill_form': {
             const fillEvent = new CustomEvent('voice-fill-form', { 
               detail: { 
                 ...command.parameters,
@@ -235,28 +234,36 @@ export const useGlobalVoiceAgent = () => {
                 }
               });
               window.dispatchEvent(searchEvent);
+              console.log("[VoiceAgent] Dispatched voice-search:", searchEvent.detail);
             }
 
-            // === NEW: Download PDF if the prescription says so ===
-            if (
-              command.parameters?.prescription &&
-              command.parameters.prescription.downloadPrescription
-            ) {
-              // We'll select the current tab logically: if we're in 'history', then download her prescription
+            // --- ENHANCED: Always trigger voice-download-pdf if prescription.downloadPrescription === true ---
+            // Look for prescription.downloadPrescription at any level of parameters
+            const maybePrescription = command.parameters?.prescription;
+            const shouldDownload =
+              maybePrescription && typeof maybePrescription === "object" &&
+              ("downloadPrescription" in maybePrescription) && Boolean(maybePrescription.downloadPrescription);
+            if (shouldDownload) {
+              const patientName =
+                command.parameters?.searchCriteria?.patientName ||
+                maybePrescription.patientName ||
+                "";
+
               window.dispatchEvent(
                 new CustomEvent('voice-download-pdf', {
                   detail: { 
-                    patientName: command.parameters.searchCriteria?.patientName || "",
-                    // Optionally pass more detail if needed
+                    patientName,
+                    // Pass prescription details if needed
+                    prescription: maybePrescription
                   }
                 })
               );
+              console.log("[VoiceAgent] Dispatched voice-download-pdf for patient:", patientName, "details:", maybePrescription);
             }
 
             speakResponse(command.response || "Executing your complex prescription workflow");
           }
           break;
-
         case 'download_pdf':
           const downloadEvent = new CustomEvent('voice-download-pdf', { 
             detail: command.parameters 
