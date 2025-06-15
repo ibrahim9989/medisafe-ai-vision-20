@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import PrescriptionForm from '../components/PrescriptionForm';
 import PatientHistory from '../components/PatientHistory';
@@ -5,6 +6,9 @@ import Header from '../components/Header';
 import { Sparkles, FileText, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import PWADownloadButton from '../components/PWADownloadButton';
++import OfflineDetector from '../components/OfflineDetector';
++import PushNotificationOptInDialog from '../components/PushNotificationOptInDialog';
++import BarcodeScannerDialog from '../components/BarcodeScannerDialog';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState<'prescription' | 'history'>('prescription');
@@ -48,9 +52,11 @@ const Index = () => {
 
   return (
     <div className="min-h-screen relative overflow-hidden floating-particles">
++      <OfflineDetector />
++      <PushNotificationOptInDialog />
++      <BarcodeScannerDialog />
       {/* SUNSHINE RAYS Animated BG */}
       <div className="sunshine-rays-bg"></div>
-      
       {/* PREMIUM ANIMATED GLASSMORPHIC LIQUID DROP BACKGROUND */}
       <div className="premium-liquid-drops-bg">
         <div className="animated-grid"></div>
@@ -65,23 +71,19 @@ const Index = () => {
         <div className="drop drop4"></div>
         <div className="drop drop5"></div>
       </div>
-      
-      <Header />
 
+      <Header />
       {/* Install PWA button (visible on supported devices/browsers) */}
       <PWADownloadButton />
-      
       {/* Enhanced background with liquid glass effect */}
       <div className="fixed inset-0 pointer-events-none">
         {/* Animated liquid gradient overlay */}
         <div className="absolute inset-0 liquid-gradient opacity-40"></div>
-        
         {/* Floating orbs with enhanced glass effect */}
         <div className="hidden lg:block absolute top-0 left-1/4 w-96 h-96 glass rounded-full opacity-20 animate-pulse" style={{ animationDuration: '12s' }}></div>
         <div className="hidden lg:block absolute bottom-0 right-1/4 w-80 h-80 glass rounded-full opacity-15 animate-pulse" style={{ animationDuration: '16s', animationDelay: '3s' }}></div>
         <div className="hidden lg:block absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] glass rounded-full opacity-10"></div>
       </div>
-
       {/* AI Status with glass morphism - Enhanced mobile positioning */}
       <div className="fixed top-16 right-2 z-40 sm:top-20 sm:right-4 lg:top-32 lg:right-8">
         <div className="relative group">
@@ -103,7 +105,6 @@ const Index = () => {
           </div>
         </div>
       </div>
-      
       <main className="relative container mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-12">
         <div className="max-w-7xl mx-auto">
           {/* Hero Section with glass morphism - Enhanced mobile responsiveness */}
@@ -115,7 +116,7 @@ const Index = () => {
               </span>
               <span className="block">Management</span>
             </h1>
-            
+
             <p className="text-xs sm:text-sm md:text-base lg:text-xl xl:text-2xl font-light text-gray-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed tracking-wide px-2 sm:px-4">
               Control everything with your voice - Navigate, export PDFs, fill forms, and more
             </p>
@@ -154,7 +155,7 @@ const Index = () => {
               </div>
             </div>
           </div>
-          
+
           {/* Main Content with enhanced glass morphism - Enhanced mobile padding */}
           <div className="relative">
             <div className="glass-card p-3 sm:p-4 md:p-6 lg:p-12 xl:p-16 2xl:p-20">
