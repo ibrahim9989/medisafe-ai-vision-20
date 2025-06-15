@@ -215,27 +215,46 @@ export const useGlobalVoiceAgent = () => {
           speakResponse(command.response || 'Navigating to prescription.');
           break;
         case 'fill_form':
-          const fillEvent = new CustomEvent('voice-fill-form', { 
-            detail: { 
-              ...command.parameters,
-              searchCriteria: command.parameters?.searchCriteria,
-              clearForm: command.parameters?.clearForm,
-              prescription: command.parameters?.prescription
-            }
-          });
-          window.dispatchEvent(fillEvent);
-
-          if (command.parameters?.searchCriteria) {
-            const searchEvent = new CustomEvent('voice-search', { 
+          {
+            const fillEvent = new CustomEvent('voice-fill-form', { 
               detail: { 
-                query: command.parameters.searchCriteria.patientName,
-                autoSelect: command.parameters.searchCriteria.autoSelect,
-                switchToExisting: command.parameters.searchCriteria.switchToExisting
+                ...command.parameters,
+                searchCriteria: command.parameters?.searchCriteria,
+                clearForm: command.parameters?.clearForm,
+                prescription: command.parameters?.prescription
               }
             });
-            window.dispatchEvent(searchEvent);
+            window.dispatchEvent(fillEvent);
+
+            if (command.parameters?.searchCriteria) {
+              const searchEvent = new CustomEvent('voice-search', { 
+                detail: { 
+                  query: command.parameters.searchCriteria.patientName,
+                  autoSelect: command.parameters.searchCriteria.autoSelect,
+                  switchToExisting: command.parameters.searchCriteria.switchToExisting
+                }
+              });
+              window.dispatchEvent(searchEvent);
+            }
+
+            // === NEW: Download PDF if the prescription says so ===
+            if (
+              command.parameters?.prescription &&
+              command.parameters.prescription.downloadPrescription
+            ) {
+              // We'll select the current tab logically: if we're in 'history', then download her prescription
+              window.dispatchEvent(
+                new CustomEvent('voice-download-pdf', {
+                  detail: { 
+                    patientName: command.parameters.searchCriteria?.patientName || "",
+                    // Optionally pass more detail if needed
+                  }
+                })
+              );
+            }
+
+            speakResponse(command.response || "Executing your complex prescription workflow");
           }
-          speakResponse(command.response || "Executing your complex prescription workflow");
           break;
 
         case 'download_pdf':
