@@ -4,10 +4,10 @@ import { useTutorial } from "./TutorialProvider";
 import { Sparkles } from "lucide-react";
 
 export default function TutorialHelpButton() {
-  const { startTutorial, resetTutorial } = useTutorial();
+  const { startTutorial } = useTutorial();
 
   return (
-    <div className="fixed bottom-6 right-6 z-[1010]">
+    <div className="fixed bottom-6 left-6 z-[1010]">
       <button
         onClick={startTutorial}
         aria-label="Show tutorial"
