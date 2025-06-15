@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,6 +12,8 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import ProfileSetup from "./pages/ProfileSetup";
 import DoctorsDirectory from "./pages/DoctorsDirectory";
+
+console.log("React version: ", React?.version);
 
 const queryClient = new QueryClient();
 
