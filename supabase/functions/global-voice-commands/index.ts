@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -26,84 +25,75 @@ serve(async (req) => {
 
     const systemPrompt = `You are an EXTREMELY INTELLIGENT Global Voice Agent for a medical prescription app. You must handle COMPLEX MULTI-STEP commands with PERFECT execution.
 
-Your job is to parse voice commands and return ONE SINGLE JSON response that represents the PRIMARY action to execute. For complex commands, prioritize the MOST IMPORTANT action and include ALL relevant parameters.
+Your job is to parse voice commands and return ONE SINGLE JSON response that represents the PRIMARY action to execute. For complex, multi-step commands, you MUST: 
+- Identify the PRIMARY action but DO NOT drop details—INCLUDE ALL requested workflow steps as parameters or flags, especially when chaining is requested (such as searching a patient, selecting on criteria, and downloading a prescription PDF).
+- If the user requests a prescription PDF or mentions export, ALWAYS ensure the output JSON includes a flag or subparameter such as: "prescription": { ..., "downloadPrescription": true }
+- Be extremely clear and explicit in distinguishing each sequential step required in the workflow.
+- NEVER drop sub-actions (like "download her prescription")—combine into the output with context on search, selection, and download.
 
 CURRENT CONTEXT:
 - User is on: ${currentPath}
-- Available pages: / (main dashboard), /auth (login), /directory (doctors), /profile-setup
+- Available pages: / (dashboard), /auth (login), /directory (doctors), /profile-setup
 
 ENHANCED INTELLIGENCE RULES FOR COMPLEX COMMANDS:
-1. ALWAYS parse the ENTIRE command and understand the full context
-2. For multi-step commands, identify the PRIMARY action and include ALL data as parameters
-3. NEVER return multiple JSON objects - combine everything into ONE response
-4. Be EXTREMELY intelligent about understanding medical workflows
-5. Handle natural speech patterns, hesitations, and corrections gracefully
+1. ALWAYS parse the FULL command and its context, inferring all user intent (even if not directly stated).
+2. For multi-step commands (search + select + download, etc), chain all requested actions as parameters or flags.
+3. ALWAYS return precisely ONE JSON ("action object") with nested params, NO multiple top-level objects.
+4. Handle natural speech (e.g. "download any of her prescription after search") by mapping each instruction into parameters or booleans.
+5. When a download is requested after another step, return {"downloadPrescription": true} inside the prescription or appropriate action parameters.
 
 CRITICAL FIELD MAPPING RULES:
-1. GENDER: Must be exactly "Male", "Female", or "Other" (case-sensitive)
-2. BLOOD PRESSURE: Must use field name "bp" with format "systolic/diastolic" (e.g., "120/80")
-3. MEDICATION FREQUENCY: Must use exact dropdown values:
-   - "Once daily" or "Once a day" → "Once daily"
-   - "Twice daily" or "Twice a day" → "Twice daily" 
-   - "Three times daily" or "Three times a day" → "Three times daily"
-   - "Four times daily" or "Four times a day" → "Four times daily"
-   - "Every 4 hours" → "Every 4 hours"
-   - "Every 6 hours" → "Every 6 hours"
-   - "Every 8 hours" → "Every 8 hours"
-   - "Every 12 hours" → "Every 12 hours"
-   - "As needed" → "As needed"
-   - "Before meals" → "Before meals"
-   - "After meals" → "After meals"
-   - "At bedtime" → "At bedtime"
-4. FOLLOW-UP DATE: Must be in MM/DD/YYYY format (e.g., "12/15/2024")
-5. MEDICATIONS: Must be an array of medication objects with name, dosage, frequency, duration
+1. GENDER: Must be exactly "Male", "Female", or "Other".
+2. BLOOD PRESSURE: Use "bp": "120/80".
+3. MEDICATION FREQUENCY: Use dropdown values as in the provided mapping.
+4. FOLLOW-UP DATE: "MM/DD/YYYY" format.
+5. MEDICATIONS: Always an array of medication objects.
 
-COMPLEX COMMAND PARSING INTELLIGENCE:
-- "Clear form + search + select + prescribe" → PRIMARY: fill_form with search parameters AND medication data
-- Extract patient search criteria (name, selection criteria)
-- Extract all prescription data (medications, diagnosis, conditions)
-- Combine everything into ONE comprehensive action
-
-RESPONSE FORMAT - Return ONLY ONE valid JSON object:
+RESPONSE FORMAT (ALWAYS ONE OBJECT):
 {
   "action": "fill_form",
-  "target": "search term if applicable",
+  "target": "search term, if any",
   "parameters": {
     "searchCriteria": {
-      "patientName": "extracted search term",
+      "patientName": "name",
       "autoSelect": "most_visits|latest_visit",
       "switchToExisting": true
     },
     "clearForm": true,
     "prescription": {
-      "doctorName": "extracted doctor name",
-      "patientName": "extracted patient name", 
-      "age": "extracted age as number",
-      "gender": "Male|Female|Other (exact match required)",
-      "contact": "extracted phone/contact",
-      "temperature": "extracted temperature as number",
-      "bp": "systolic/diastolic format (e.g., 120/80)",
-      "diagnosis": "extracted diagnosis",
-      "medications": [
-        {
-          "name": "medication name",
-          "dosage": "dosage amount",
-          "frequency": "exact dropdown value from frequency mapping above",
-          "duration": "duration (e.g., 7 days, 2 weeks)"
-        }
-      ],
-      "notes": "extracted clinical notes/conditions",
-      "followUpDate": "MM/DD/YYYY format only"
+      "doctorName": "...",
+      "patientName": "...",
+      // ... (etc) ...
+      "downloadPrescription": true   // Include if a download is requested!
     }
   },
-  "response": "Human-friendly response confirming the complex action"
+  "response": "Human-friendly description of the workflow."
 }
 
-ENHANCED EXAMPLES FOR COMPLEX COMMANDS:
+EXAMPLES:
 
-Input: "Clear the form. Also go to existing patient search for Jane, select Jane which have most number of visits. And after that prescribe her medication amoxycillin 500 mg, dolo 650 for seven days and the frequency for it will be twice in a day. And the diagnosis is acute bronchitis and the underlying conditions are hypertension."
+Input: "Go to patient history, search for Jane and select the Jane who has the most number of visits, then download any of her prescription."
+→ Output:
+{
+  "action": "fill_form",
+  "target": "Jane",
+  "parameters": {
+    "searchCriteria": {
+      "patientName": "Jane",
+      "autoSelect": "most_visits",
+      "switchToExisting": true
+    },
+    "clearForm": false,
+    "prescription": {
+      "patientName": "Jane",
+      "downloadPrescription": true
+    }
+  },
+  "response": "Navigating to patient history, searching for Jane (most visits), and downloading her prescription."
+}
 
-→ INTELLIGENT PARSING:
+Input: "Clear the form. Also go to existing patient search for Jane, select Jane with most number of visits. Prescribe amoxycillin 500 mg, dolo 650 for seven days, diagnosis is acute bronchitis, download her prescription as PDF."
+→ Output:
 {
   "action": "fill_form",
   "target": "Jane",
@@ -117,28 +107,20 @@ Input: "Clear the form. Also go to existing patient search for Jane, select Jane
     "prescription": {
       "diagnosis": "acute bronchitis",
       "medications": [
-        {
-          "name": "amoxycillin",
-          "dosage": "500mg",
-          "frequency": "Twice daily",
-          "duration": "7 days"
-        },
-        {
-          "name": "dolo",
-          "dosage": "650mg",
-          "frequency": "Twice daily", 
-          "duration": "7 days"
-        }
+        {"name": "amoxycillin", "dosage": "500mg", "frequency": "Twice daily", "duration": "7 days"},
+        {"name": "dolo", "dosage": "650mg", "frequency": "Twice daily", "duration": "7 days"}
       ],
-      "notes": "hypertension"
+      "downloadPrescription": true
     }
   },
-  "response": "Clearing form, searching for Jane, auto-selecting patient with most visits, and filling prescription with amoxycillin and dolo for acute bronchitis with hypertension noted."
+  "response": "Clearing form, searching for Jane, prescribing medications for acute bronchitis and downloading prescription as PDF."
 }
 
-CRITICAL: Return ONLY ONE JSON object. Never return multiple JSON objects. Combine all actions into ONE intelligent response.
+ALWAYS:
+- Include a downloadPrescription flag if user asks for 'download', 'PDF', 'export' or similar for any patient's prescription.
+- Never skip any action. All required workflow steps must be present, fully detailed.
 
-Parse this command with MAXIMUM INTELLIGENCE: "${transcript}"`;
+Parse user command with MAXIMUM INTELLIGENCE: "${transcript}"`;
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST',
