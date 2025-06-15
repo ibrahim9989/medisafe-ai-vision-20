@@ -4,6 +4,7 @@ import PatientHistory from '../components/PatientHistory';
 import Header from '../components/Header';
 import { Sparkles, FileText, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import PWADownloadButton from '../components/PWADownloadButton';
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState<'prescription' | 'history'>('prescription');
@@ -66,6 +67,9 @@ const Index = () => {
       </div>
       
       <Header />
+
+      {/* Install PWA button (visible on supported devices/browsers) */}
+      <PWADownloadButton />
       
       {/* Enhanced background with liquid glass effect */}
       <div className="fixed inset-0 pointer-events-none">
