@@ -1,16 +1,14 @@
-
+import { useTheme } from "next-themes"
 import { Toaster as Sonner, toast } from "sonner"
-
-// Remove the useTheme import and default theme logic, as next-themes is Next.js only.
 
 type ToasterProps = React.ComponentProps<typeof Sonner>
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  // If theme switching is needed, you can pass a prop here (or remove the theme prop entirely).
+  const { theme = "system" } = useTheme()
+
   return (
     <Sonner
-      // You can remove theme prop entirely or set a static theme if you want:
-      // theme="light"
+      theme={theme as ToasterProps["theme"]}
       className="toaster group"
       toastOptions={{
         classNames: {
