@@ -13,6 +13,9 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import ProfileSetup from "./pages/ProfileSetup";
 import DoctorsDirectory from "./pages/DoctorsDirectory";
+import { TutorialProvider } from "@/components/tutorial/TutorialProvider";
+import TutorialOverlay from "@/components/tutorial/TutorialOverlay";
+import TutorialHelpButton from "@/components/tutorial/TutorialHelpButton";
 
 const queryClient = new QueryClient();
 
@@ -23,39 +26,44 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <Routes>
-            <Route path="/auth" element={<Auth />} />
-            <Route 
-              path="/directory" 
-              element={
-                <>
-                  <Header />
-                  <DoctorsDirectory />
-                  <GlobalVoiceControl />
-                </>
-              } 
-            />
-            <Route 
-              path="/profile-setup" 
-              element={
-                <ProtectedRoute>
-                  <ProfileSetup />
-                  <GlobalVoiceControl />
-                </ProtectedRoute>
-              } 
-            />
-            <Route 
-              path="/" 
-              element={
-                <ProtectedRoute>
-                  <ProfileGuard>
-                    <Index />
+          <TutorialProvider>
+            {/* Seamless new user tutorial */}
+            <TutorialOverlay />
+            <TutorialHelpButton />
+            <Routes>
+              <Route path="/auth" element={<Auth />} />
+              <Route 
+                path="/directory" 
+                element={
+                  <>
+                    <Header />
+                    <DoctorsDirectory />
                     <GlobalVoiceControl />
-                  </ProfileGuard>
-                </ProtectedRoute>
-              } 
-            />
-          </Routes>
+                  </>
+                } 
+              />
+              <Route 
+                path="/profile-setup" 
+                element={
+                  <ProtectedRoute>
+                    <ProfileSetup />
+                    <GlobalVoiceControl />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/" 
+                element={
+                  <ProtectedRoute>
+                    <ProfileGuard>
+                      <Index />
+                      <GlobalVoiceControl />
+                    </ProfileGuard>
+                  </ProtectedRoute>
+                } 
+              />
+            </Routes>
+          </TutorialProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
