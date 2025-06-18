@@ -6,12 +6,12 @@ import { MessageCircle, Users, FileText, Volume2, Sparkles, Download, CheckCircl
 
 const steps = [
   {
-    title: "Welcome to MediSafe AI!",
+    title: "Welcome to MedVerse!",
     icon: <Sparkles className="mr-1 text-purple-500" />,
     description: (
       <>
         Control the app with your <strong>voice</strong>.<br />
-        Let’s take a <span className="bg-gradient-to-r from-[#cb6ce6] to-[#9c4bc7] text-white px-1 rounded">1-minute tour</span>.
+        Let's take a <span className="bg-gradient-to-r from-[#cb6ce6] to-[#9c4bc7] text-white px-1 rounded">1-minute tour</span>.
       </>
     ),
   },
@@ -22,7 +22,7 @@ const steps = [
       <>
         See the <b>AI Voice Status</b> at the top right of your screen.
         <br />
-        When you see <b>“Voice Ready”</b>, you can speak commands such as <i>“Download PDF”</i>.
+        When you see <b>"Voice Ready"</b>, you can speak commands such as <i>"Download PDF"</i>.
       </>
     ),
   },
@@ -32,7 +32,7 @@ const steps = [
     description: (
       <>
         Quickly switch between <b>Prescription</b> and <b>Patient History</b> —<br />
-        just say <i>“Switch to history”</i> or use the buttons above.
+        just say <i>"Switch to history"</i> or use the buttons above.
       </>
     ),
   },
@@ -42,7 +42,7 @@ const steps = [
     description: (
       <>
         Example:<br />
-        <code className="bg-gray-100 rounded px-1">“Fill prescription for John Doe”</code>
+        <code className="bg-gray-100 rounded px-1">"Fill prescription for John Doe"</code>
         <br />Try it now or press the microphone button below!
       </>
     ),
@@ -57,12 +57,12 @@ const steps = [
     ),
   },
   {
-    title: "You’re all set!",
+    title: "You're all set!",
     icon: <CheckCircle className="mr-1 text-green-600" />,
     description: (
       <>
         Ask for help anytime via the <b>Tutorial</b> button at the bottom right.<br />
-        <span className="text-green-600 font-semibold">Enjoy using MediSafe AI!</span>
+        <span className="text-green-600 font-semibold">Enjoy using MedVerse!</span>
       </>
     ),
   },

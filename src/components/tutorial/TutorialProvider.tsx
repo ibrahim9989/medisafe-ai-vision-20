@@ -14,8 +14,8 @@ interface TutorialContextValue {
 
 const TutorialContext = createContext<TutorialContextValue | undefined>(undefined);
 
-const TUTORIAL_STORAGE_KEY = "medisafeai_tutorial_progress";
-const TUTORIAL_NEWUSER_FLAG = "medisafeai_tutorial_newuser";
+const TUTORIAL_STORAGE_KEY = "medverse_tutorial_progress";
+const TUTORIAL_NEWUSER_FLAG = "medverse_tutorial_newuser";
 
 const TOTAL_STEPS = 6;
 

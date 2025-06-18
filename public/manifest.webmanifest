@@ -1,8 +1,8 @@
 
 {
-  "name": "medisafe-ai-vision",
-  "short_name": "MediSafe",
-  "description": "Voice-Controlled Prescription Management",
+  "name": "MedVerse",
+  "short_name": "MedVerse",
+  "description": "Voice-Controlled Medical Management Platform",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import PrescriptionForm from '../components/PrescriptionForm';
 import PatientHistory from '../components/PatientHistory';
@@ -111,7 +112,7 @@ const Index = () => {
             <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl 2xl:text-7xl font-light text-gray-900 dark:text-gray-100 mb-3 sm:mb-4 lg:mb-6 tracking-tight leading-[1.1] px-1 sm:px-2">
               <span className="block">Voice-Controlled</span>
               <span className="bg-gradient-to-r from-[#cb6ce6] via-[#b84fd9] to-[#9c4bc7] bg-clip-text text-transparent font-medium">
-                Prescription
+                Medical
               </span>
               <span className="block">Management</span>
             </h1>

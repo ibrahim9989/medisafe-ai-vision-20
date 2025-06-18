@@ -35,13 +35,12 @@ const Header = () => {
             
             <div>
               <h1 className="text-xl lg:text-3xl xl:text-4xl font-light text-gray-900 tracking-tight cursor-pointer" onClick={() => navigate('/')}>
-                MediSafe{' '}
                 <span className="bg-gradient-to-r from-[#cb6ce6] to-[#9c4bc7] bg-clip-text text-transparent font-medium">
-                  AI
+                  MedVerse
                 </span>
               </h1>
               <p className="text-xs lg:text-sm font-light text-gray-400 tracking-widest uppercase hidden sm:block">
-                Prescription Intelligence
+                Medical Intelligence Platform
               </p>
             </div>
           </div>
