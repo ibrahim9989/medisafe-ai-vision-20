@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -110,9 +109,8 @@ const Auth = () => {
                 </div>
               </div>
               <h1 className="text-2xl font-light text-gray-900 dark:text-gray-100 tracking-tight">
-                MediSafe{' '}
                 <span className="bg-gradient-to-r from-[#cb6ce6] to-[#9c4bc7] bg-clip-text text-transparent font-medium">
-                  AI
+                  MedVerse
                 </span>
               </h1>
             </Link>
@@ -121,7 +119,7 @@ const Auth = () => {
             </h2>
             <p className="text-gray-600 dark:text-gray-400">
               {isSignUp 
-                ? 'Sign up to start managing prescriptions with AI' 
+                ? 'Sign up to start using the medical intelligence platform' 
                 : 'Sign in to your account'
               }
             </p>
