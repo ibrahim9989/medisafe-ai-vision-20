@@ -54,7 +54,11 @@ INTELLIGENCE RULES:
    - "Add amoxicillin" + dosage/frequency context from the sentence
    - "Give patient 500mg amoxicillin three times a day for a week"
    - "Prescribe medication amoxicillin 500 milligrams TID for 7 days"
-5. For clinical notes, capture underlying conditions, allergies, symptoms, or medical history
+5. For clinical notes, capture underlying conditions, allergies, symptoms, or medical history:
+   - "Patient has hypertension" / "History of high blood pressure" / "BP elevated"
+   - "Allergic to penicillin" / "Penicillin allergy" / "Cannot take penicillin"
+   - "Diabetic patient" / "Has diabetes" / "Blood sugar issues"
+   - "Complains of chest pain" / "Patient reports headache" / "Experiencing fatigue"
 6. Be smart about gender - "male"/"female"/"man"/"woman"/"he"/"she" all indicate gender
 7. Convert spoken numbers to digits: "forty-five" → 45, "one hundred and two" → 102
 
@@ -66,28 +70,22 @@ EXACT FIELD MAPPINGS (USE THESE EXACTLY):
 - temperature: Numeric temperature value (Fahrenheit)
 - bp: Blood pressure as "systolic/diastolic" format (e.g., "120/80")
 - diagnosis: Medical diagnosis or condition
-- notes: Clinical notes, underlying conditions, allergies, medical history
+- notes: Clinical notes, underlying conditions, allergies, medical history, symptoms, complaints
 - followUpDate: Date in YYYY-MM-DD format
 - medications: Array of objects with {name, dosage, frequency, duration}
 
 SMART EXAMPLES:
-Input: "Patient John Smith age 45 has diabetes"
-→ {"action": "update_field", "updates": {"patientName": "John Smith", "age": 45, "diagnosis": "diabetes"}, "response": "Updated patient John Smith, age 45, with diabetes diagnosis"}
+Input: "Patient John Smith age 45 has diabetes and hypertension"
+→ {"action": "update_field", "updates": {"patientName": "John Smith", "age": 45, "diagnosis": "diabetes", "notes": "hypertension"}, "response": "Updated patient John Smith, age 45, with diabetes diagnosis and noted hypertension"}
 
-Input: "Blood pressure one twenty over eighty"
-→ {"action": "update_field", "updates": {"bp": "120/80"}, "response": "Blood pressure set to 120 over 80"}
+Input: "Patient complains of chest pain and has history of heart disease"
+→ {"action": "update_field", "updates": {"notes": "complains of chest pain, history of heart disease"}, "response": "Added clinical notes about chest pain complaint and cardiac history"}
 
-Input: "Give amoxicillin 500mg three times daily for one week"
-→ {"action": "update_field", "updates": {"medications": [{"name": "amoxicillin", "dosage": "500mg", "frequency": "three times daily", "duration": "1 week"}]}, "response": "Added amoxicillin medication"}
+Input: "Allergic to penicillin, has elevated blood pressure"
+→ {"action": "update_field", "updates": {"notes": "allergic to penicillin, elevated blood pressure"}, "response": "Added allergy and blood pressure information to clinical notes"}
 
-Input: "Patient has underlying kidney disease and high blood pressure"
-→ {"action": "update_field", "updates": {"notes": "underlying kidney disease and high blood pressure"}, "response": "Added clinical notes about underlying conditions"}
-
-Input: "Follow up in two weeks" or "See patient next Tuesday"
-→ Calculate appropriate date and return {"action": "update_field", "updates": {"followUpDate": "YYYY-MM-DD"}, "response": "Follow-up scheduled"}
-
-Input: "Female patient" or "The patient is a woman"
-→ {"action": "update_field", "updates": {"gender": "female"}, "response": "Gender set to female"}
+Input: "Patient reports fatigue and dizziness, underlying diabetes"
+→ {"action": "update_field", "updates": {"notes": "reports fatigue and dizziness, underlying diabetes"}, "response": "Added symptoms and underlying condition to clinical notes"}
 
 RESPONSE FORMAT (JSON only, no extra text):
 {

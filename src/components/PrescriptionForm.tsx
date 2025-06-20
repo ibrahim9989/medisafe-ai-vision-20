@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Brain, Search, Zap, Stethoscope } from 'lucide-react';
+import { AlertCircle, Brain, Search, Zap, Stethoscope, Mic } from 'lucide-react';
 import VitalSigns from './VitalSigns';
 import AIAnalysisSection from './AIAnalysisSection';
 import PrescriptionPDFExport from './PrescriptionPDFExport';
+import ConsultationRecorder from './ConsultationRecorder';
 import { toast } from '@/hooks/use-toast';
 import EnhancedMedicationList from './EnhancedMedicationList';
 import EnhancedPrescriptionForm from './EnhancedPrescriptionForm';
@@ -51,8 +52,46 @@ const PrescriptionForm = () => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [currentPrescriptionId, setCurrentPrescriptionId] = useState<string | null>(null);
+  const [showConsultationRecorder, setShowConsultationRecorder] = useState(false);
   
   const { savePrescription, saveAIAnalysis } = usePrescriptions();
+
+  // Handle consultation data from AI recorder
+  const handleConsultationComplete = (consultationData: any) => {
+    console.log('Consultation completed:', consultationData);
+    
+    // Store consultation notes in patient history
+    if (consultationData.prescriptionData) {
+      // Update prescription form with extracted data
+      setPrescriptionData(prev => ({
+        ...prev,
+        ...consultationData.prescriptionData,
+        // Merge clinical notes with existing notes
+        notes: prev.notes ? 
+          `${prev.notes}\n\nConsultation Notes:\n${consultationData.clinicalNotes}` :
+          consultationData.clinicalNotes
+      }));
+    }
+    
+    toast({
+      title: "📋 Consultation Notes Ready",
+      description: "AI has extracted key information and updated the prescription form.",
+    });
+  };
+
+  // Handle prescription data extracted from consultation
+  const handlePrescriptionDataExtracted = (prescriptionData: any) => {
+    console.log('Prescription data extracted:', prescriptionData);
+    
+    // Update form with extracted prescription data
+    setPrescriptionData(prev => ({
+      ...prev,
+      ...prescriptionData,
+      // Ensure medications are properly formatted
+      medications: prescriptionData.medications?.length > 0 ? 
+        prescriptionData.medications : prev.medications
+    }));
+  };
 
   // Enhanced event listeners for complex global voice commands
   useEffect(() => {
@@ -628,6 +667,40 @@ Format the response as JSON with the following structure:
 
   return (
     <div className="space-y-8 lg:space-y-16">
+      {/* AI Consultation Recorder Toggle */}
+      <Card className="border-0 bg-gradient-to-r from-purple-50 to-blue-50 backdrop-blur-xl shadow-lg rounded-xl">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <div className="p-2 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl">
+                <Mic className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h3 className="font-medium text-gray-900">AI Consultation Recorder</h3>
+                <p className="text-sm text-gray-600">Record consultation and auto-fill prescription with AI</p>
+              </div>
+            </div>
+            <Button
+              onClick={() => setShowConsultationRecorder(!showConsultationRecorder)}
+              variant={showConsultationRecorder ? "default" : "outline"}
+              className={showConsultationRecorder ? 
+                "bg-gradient-to-r from-purple-500 to-purple-600" : ""
+              }
+            >
+              {showConsultationRecorder ? "Hide Recorder" : "Show Recorder"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Consultation Recorder */}
+      {showConsultationRecorder && (
+        <ConsultationRecorder
+          onConsultationComplete={handleConsultationComplete}
+          onPrescriptionDataExtracted={handlePrescriptionDataExtracted}
+        />
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-8 lg:space-y-16">
         <EnhancedPrescriptionForm 
           data={prescriptionData} 

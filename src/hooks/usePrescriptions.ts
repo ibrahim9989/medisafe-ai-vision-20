@@ -301,6 +301,55 @@ export const usePrescriptions = () => {
     }
   };
 
+  const saveConsultationNotes = async (patientId: string, consultationData: any) => {
+    if (!profile) throw new Error('Doctor profile not found');
+
+    try {
+      // Create detailed visit record with consultation notes
+      const { data: visit, error: visitError } = await supabase
+        .from('patient_visits')
+        .insert({
+          patient_id: patientId,
+          doctor_id: profile.id,
+          visit_date: new Date().toISOString().split('T')[0],
+          reason_for_visit: consultationData.chiefComplaint || 'Consultation',
+          diagnosis: consultationData.diagnosis || 'General consultation',
+          notes: JSON.stringify({
+            transcript: consultationData.transcript,
+            summary: consultationData.summary,
+            symptoms: consultationData.symptoms,
+            medicalHistory: consultationData.medicalHistory,
+            physicalExam: consultationData.physicalExam,
+            treatmentPlan: consultationData.treatmentPlan,
+            followUp: consultationData.followUp,
+            actionItems: consultationData.actionItems,
+            clinicalNotes: consultationData.clinicalNotes
+          })
+        })
+        .select()
+        .single();
+
+      if (visitError) throw visitError;
+
+      // If prescription data is available, save it
+      if (consultationData.prescriptionData) {
+        const prescription = await savePrescription(consultationData);
+        
+        // Link prescription to visit
+        await supabase
+          .from('patient_visits')
+          .update({ prescription_id: prescription.id })
+          .eq('id', visit.id);
+      }
+
+      await fetchPatientVisits();
+      return visit;
+    } catch (error) {
+      console.error('Error saving consultation notes:', error);
+      throw error;
+    }
+  };
+
   useEffect(() => {
     if (user && profile) {
       fetchPrescriptions();
@@ -317,6 +366,7 @@ export const usePrescriptions = () => {
     savePrescription,
     saveAIAnalysis,
     getAIAnalysis,
+    saveConsultationNotes,
     fetchPrescriptions,
     fetchPatients,
     fetchPatientVisits
