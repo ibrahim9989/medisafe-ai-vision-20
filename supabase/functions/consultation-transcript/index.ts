@@ -1,6 +1,7 @@
 
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,7 +9,9 @@ const corsHeaders = {
 };
 
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
-const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
+const ELEVENLABS_API_KEY = Deno.env.get('ELEVENLABS_API_KEY');
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -22,8 +25,8 @@ serve(async (req) => {
       throw new Error('No audio data provided');
     }
 
-    if (!OPENAI_API_KEY) {
-      throw new Error('OpenAI API key not configured');
+    if (!ELEVENLABS_API_KEY) {
+      throw new Error('ElevenLabs API key not configured');
     }
 
     if (!GEMINI_API_KEY) {
@@ -33,18 +36,18 @@ serve(async (req) => {
     console.log('Processing consultation audio for patient:', patientId);
     console.log('Audio data length:', audioData.length);
 
-    // Step 1: Convert audio to text using OpenAI Whisper
+    // Step 1: Convert audio to text using ElevenLabs
     let transcript = '';
     
     try {
-      console.log('Starting audio transcription...');
+      console.log('Starting audio transcription with ElevenLabs...');
       
       // Validate base64 audio data
       if (!audioData || typeof audioData !== 'string') {
         throw new Error('Invalid audio data format');
       }
 
-      // Convert base64 to binary with better error handling
+      // Convert base64 to binary
       let audioBuffer;
       try {
         const binaryString = atob(audioData);
@@ -58,36 +61,35 @@ serve(async (req) => {
         throw new Error('Failed to decode audio data');
       }
 
-      // Create form data for Whisper API
+      // Create form data for ElevenLabs speech-to-text
       const formData = new FormData();
       const audioBlob = new Blob([audioBuffer], { type: 'audio/webm' });
       formData.append('file', audioBlob, 'consultation.webm');
-      formData.append('model', 'whisper-1');
-      formData.append('language', 'en');
+      formData.append('model_id', 'scribe_v1');
 
-      console.log('Sending request to OpenAI Whisper API...');
+      console.log('Sending request to ElevenLabs speech-to-text API...');
 
-      const whisperResponse = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+      const elevenLabsResponse = await fetch('https://api.elevenlabs.io/v1/speech-to-text', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${OPENAI_API_KEY}`,
+          'xi-api-key': ELEVENLABS_API_KEY,
         },
         body: formData,
       });
 
-      console.log('Whisper API response status:', whisperResponse.status);
+      console.log('ElevenLabs API response status:', elevenLabsResponse.status);
 
-      if (!whisperResponse.ok) {
-        const errorText = await whisperResponse.text();
-        console.error('Whisper API error:', errorText);
-        throw new Error(`Whisper API error (${whisperResponse.status}): ${errorText}`);
+      if (!elevenLabsResponse.ok) {
+        const errorText = await elevenLabsResponse.text();
+        console.error('ElevenLabs API error:', errorText);
+        throw new Error(`ElevenLabs API error (${elevenLabsResponse.status}): ${errorText}`);
       }
 
-      const whisperResult = await whisperResponse.json();
-      transcript = whisperResult.text;
+      const elevenLabsResult = await elevenLabsResponse.json();
+      transcript = elevenLabsResult.text || '';
       
       if (!transcript || transcript.trim().length === 0) {
-        throw new Error('No transcription received from Whisper API');
+        throw new Error('No transcription received from ElevenLabs API');
       }
 
       console.log('Transcription completed successfully. Length:', transcript.length);
@@ -203,6 +205,7 @@ RETURN RESPONSE AS JSON:
   }
 }`;
 
+    let analysisData;
     try {
       const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
         method: 'POST',
@@ -240,7 +243,6 @@ RETURN RESPONSE AS JSON:
       console.log('Gemini analysis received, length:', analysisText.length);
       
       // Extract JSON from Gemini response
-      let analysisData;
       try {
         const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
@@ -255,18 +257,53 @@ RETURN RESPONSE AS JSON:
 
       console.log('Consultation analysis completed successfully');
 
-      return new Response(JSON.stringify({
-        success: true,
-        data: analysisData,
-        transcript: transcript
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-
     } catch (error) {
       console.error('Gemini analysis error:', error);
       throw new Error(`Failed to analyze consultation: ${error.message}`);
     }
+
+    // Step 3: Store consultation data in Supabase
+    if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+      try {
+        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+        
+        // Store consultation transcript and analysis
+        const { data: consultationRecord, error: consultationError } = await supabase
+          .from('consultation_transcripts')
+          .insert({
+            patient_id: patientId,
+            doctor_id: doctorId,
+            transcript: transcript,
+            analysis_data: analysisData,
+            summary: analysisData.summary,
+            chief_complaint: analysisData.chiefComplaint,
+            diagnosis: analysisData.diagnosis,
+            action_items: analysisData.actionItems,
+            follow_up_instructions: analysisData.followUp,
+            created_at: new Date().toISOString()
+          })
+          .select()
+          .single();
+
+        if (consultationError) {
+          console.error('Error storing consultation:', consultationError);
+          // Don't throw here - we still want to return the analysis even if storage fails
+        } else {
+          console.log('Consultation stored successfully:', consultationRecord.id);
+        }
+      } catch (storageError) {
+        console.error('Storage error:', storageError);
+        // Continue execution - storage failure shouldn't block the response
+      }
+    }
+
+    return new Response(JSON.stringify({
+      success: true,
+      data: analysisData,
+      transcript: transcript
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
 
   } catch (error) {
     console.error('Consultation transcript error:', error);
