@@ -5,20 +5,32 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, Search, Calendar, Download } from 'lucide-react';
+import { Plus, Trash2, Search, Calendar, Download, Mic, Brain, Zap, Stethoscope, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useDoctorProfile } from '@/hooks/useDoctorProfile';
+import { usePrescriptions } from '@/hooks/usePrescriptions';
 import { useNavigate } from 'react-router-dom';
-import { PatientSearch } from './PatientSearch';
-import { VitalSigns } from './VitalSigns';
-import { MedicationList } from './MedicationList';
-import { EnhancedMedicationList } from './EnhancedMedicationList';
-import { AIAnalysis } from './AIAnalysis';
-import { PDFExport } from './PDFExport';
-import { MobileFriendlyPDFExport } from './MobileFriendlyPDFExport';
-import { VoiceAssistant } from './VoiceAssistant';
+import PatientSearch from './PatientSearch';
+import VitalSigns from './VitalSigns';
+import MedicationList from './MedicationList';
+import EnhancedMedicationList from './EnhancedMedicationList';
+import AIAnalysis from './AIAnalysis';
+import PDFExport from './PDFExport';
+import MobileFriendlyPDFExport from './MobileFriendlyPDFExport';
+import VoiceAssistant from './VoiceAssistant';
 import { ConsultationRecorder } from './ConsultationRecorder';
+import EnhancedPrescriptionForm from './EnhancedPrescriptionForm';
+import PrescriptionPDFExport from './PrescriptionPDFExport';
+import { tavilyService } from '@/services/tavilyService';
+import { 
+  convertToDateInputFormat, 
+  isFutureDate 
+} from '@/utils/dateUtils';
+import { 
+  validateFrequency, 
+  processMedicationsFromVoice 
+} from '@/utils/medicationUtils';
 
 export interface PrescriptionData {
   doctorName: string;
@@ -79,10 +91,7 @@ const PrescriptionForm = () => {
       }));
     }
     
-    toast({
-      title: "📋 Consultation Notes Ready",
-      description: "AI has extracted key information and updated the prescription form.",
-    });
+    toast.success("📋 Consultation Notes Ready - AI has extracted key information and updated the prescription form.");
   };
 
   // Handle prescription data extracted from consultation
@@ -244,10 +253,7 @@ const PrescriptionForm = () => {
         if (prescription.diagnosis) filledFields.push('diagnosis');
         if (prescription.notes) filledFields.push('clinical notes');
         
-        toast({
-          title: "✅ Complex Voice Command Processed",
-          description: `Updated: ${filledFields.join(', ')}${clearForm ? ' (form cleared first)' : ''}`,
-        });
+        toast.success(`✅ Complex Voice Command Processed - Updated: ${filledFields.join(', ')}${clearForm ? ' (form cleared first)' : ''}`);
       }
       
       // Handle search criteria for patient lookup
@@ -280,10 +286,7 @@ const PrescriptionForm = () => {
         notes: '',
         followUpDate: ''
       });
-      toast({
-        title: "✅ Form Cleared",
-        description: "All prescription data has been cleared",
-      });
+      toast.success("✅ Form Cleared - All prescription data has been cleared");
     };
 
     const handleVoiceDownloadPdf = () => {
@@ -294,11 +297,7 @@ const PrescriptionForm = () => {
         });
         window.dispatchEvent(downloadEvent);
       } else {
-        toast({
-          title: "Cannot Download PDF",
-          description: "Please fill in patient and doctor information first",
-          variant: "destructive"
-        });
+        toast.error("Cannot Download PDF - Please fill in patient and doctor information first");
       }
     };
 
@@ -616,20 +615,12 @@ Format the response as JSON with the following structure:
     e.preventDefault();
     
     if (!prescriptionData.patientName || !prescriptionData.doctorName) {
-      toast({
-        title: "Validation Error",
-        description: "Please fill in required patient and doctor information.",
-        variant: "destructive"
-      });
+      toast.error("Validation Error - Please fill in required patient and doctor information.");
       return;
     }
 
     if (prescriptionData.medications.some(med => !med.name)) {
-      toast({
-        title: "Validation Error", 
-        description: "Please specify all medication names.",
-        variant: "destructive"
-      });
+      toast.error("Validation Error - Please specify all medication names.");
       return;
     }
 
@@ -641,10 +632,7 @@ Format the response as JSON with the following structure:
       const savedPrescription = await savePrescription(prescriptionData);
       setCurrentPrescriptionId(savedPrescription.id);
       
-      toast({
-        title: "Prescription Saved",
-        description: "Prescription has been saved successfully.",
-      });
+      toast.success("Prescription Saved - Prescription has been saved successfully.");
 
       // Then perform AI analysis
       console.log('Starting AI analysis...');
@@ -656,18 +644,11 @@ Format the response as JSON with the following structure:
       
       setAnalysis(analysisResult);
       setIsAnalyzing(false);
-      toast({
-        title: "Analysis Complete",
-        description: "AI analysis completed and saved successfully.",
-      });
+      toast.success("Analysis Complete - AI analysis completed and saved successfully.");
     } catch (error) {
       console.error('Analysis error:', error);
       setIsAnalyzing(false);
-      toast({
-        title: "Analysis Failed",
-        description: "Unable to complete AI analysis. Please try again.",
-        variant: "destructive"
-      });
+      toast.error("Analysis Failed - Unable to complete AI analysis. Please try again.");
     }
   };
 
@@ -702,8 +683,7 @@ Format the response as JSON with the following structure:
       {/* Consultation Recorder */}
       {showConsultationRecorder && (
         <ConsultationRecorder
-          onConsultationComplete={handleConsultationComplete}
-          onPrescriptionDataExtracted={handlePrescriptionDataExtracted}
+          onTranscriptComplete={handleConsultationComplete}
         />
       )}
 
