@@ -1,61 +1,35 @@
 
-import React, { useState, useRef, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { 
-  Mic, 
-  MicOff, 
-  Square, 
-  FileText, 
-  User, 
-  Clock,
-  Brain,
-  Download,
-  Save
-} from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Mic, MicOff, FileText, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
-import { usePrescriptions } from '@/hooks/usePrescriptions';
-
-interface ConsultationData {
-  transcript: string;
-  summary: string;
-  patientInfo: any;
-  chiefComplaint: string;
-  symptoms: string[];
-  medicalHistory: any;
-  physicalExam: any;
-  diagnosis: string;
-  treatmentPlan: any;
-  followUp: any;
-  actionItems: any;
-  clinicalNotes: string;
-  prescriptionData: any;
-}
+import { toast } from 'sonner';
 
 interface ConsultationRecorderProps {
-  onConsultationComplete?: (data: ConsultationData) => void;
-  onPrescriptionDataExtracted?: (prescriptionData: any) => void;
+  patientId?: string;
+  onTranscriptComplete?: (data: any) => void;
 }
 
-const ConsultationRecorder = ({ 
-  onConsultationComplete, 
-  onPrescriptionDataExtracted 
-}: ConsultationRecorderProps) => {
+export const ConsultationRecorder: React.FC<ConsultationRecorderProps> = ({
+  patientId,
+  onTranscriptComplete
+}) => {
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [consultationData, setConsultationData] = useState<ConsultationData | null>(null);
-  const [recordingDuration, setRecordingDuration] = useState(0);
-  
+  const [processingStatus, setProcessingStatus] = useState('');
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
-  const { savePrescription } = usePrescriptions();
 
-  const startRecording = useCallback(async () => {
+  const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          sampleRate: 44100
+        } 
+      });
       
       const mediaRecorder = new MediaRecorder(stream, {
         mimeType: 'audio/webm;codecs=opus'
@@ -70,333 +44,190 @@ const ConsultationRecorder = ({
         }
       };
       
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { 
-          type: 'audio/webm' 
-        });
-        await processConsultation(audioBlob);
-        stream.getTracks().forEach(track => track.stop());
-      };
-      
-      mediaRecorder.start(1000);
+      mediaRecorder.start(1000); // Collect data every second
       setIsRecording(true);
-      setRecordingDuration(0);
-      
-      // Start timer
-      timerRef.current = setInterval(() => {
-        setRecordingDuration(prev => prev + 1);
-      }, 1000);
-      
-      toast({
-        title: "🎤 Recording Started",
-        description: "Consultation recording is now active. Speak naturally during the consultation.",
-      });
+      toast.success('Recording started');
       
     } catch (error) {
       console.error('Error starting recording:', error);
-      toast({
-        title: "Recording Error",
-        description: "Failed to start recording. Please check microphone permissions.",
-        variant: "destructive"
-      });
+      toast.error('Failed to start recording. Please check microphone permissions.');
     }
-  }, []);
+  };
 
-  const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current && isRecording) {
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
       mediaRecorderRef.current.stop();
+      mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
       setIsRecording(false);
-      
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-      
-      toast({
-        title: "🛑 Recording Stopped",
-        description: "Processing consultation notes with AI...",
-      });
+      toast.success('Recording stopped');
     }
-  }, [isRecording]);
+  };
 
-  const processConsultation = async (audioBlob: Blob) => {
+  const processRecording = async () => {
+    if (audioChunksRef.current.length === 0) {
+      toast.error('No audio recorded');
+      return;
+    }
+
     setIsProcessing(true);
-    
+    setProcessingStatus('Preparing audio...');
+
     try {
-      // Convert audio to base64
-      const reader = new FileReader();
+      // Combine audio chunks
+      const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+      console.log('Audio blob size:', audioBlob.size);
+
+      if (audioBlob.size === 0) {
+        throw new Error('No audio data recorded');
+      }
+
+      // Convert to base64
+      setProcessingStatus('Converting audio...');
       const base64Audio = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
         reader.onload = () => {
           const result = reader.result as string;
+          // Remove data URL prefix
           const base64 = result.split(',')[1];
           resolve(base64);
         };
-        reader.onerror = () => reject(new Error('Failed to convert audio'));
+        reader.onerror = reject;
         reader.readAsDataURL(audioBlob);
       });
 
-      // Process with AI
-      const { data, error } = await supabase.functions.invoke('consultation-transcript', {
-        body: { 
+      console.log('Base64 audio length:', base64Audio.length);
+
+      // Get doctor profile for doctor_id
+      setProcessingStatus('Getting doctor information...');
+      const { data: doctorProfile, error: doctorError } = await supabase
+        .from('doctor_profiles')
+        .select('id')
+        .eq('user_id', (await supabase.auth.getUser()).data.user?.id)
+        .single();
+
+      if (doctorError || !doctorProfile) {
+        throw new Error('Doctor profile not found. Please complete your profile setup.');
+      }
+
+      // Call the consultation transcript function
+      setProcessingStatus('Transcribing audio with AI...');
+      console.log('Calling consultation-transcript function...');
+      
+      const { data: result, error } = await supabase.functions.invoke('consultation-transcript', {
+        body: {
           audioData: base64Audio,
-          patientId: null, // Will be filled when patient is selected
-          doctorId: null   // Will be filled from user context
+          patientId: patientId,
+          doctorId: doctorProfile.id
         }
       });
+
+      console.log('Function result:', result);
+      console.log('Function error:', error);
 
       if (error) {
-        throw new Error(error.message);
+        console.error('Function error details:', error);
+        throw new Error(error.message || 'Failed to process consultation');
       }
 
-      if (data.success) {
-        setConsultationData(data.data);
-        onConsultationComplete?.(data.data);
-        
-        // Extract prescription data if available
-        if (data.data.prescriptionData) {
-          onPrescriptionDataExtracted?.(data.data.prescriptionData);
-        }
-        
-        toast({
-          title: "✅ Consultation Analysis Complete",
-          description: "AI has processed the consultation and extracted key information.",
-        });
-      } else {
-        throw new Error(data.error || 'Processing failed');
+      if (!result?.success) {
+        console.error('Processing failed:', result);
+        throw new Error(result?.error || 'Failed to process consultation');
       }
+
+      setProcessingStatus('Analysis complete!');
+      toast.success('Consultation processed successfully!');
+
+      // Call the callback with the processed data
+      if (onTranscriptComplete && result.data) {
+        onTranscriptComplete(result.data);
+      }
+
+      // Clear the audio chunks
+      audioChunksRef.current = [];
 
     } catch (error) {
-      console.error('Error processing consultation:', error);
-      toast({
-        title: "Processing Error",
-        description: "Failed to process consultation. Please try again.",
-        variant: "destructive"
-      });
+      console.error('Error processing recording:', error);
+      toast.error(`Processing failed: ${error.message}`);
     } finally {
       setIsProcessing(false);
-    }
-  };
-
-  const formatDuration = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  const savePrescriptionFromConsultation = async () => {
-    if (!consultationData?.prescriptionData) return;
-    
-    try {
-      await savePrescription(consultationData.prescriptionData);
-      toast({
-        title: "✅ Prescription Saved",
-        description: "Prescription has been created from consultation notes.",
-      });
-    } catch (error) {
-      console.error('Error saving prescription:', error);
-      toast({
-        title: "Save Error",
-        description: "Failed to save prescription. Please try again.",
-        variant: "destructive"
-      });
+      setProcessingStatus('');
     }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Recording Controls */}
-      <Card className="border-0 bg-white/40 backdrop-blur-xl shadow-lg rounded-xl">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-3">
-            <div className="p-2 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl">
-              <Brain className="h-5 w-5 text-white" />
-            </div>
-            <span className="text-xl font-medium">AI Consultation Recorder</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              {!isRecording ? (
-                <Button
-                  onClick={startRecording}
-                  disabled={isProcessing}
-                  className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
-                >
-                  <Mic className="h-4 w-4 mr-2" />
-                  Start Recording
-                </Button>
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <FileText className="h-5 w-5" />
+          AI-Powered Consultation Notes
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="text-sm text-gray-600">
+          Start recording to automatically transcribe and analyze the consultation. 
+          The AI will extract key information, symptoms, diagnosis, and create structured notes.
+        </div>
+        
+        <div className="flex gap-3">
+          {!isRecording ? (
+            <Button 
+              onClick={startRecording} 
+              className="flex items-center gap-2"
+              disabled={isProcessing}
+            >
+              <Mic className="h-4 w-4" />
+              Start Recording
+            </Button>
+          ) : (
+            <Button 
+              onClick={stopRecording} 
+              variant="destructive" 
+              className="flex items-center gap-2"
+            >
+              <MicOff className="h-4 w-4" />
+              Stop Recording
+            </Button>
+          )}
+
+          {audioChunksRef.current.length > 0 && !isRecording && (
+            <Button 
+              onClick={processRecording} 
+              disabled={isProcessing}
+              className="flex items-center gap-2"
+            >
+              {isProcessing ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Processing...
+                </>
               ) : (
-                <Button
-                  onClick={stopRecording}
-                  className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700"
-                >
-                  <Square className="h-4 w-4 mr-2" />
-                  Stop Recording
-                </Button>
+                <>
+                  <FileText className="h-4 w-4" />
+                  Process & Analyze
+                </>
               )}
-              
-              {isProcessing && (
-                <div className="flex items-center space-x-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-600"></div>
-                  <span className="text-sm text-gray-600">Processing with AI...</span>
-                </div>
-              )}
+            </Button>
+          )}
+        </div>
+
+        {isProcessing && (
+          <div className="bg-blue-50 p-3 rounded-lg">
+            <div className="flex items-center gap-2 text-blue-700">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="text-sm font-medium">{processingStatus}</span>
             </div>
-            
-            {isRecording && (
-              <div className="flex items-center space-x-2">
-                <div className="h-3 w-3 bg-red-500 rounded-full animate-pulse"></div>
-                <Badge variant="secondary">
-                  <Clock className="h-3 w-3 mr-1" />
-                  {formatDuration(recordingDuration)}
-                </Badge>
-              </div>
-            )}
           </div>
-          
-          <p className="text-sm text-gray-600">
-            Click "Start Recording" to begin AI-powered consultation notes. 
-            The AI will transcribe the conversation and extract medical information automatically.
-          </p>
-        </CardContent>
-      </Card>
+        )}
 
-      {/* Consultation Results */}
-      {consultationData && (
-        <Card className="border-0 bg-white/40 backdrop-blur-xl shadow-lg rounded-xl">
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <FileText className="h-5 w-5 text-blue-600" />
-                <span>Consultation Summary</span>
-              </div>
-              <div className="flex space-x-2">
-                {consultationData.prescriptionData && (
-                  <Button
-                    onClick={savePrescriptionFromConsultation}
-                    size="sm"
-                    className="bg-gradient-to-r from-blue-500 to-blue-600"
-                  >
-                    <Save className="h-4 w-4 mr-1" />
-                    Save Prescription
-                  </Button>
-                )}
-              </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Summary */}
-            <div>
-              <h4 className="font-medium text-gray-900 mb-2">Summary</h4>
-              <p className="text-gray-700 bg-white/60 p-3 rounded-lg">
-                {consultationData.summary}
-              </p>
+        {isRecording && (
+          <div className="bg-red-50 p-3 rounded-lg">
+            <div className="flex items-center gap-2 text-red-700">
+              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+              <span className="text-sm font-medium">Recording in progress...</span>
             </div>
-
-            {/* Patient Info */}
-            {consultationData.patientInfo && (
-              <div>
-                <h4 className="font-medium text-gray-900 mb-2 flex items-center">
-                  <User className="h-4 w-4 mr-1" />
-                  Patient Information
-                </h4>
-                <div className="bg-white/60 p-3 rounded-lg space-y-1">
-                  {consultationData.patientInfo.name && (
-                    <p><span className="font-medium">Name:</span> {consultationData.patientInfo.name}</p>
-                  )}
-                  {consultationData.patientInfo.age && (
-                    <p><span className="font-medium">Age:</span> {consultationData.patientInfo.age}</p>
-                  )}
-                  {consultationData.patientInfo.gender && (
-                    <p><span className="font-medium">Gender:</span> {consultationData.patientInfo.gender}</p>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Chief Complaint & Symptoms */}
-            {consultationData.chiefComplaint && (
-              <div>
-                <h4 className="font-medium text-gray-900 mb-2">Chief Complaint</h4>
-                <p className="text-gray-700 bg-white/60 p-3 rounded-lg">
-                  {consultationData.chiefComplaint}
-                </p>
-              </div>
-            )}
-
-            {/* Diagnosis */}
-            {consultationData.diagnosis && (
-              <div>
-                <h4 className="font-medium text-gray-900 mb-2">Diagnosis</h4>
-                <p className="text-gray-700 bg-white/60 p-3 rounded-lg">
-                  {consultationData.diagnosis}
-                </p>
-              </div>
-            )}
-
-            {/* Treatment Plan */}
-            {consultationData.treatmentPlan?.medications?.length > 0 && (
-              <div>
-                <h4 className="font-medium text-gray-900 mb-2">Medications</h4>
-                <div className="space-y-2">
-                  {consultationData.treatmentPlan.medications.map((med: any, index: number) => (
-                    <div key={index} className="bg-white/60 p-3 rounded-lg">
-                      <span className="font-medium">{med.name}</span> - 
-                      {med.dosage} {med.frequency} for {med.duration}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Action Items */}
-            {(consultationData.actionItems?.doctor?.length > 0 || consultationData.actionItems?.patient?.length > 0) && (
-              <div>
-                <h4 className="font-medium text-gray-900 mb-2">Action Items</h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {consultationData.actionItems.doctor?.length > 0 && (
-                    <div>
-                      <h5 className="text-sm font-medium text-blue-600 mb-2">For Doctor</h5>
-                      <ul className="space-y-1">
-                        {consultationData.actionItems.doctor.map((item: string, index: number) => (
-                          <li key={index} className="text-sm text-gray-700 bg-blue-50 p-2 rounded">
-                            • {item}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  {consultationData.actionItems.patient?.length > 0 && (
-                    <div>
-                      <h5 className="text-sm font-medium text-green-600 mb-2">For Patient</h5>
-                      <ul className="space-y-1">
-                        {consultationData.actionItems.patient.map((item: string, index: number) => (
-                          <li key={index} className="text-sm text-gray-700 bg-green-50 p-2 rounded">
-                            • {item}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Full Transcript */}
-            <div>
-              <h4 className="font-medium text-gray-900 mb-2">Full Transcript</h4>
-              <div className="bg-white/60 p-3 rounded-lg max-h-48 overflow-y-auto">
-                <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                  {consultationData.transcript}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-    </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
-
-export default ConsultationRecorder;

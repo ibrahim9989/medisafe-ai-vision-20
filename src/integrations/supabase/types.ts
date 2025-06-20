@@ -56,6 +56,66 @@ export type Database = {
           },
         ]
       }
+      consultation_transcripts: {
+        Row: {
+          action_items: Json | null
+          analysis_data: Json | null
+          chief_complaint: string | null
+          created_at: string
+          diagnosis: string | null
+          doctor_id: string | null
+          follow_up_instructions: Json | null
+          id: string
+          patient_id: string | null
+          summary: string | null
+          transcript: string
+          updated_at: string
+        }
+        Insert: {
+          action_items?: Json | null
+          analysis_data?: Json | null
+          chief_complaint?: string | null
+          created_at?: string
+          diagnosis?: string | null
+          doctor_id?: string | null
+          follow_up_instructions?: Json | null
+          id?: string
+          patient_id?: string | null
+          summary?: string | null
+          transcript: string
+          updated_at?: string
+        }
+        Update: {
+          action_items?: Json | null
+          analysis_data?: Json | null
+          chief_complaint?: string | null
+          created_at?: string
+          diagnosis?: string | null
+          doctor_id?: string | null
+          follow_up_instructions?: Json | null
+          id?: string
+          patient_id?: string | null
+          summary?: string | null
+          transcript?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consultation_transcripts_doctor_id_fkey"
+            columns: ["doctor_id"]
+            isOneToOne: false
+            referencedRelation: "doctor_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consultation_transcripts_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       doctor_profiles: {
         Row: {
           age: number | null

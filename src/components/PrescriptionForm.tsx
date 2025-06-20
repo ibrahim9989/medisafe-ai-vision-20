@@ -1,18 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, Brain, Search, Zap, Stethoscope, Mic } from 'lucide-react';
-import VitalSigns from './VitalSigns';
-import AIAnalysisSection from './AIAnalysisSection';
-import PrescriptionPDFExport from './PrescriptionPDFExport';
-import ConsultationRecorder from './ConsultationRecorder';
-import { toast } from '@/hooks/use-toast';
-import EnhancedMedicationList from './EnhancedMedicationList';
-import EnhancedPrescriptionForm from './EnhancedPrescriptionForm';
-import { tavilyService } from '../services/tavilyService';
-import { usePrescriptions } from '@/hooks/usePrescriptions';
-import { convertToDateInputFormat, isFutureDate } from '@/utils/dateUtils';
-import { processMedicationsFromVoice, validateFrequency } from '@/utils/medicationUtils';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Plus, Trash2, Search, Calendar, Download } from 'lucide-react';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { useDoctorProfile } from '@/hooks/useDoctorProfile';
+import { useNavigate } from 'react-router-dom';
+import { PatientSearch } from './PatientSearch';
+import { VitalSigns } from './VitalSigns';
+import { MedicationList } from './MedicationList';
+import { EnhancedMedicationList } from './EnhancedMedicationList';
+import { AIAnalysis } from './AIAnalysis';
+import { PDFExport } from './PDFExport';
+import { MobileFriendlyPDFExport } from './MobileFriendlyPDFExport';
+import { VoiceAssistant } from './VoiceAssistant';
+import { ConsultationRecorder } from './ConsultationRecorder';
 
 export interface PrescriptionData {
   doctorName: string;
@@ -858,7 +864,7 @@ Format the response as JSON with the following structure:
       {/* AI Analysis Section - Separated from prescription */}
       {analysis && (
         <div className="border-t border-gray-200/50 pt-8 lg:pt-16">
-          <AIAnalysisSection analysis={analysis} prescriptionData={prescriptionData} />
+          <AIAnalysis analysis={analysis} prescriptionData={prescriptionData} />
         </div>
       )}
     </div>
