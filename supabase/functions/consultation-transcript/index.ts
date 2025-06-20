@@ -8,7 +8,7 @@ const corsHeaders = {
 };
 
 const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
-const ELEVENLABS_API_KEY = Deno.env.get('ELEVENLABS_API_KEY');
+const OPENAI_API_KEY = Deno.env.get('OPENAI_API_KEY');
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -22,41 +22,84 @@ serve(async (req) => {
       throw new Error('No audio data provided');
     }
 
-    console.log('Processing consultation audio for patient:', patientId);
+    if (!OPENAI_API_KEY) {
+      throw new Error('OpenAI API key not configured');
+    }
 
-    // Step 1: Convert audio to text using ElevenLabs or OpenAI Whisper
+    if (!GEMINI_API_KEY) {
+      throw new Error('Gemini API key not configured');
+    }
+
+    console.log('Processing consultation audio for patient:', patientId);
+    console.log('Audio data length:', audioData.length);
+
+    // Step 1: Convert audio to text using OpenAI Whisper
     let transcript = '';
     
     try {
-      // Using OpenAI Whisper for transcription
-      const audioBuffer = Uint8Array.from(atob(audioData), c => c.charCodeAt(0));
+      console.log('Starting audio transcription...');
+      
+      // Validate base64 audio data
+      if (!audioData || typeof audioData !== 'string') {
+        throw new Error('Invalid audio data format');
+      }
+
+      // Convert base64 to binary with better error handling
+      let audioBuffer;
+      try {
+        const binaryString = atob(audioData);
+        audioBuffer = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          audioBuffer[i] = binaryString.charCodeAt(i);
+        }
+        console.log('Audio buffer created, size:', audioBuffer.length);
+      } catch (decodeError) {
+        console.error('Base64 decode error:', decodeError);
+        throw new Error('Failed to decode audio data');
+      }
+
+      // Create form data for Whisper API
       const formData = new FormData();
       const audioBlob = new Blob([audioBuffer], { type: 'audio/webm' });
       formData.append('file', audioBlob, 'consultation.webm');
       formData.append('model', 'whisper-1');
       formData.append('language', 'en');
 
+      console.log('Sending request to OpenAI Whisper API...');
+
       const whisperResponse = await fetch('https://api.openai.com/v1/audio/transcriptions', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+          'Authorization': `Bearer ${OPENAI_API_KEY}`,
         },
         body: formData,
       });
 
+      console.log('Whisper API response status:', whisperResponse.status);
+
       if (!whisperResponse.ok) {
-        throw new Error('Transcription failed');
+        const errorText = await whisperResponse.text();
+        console.error('Whisper API error:', errorText);
+        throw new Error(`Whisper API error (${whisperResponse.status}): ${errorText}`);
       }
 
       const whisperResult = await whisperResponse.json();
       transcript = whisperResult.text;
-      console.log('Transcription completed:', transcript.substring(0, 200) + '...');
+      
+      if (!transcript || transcript.trim().length === 0) {
+        throw new Error('No transcription received from Whisper API');
+      }
+
+      console.log('Transcription completed successfully. Length:', transcript.length);
+      console.log('Transcript preview:', transcript.substring(0, 200) + '...');
     } catch (error) {
       console.error('Transcription error:', error);
-      throw new Error('Failed to transcribe audio');
+      throw new Error(`Failed to transcribe audio: ${error.message}`);
     }
 
     // Step 2: Process transcript with Gemini AI to extract medical information
+    console.log('Starting AI analysis with Gemini...');
+
     const analysisPrompt = `You are an expert medical AI assistant analyzing a doctor-patient consultation transcript. Extract structured medical information and create comprehensive consultation notes.
 
 CONSULTATION TRANSCRIPT:
@@ -160,60 +203,77 @@ RETURN RESPONSE AS JSON:
   }
 }`;
 
-    const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{
-            text: analysisPrompt
-          }]
-        }],
-        generationConfig: {
-          temperature: 0.1,
-          maxOutputTokens: 4096,
-        }
-      }),
-    });
-
-    if (!geminiResponse.ok) {
-      throw new Error('Failed to analyze transcript');
-    }
-
-    const geminiResult = await geminiResponse.json();
-    const analysisText = geminiResult.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    
-    // Extract JSON from Gemini response
-    let analysisData;
     try {
-      const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        analysisData = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error('No valid JSON in analysis response');
+      const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: analysisPrompt
+            }]
+          }],
+          generationConfig: {
+            temperature: 0.1,
+            maxOutputTokens: 4096,
+          }
+        }),
+      });
+
+      console.log('Gemini API response status:', geminiResponse.status);
+
+      if (!geminiResponse.ok) {
+        const errorText = await geminiResponse.text();
+        console.error('Gemini API error:', errorText);
+        throw new Error(`Gemini API error (${geminiResponse.status}): ${errorText}`);
       }
-    } catch (parseError) {
-      console.error('Failed to parse analysis JSON:', analysisText);
-      throw new Error('Failed to parse consultation analysis');
+
+      const geminiResult = await geminiResponse.json();
+      const analysisText = geminiResult.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      
+      if (!analysisText) {
+        throw new Error('No analysis received from Gemini API');
+      }
+
+      console.log('Gemini analysis received, length:', analysisText.length);
+      
+      // Extract JSON from Gemini response
+      let analysisData;
+      try {
+        const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          analysisData = JSON.parse(jsonMatch[0]);
+        } else {
+          throw new Error('No valid JSON found in analysis response');
+        }
+      } catch (parseError) {
+        console.error('Failed to parse analysis JSON:', analysisText);
+        throw new Error('Failed to parse consultation analysis');
+      }
+
+      console.log('Consultation analysis completed successfully');
+
+      return new Response(JSON.stringify({
+        success: true,
+        data: analysisData,
+        transcript: transcript
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+
+    } catch (error) {
+      console.error('Gemini analysis error:', error);
+      throw new Error(`Failed to analyze consultation: ${error.message}`);
     }
-
-    console.log('Consultation analysis completed successfully');
-
-    return new Response(JSON.stringify({
-      success: true,
-      data: analysisData,
-      transcript: transcript
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
 
   } catch (error) {
     console.error('Consultation transcript error:', error);
     return new Response(JSON.stringify({
       success: false,
-      error: error.message
+      error: error.message,
+      details: error.toString()
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
