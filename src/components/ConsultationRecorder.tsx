@@ -146,7 +146,7 @@ const ConsultationRecorder: React.FC<ConsultationRecorderProps> = ({
       }
 
       if (onConsultationComplete) {
-        console.log('📤 Calling onConsultationComplete...');
+        console.log('📤 Calling onConsultationComplete with data:', consultationData);
         onConsultationComplete(consultationData);
       }
 

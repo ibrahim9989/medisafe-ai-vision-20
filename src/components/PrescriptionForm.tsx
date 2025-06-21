@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
@@ -135,11 +134,29 @@ const PrescriptionForm = () => {
   };
 
   const handleLabReportsChange = async (newData: PrescriptionData) => {
-    setData(newData);
+    // Store current form data to prevent clearing
+    const currentFormData = { ...data };
     
+    // Only update lab reports and keep other data
+    const updatedData = {
+      ...currentFormData,
+      labReports: newData.labReports
+    };
+    
+    setData(updatedData);
+    
+    // Analyze new lab reports if they were added
     if (newData.labReports.length > 0 && newData.labReports.length !== data.labReports.length) {
+      console.log('🔬 Analyzing lab reports...');
       const analysis = await analyzeLabReports(newData.labReports);
-      setData(prev => ({ ...prev, labAnalysis: analysis }));
+      
+      // Update with analysis while preserving all other form data
+      setData(prev => ({ 
+        ...prev, 
+        labAnalysis: analysis 
+      }));
+      
+      console.log('✅ Lab analysis completed and saved');
     }
   };
 
@@ -182,13 +199,13 @@ const PrescriptionForm = () => {
         doctorName: profile.full_name || data.doctorName
       };
 
-      console.log('Saving prescription data:', prescriptionData);
+      console.log('💾 Saving prescription with lab analysis:', prescriptionData.labAnalysis?.length || 0, 'characters');
       
       await savePrescription(prescriptionData);
       
       toast({
         title: "Success",
-        description: "Prescription saved successfully!",
+        description: "Prescription saved successfully with lab analysis!",
       });
 
       // Reset form
@@ -214,7 +231,7 @@ const PrescriptionForm = () => {
       
       setShowAIAnalysis(false);
     } catch (error) {
-      console.error('Error saving prescription:', error);
+      console.error('💥 Error saving prescription:', error);
       toast({
         title: "Error",
         description: "Failed to save prescription. Please try again.",
@@ -226,34 +243,61 @@ const PrescriptionForm = () => {
   };
 
   const handleConsultationComplete = (consultationData: any) => {
-    console.log('🎯 Consultation data received in PrescriptionForm:', consultationData);
+    console.log('🎯 Voice consultation data received:', consultationData);
     
-    // Force update the form with new data
-    const updatedData = {
-      ...data,
-      consultationNotes: consultationData.transcript || '',
-      diagnosis: consultationData.diagnosis || data.diagnosis,
-      notes: consultationData.summary || data.notes,
-      patientName: consultationData.analysisData?.patientInfo?.name || data.patientName
-    };
-
-    // Extract medications if present
-    if (consultationData.analysisData?.treatmentPlan?.medications?.length > 0) {
-      const newMedications = consultationData.analysisData.treatmentPlan.medications.map((med: any) => ({
-        name: med.name || '',
-        dosage: med.dosage || '',
-        frequency: med.frequency || '',
-        duration: med.duration || ''
-      }));
-      updatedData.medications = [...newMedications, ...data.medications.slice(newMedications.length)];
-    }
-
-    console.log('🔄 Updating form with data:', updatedData);
-    setData(updatedData);
+    // Safely extract patient data from analysis
+    const patientData = consultationData.analysisData?.patientInfo || {};
+    const treatmentData = consultationData.analysisData?.treatmentPlan || {};
+    const vitalSigns = consultationData.analysisData?.physicalExam?.vitalSigns || {};
     
-    // Also extract additional info
-    const extractedData = extractInfoFromConsultationNotes(consultationData.transcript || '');
-    setData(prev => ({ ...prev, ...extractedData }));
+    console.log('👤 Patient data extracted:', patientData);
+    console.log('💊 Treatment data extracted:', treatmentData);
+    console.log('🩺 Vital signs extracted:', vitalSigns);
+    
+    // Update form with voice consultation data while preserving existing data
+    setData(prevData => {
+      const updatedData = {
+        ...prevData,
+        // Update consultation notes
+        consultationNotes: consultationData.transcript || prevData.consultationNotes,
+        
+        // Update patient info if available
+        patientName: patientData.name || prevData.patientName,
+        age: patientData.age || prevData.age,
+        gender: patientData.gender || prevData.gender,
+        contact: patientData.contact || prevData.contact,
+        
+        // Update clinical data
+        diagnosis: consultationData.diagnosis || prevData.diagnosis,
+        notes: consultationData.summary || prevData.notes,
+        
+        // Update vital signs if available
+        temperature: vitalSigns.temperature || prevData.temperature,
+        bp: vitalSigns.bloodPressure || prevData.bp,
+      };
+
+      // Update medications if present in voice data
+      if (treatmentData.medications && treatmentData.medications.length > 0) {
+        console.log('💊 Updating medications from voice:', treatmentData.medications);
+        
+        const voiceMedications = treatmentData.medications.map((med: any) => ({
+          name: med.name || '',
+          dosage: med.dosage || '',
+          frequency: med.frequency || '',
+          duration: med.duration || ''
+        }));
+        
+        // Replace existing medications with voice data
+        updatedData.medications = [
+          ...voiceMedications,
+          // Keep empty slots for additional medications
+          ...Array(Math.max(0, 3 - voiceMedications.length)).fill({ name: '', dosage: '', frequency: '', duration: '' })
+        ];
+      }
+
+      console.log('✅ Form updated with voice data:', updatedData);
+      return updatedData;
+    });
 
     toast({
       title: "✅ Voice Consultation Complete",
@@ -263,16 +307,16 @@ const PrescriptionForm = () => {
 
   const handleAIAnalysisComplete = async (analysis: any) => {
     try {
-      console.log('AI Analysis completed:', analysis);
+      console.log('🤖 AI Analysis completed:', analysis);
       toast({
         title: "AI Analysis Complete",
         description: "Prescription analysis has been completed",
       });
     } catch (error) {
-      console.error('Error saving AI analysis:', error);
+      console.error('💥 Error with AI analysis:', error);
       toast({
-        title: "Analysis Save Error",
-        description: "Failed to save AI analysis",
+        title: "Analysis Error",
+        description: "Failed to process AI analysis",
         variant: "destructive"
       });
     }

@@ -74,41 +74,49 @@ export const usePrescriptions = () => {
     mutationFn: async (prescriptionData: PrescriptionData) => {
       if (!user) throw new Error('User not authenticated');
 
-      console.log('Saving prescription with data:', prescriptionData);
+      console.log('💾 Saving prescription with data:', prescriptionData);
+      console.log('🔬 Lab analysis to save:', prescriptionData.labAnalysis ? 'Present' : 'Missing');
+
+      const prescriptionToSave = {
+        user_id: user.id,
+        doctor_name: prescriptionData.doctorName,
+        patient_name: prescriptionData.patientName,
+        age: prescriptionData.age,
+        gender: prescriptionData.gender,
+        contact: prescriptionData.contact || null,
+        temperature: prescriptionData.temperature,
+        bp: prescriptionData.bp,
+        medications: prescriptionData.medications,
+        diagnosis: prescriptionData.diagnosis,
+        notes: prescriptionData.notes,
+        consultation_notes: prescriptionData.consultationNotes,
+        recommended_tests: prescriptionData.recommendedTests,
+        lab_reports: prescriptionData.labReports.map(file => ({ 
+          name: file.name, 
+          size: file.size, 
+          type: file.type 
+        })),
+        lab_analysis: prescriptionData.labAnalysis || null,
+        follow_up_date: prescriptionData.followUpDate || null
+      };
+
+      console.log('🚀 Sending to database:', {
+        ...prescriptionToSave,
+        lab_analysis: prescriptionToSave.lab_analysis ? `${prescriptionToSave.lab_analysis.length} characters` : 'null'
+      });
 
       const { data, error } = await supabase
         .from('prescriptions')
-        .insert({
-          user_id: user.id,
-          doctor_name: prescriptionData.doctorName,
-          patient_name: prescriptionData.patientName,
-          age: prescriptionData.age,
-          gender: prescriptionData.gender,
-          contact: prescriptionData.contact || null,
-          temperature: prescriptionData.temperature,
-          bp: prescriptionData.bp,
-          medications: prescriptionData.medications,
-          diagnosis: prescriptionData.diagnosis,
-          notes: prescriptionData.notes,
-          consultation_notes: prescriptionData.consultationNotes,
-          recommended_tests: prescriptionData.recommendedTests,
-          lab_reports: prescriptionData.labReports.map(file => ({ 
-            name: file.name, 
-            size: file.size, 
-            type: file.type 
-          })),
-          lab_analysis: prescriptionData.labAnalysis,
-          follow_up_date: prescriptionData.followUpDate || null
-        })
+        .insert(prescriptionToSave)
         .select()
         .single();
 
       if (error) {
-        console.error('Error saving prescription:', error);
+        console.error('❌ Error saving prescription:', error);
         throw error;
       }
 
-      console.log('Prescription saved successfully:', data);
+      console.log('✅ Prescription saved successfully with lab analysis');
       return data;
     },
     onSuccess: () => {
