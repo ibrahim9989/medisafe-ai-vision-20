@@ -1,9 +1,8 @@
-
 /**
  * Utility functions for medication handling in voice commands
  */
 
-import { PrescriptionData } from '@/components/PrescriptionForm';
+import { PrescriptionData } from '@/types/prescription';
 
 export interface VoiceMedication {
   name: string;
@@ -122,4 +121,48 @@ export const addSingleMedicationToArray = (
   };
   
   return processMedicationsFromVoice(currentMedications, [voiceMedication]);
+};
+
+/**
+ * Validate medication object
+ */
+export const validateMedication = (medication: { name: string; dosage: string; frequency: string; duration: string }) => {
+  return medication.name.trim() !== '' && 
+         medication.dosage.trim() !== '' && 
+         medication.frequency.trim() !== '' && 
+         medication.duration.trim() !== '';
+};
+
+/**
+ * Format medication object for display
+ */
+export const formatMedicationForDisplay = (medication: { name: string; dosage: string; frequency: string; duration: string }) => {
+  return `${medication.name} - ${medication.dosage}, ${medication.frequency} for ${medication.duration}`;
+};
+
+/**
+ * Extract medications from text
+ */
+export const extractMedicationsFromText = (text: string): Array<{ name: string; dosage: string; frequency: string; duration: string }> => {
+  // Simple medication extraction logic
+  const medications: Array<{ name: string; dosage: string; frequency: string; duration: string }> = [];
+  
+  // This is a basic implementation - in production you'd use more sophisticated NLP
+  const medicationPatterns = [
+    /(\w+)\s+(\d+\s*mg)\s+(once|twice|thrice|\d+\s*times)\s*(?:daily|per day|a day)?\s*for\s*(\d+\s*days?|\d+\s*weeks?)/gi
+  ];
+  
+  medicationPatterns.forEach(pattern => {
+    let match;
+    while ((match = pattern.exec(text)) !== null) {
+      medications.push({
+        name: match[1],
+        dosage: match[2],
+        frequency: match[3],
+        duration: match[4]
+      });
+    }
+  });
+  
+  return medications;
 };

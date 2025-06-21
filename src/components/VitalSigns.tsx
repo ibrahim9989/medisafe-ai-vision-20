@@ -1,8 +1,7 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Activity, Thermometer } from 'lucide-react';
-import { PrescriptionData } from './PrescriptionForm';
+import { PrescriptionData } from '@/types/prescription';
 
 interface VitalSignsProps {
   data: PrescriptionData;

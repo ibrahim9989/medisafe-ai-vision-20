@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,7 +10,7 @@ interface ConsultationRecorderProps {
   onTranscriptComplete?: (data: any) => void;
 }
 
-export const ConsultationRecorder: React.FC<ConsultationRecorderProps> = ({
+const ConsultationRecorder: React.FC<ConsultationRecorderProps> = ({
   patientId,
   onTranscriptComplete
 }) => {
@@ -231,3 +230,5 @@ export const ConsultationRecorder: React.FC<ConsultationRecorderProps> = ({
     </Card>
   );
 };
+
+export default ConsultationRecorder;

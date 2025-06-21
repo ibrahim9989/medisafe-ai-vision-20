@@ -1,10 +1,11 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Brain, AlertTriangle, CheckCircle, Clock, FileText } from 'lucide-react';
+import { Brain, Loader2, AlertTriangle, CheckCircle, Zap, Beaker } from 'lucide-react';
 import { PrescriptionData } from '@/types/prescription';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface AIAnalysisSectionProps {
   prescriptionData: PrescriptionData;
@@ -12,61 +13,39 @@ interface AIAnalysisSectionProps {
 }
 
 const AIAnalysisSection = ({ prescriptionData, onAnalysisComplete }: AIAnalysisSectionProps) => {
-  const [analysis, setAnalysis] = useState<any>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysis, setAnalysis] = useState<any>(null);
 
-  const analyzeCompletePrescription = async () => {
+  const performAnalysis = async () => {
     setIsAnalyzing(true);
     
     try {
-      // Prepare comprehensive analysis data including all new fields
-      const analysisPrompt = `
-        Analyze this complete prescription and consultation data:
-        
-        Patient: ${prescriptionData.patientName}, Age: ${prescriptionData.age}, Gender: ${prescriptionData.gender}
-        Vital Signs: Temperature: ${prescriptionData.temperature}°F, BP: ${prescriptionData.bp}
-        
-        Consultation Notes: ${prescriptionData.consultationNotes}
-        Diagnosis: ${prescriptionData.diagnosis}
-        Clinical Notes: ${prescriptionData.notes}
-        
-        Medications: ${JSON.stringify(prescriptionData.medications)}
-        Recommended Tests: ${prescriptionData.recommendedTests.join(', ')}
-        Lab Analysis: ${prescriptionData.labAnalysis}
-        
-        Please provide comprehensive analysis including:
-        1. Drug interactions and contraindications
-        2. Dosage appropriateness for patient's age/condition
-        3. Adverse reaction risks
-        4. Assessment of lab results (if available)
-        5. Recommendations for treatment optimization
-        6. Follow-up suggestions
-        7. Overall risk assessment
-        8. Alternative treatment options if applicable
-      `;
-
-      const response = await fetch('/api/analyze-prescription', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          prompt: analysisPrompt,
-          prescriptionData
-        })
+      const { data, error } = await supabase.functions.invoke('ai-prescription-analysis', {
+        body: {
+          prescriptionData: {
+            ...prescriptionData,
+            // Include all new fields for comprehensive analysis
+            consultationNotes: prescriptionData.consultationNotes,
+            recommendedTests: prescriptionData.recommendedTests,
+            labReports: prescriptionData.labReports,
+            labAnalysis: prescriptionData.labAnalysis,
+            followUpDate: prescriptionData.followUpDate,
+            isFollowUp: prescriptionData.isFollowUp
+          }
+        }
       });
 
-      if (!response.ok) throw new Error('Analysis failed');
-      
-      const result = await response.json();
-      setAnalysis(result);
+      if (error) throw error;
+
+      setAnalysis(data);
+      toast.success('AI analysis completed successfully!');
       
       if (onAnalysisComplete) {
-        onAnalysisComplete({
-          prescriptionId: prescriptionData.id || 'temp',
-          ...result
-        });
+        onAnalysisComplete(data);
       }
     } catch (error) {
-      console.error('Error analyzing prescription:', error);
+      console.error('Error performing AI analysis:', error);
+      toast.error('Failed to perform AI analysis');
     } finally {
       setIsAnalyzing(false);
     }
@@ -75,101 +54,152 @@ const AIAnalysisSection = ({ prescriptionData, onAnalysisComplete }: AIAnalysisS
   return (
     <Card className="border-0 bg-white/40 backdrop-blur-xl shadow-lg rounded-xl">
       <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="p-2 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl">
-              <Brain className="h-5 w-5 text-white" />
-            </div>
-            <span className="text-xl font-medium">AI Comprehensive Analysis</span>
+        <CardTitle className="flex items-center space-x-3">
+          <div className="p-2 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl">
+            <Brain className="h-5 w-5 text-white" />
           </div>
-          <Button 
-            onClick={analyzeCompletePrescription}
-            disabled={isAnalyzing}
-            className="bg-gradient-to-r from-purple-500 to-purple-600"
-          >
-            {isAnalyzing ? (
-              <>
-                <Clock className="h-4 w-4 mr-2 animate-spin" />
-                Analyzing...
-              </>
-            ) : (
-              'Analyze Complete Prescription'
-            )}
-          </Button>
+          <span className="text-xl font-medium">AI Prescription Analysis</span>
         </CardTitle>
       </CardHeader>
-      
-      {analysis && (
-        <CardContent className="space-y-6">
-          {/* Overall Risk Assessment */}
-          <div className="bg-white/60 rounded-lg p-4">
-            <h3 className="font-semibold text-gray-800 mb-2 flex items-center">
-              <AlertTriangle className="h-4 w-4 mr-2" />
-              Overall Risk Assessment
-            </h3>
-            <Badge 
-              variant={analysis.overallRisk === 'High' ? 'destructive' : 
-                     analysis.overallRisk === 'Medium' ? 'default' : 'secondary'}
+      <CardContent className="space-y-6">
+        {!analysis && (
+          <div className="text-center py-8">
+            <Button
+              onClick={performAnalysis}
+              disabled={isAnalyzing}
+              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
             >
-              {analysis.overallRisk || 'Low'} Risk
-            </Badge>
-            <p className="text-sm text-gray-600 mt-2">{analysis.riskExplanation}</p>
+              {isAnalyzing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Analyzing Prescription...
+                </>
+              ) : (
+                <>
+                  <Brain className="h-4 w-4 mr-2" />
+                  Analyze with AI
+                </>
+              )}
+            </Button>
+            <p className="text-sm text-gray-600 mt-3">
+              Get comprehensive AI analysis including drug interactions, recommendations, and more
+            </p>
           </div>
+        )}
 
-          {/* Lab Analysis Section */}
-          {prescriptionData.labAnalysis && (
-            <div className="bg-white/60 rounded-lg p-4">
-              <h3 className="font-semibold text-gray-800 mb-2 flex items-center">
-                <FileText className="h-4 w-4 mr-2" />
-                Lab Results Analysis
-              </h3>
-              <div className="text-sm text-gray-700 whitespace-pre-wrap">
-                {prescriptionData.labAnalysis}
+        {analysis && (
+          <div className="space-y-6">
+            {/* Risk Factors */}
+            {analysis.risk_factors && analysis.risk_factors.length > 0 && (
+              <div className="bg-red-50 p-4 rounded-xl border border-red-200">
+                <div className="flex items-center space-x-2 mb-3">
+                  <AlertTriangle className="h-5 w-5 text-red-600" />
+                  <h3 className="font-semibold text-red-800">Risk Factors</h3>
+                </div>
+                <ul className="space-y-1">
+                  {analysis.risk_factors.map((risk: string, index: number) => (
+                    <li key={index} className="text-red-700 text-sm flex items-start">
+                      <span className="text-red-400 mr-2">•</span>
+                      {risk}
+                    </li>
+                  ))}
+                </ul>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Drug Interactions */}
-          {analysis.drugInteractions?.length > 0 && (
-            <div className="bg-red-50 rounded-lg p-4 border border-red-200">
-              <h3 className="font-semibold text-red-800 mb-2">Drug Interactions</h3>
-              <div className="space-y-2">
-                {analysis.drugInteractions.map((interaction: any, index: number) => (
-                  <div key={index} className="text-sm">
-                    <span className="font-medium">{interaction.drugs}</span>: {interaction.description}
-                    <Badge variant="destructive" className="ml-2 text-xs">
-                      {interaction.severity}
-                    </Badge>
-                  </div>
-                ))}
+            {/* Drug Interactions */}
+            {analysis.drug_interactions && analysis.drug_interactions.length > 0 && (
+              <div className="bg-yellow-50 p-4 rounded-xl border border-yellow-200">
+                <div className="flex items-center space-x-2 mb-3">
+                  <Zap className="h-5 w-5 text-yellow-600" />
+                  <h3 className="font-semibold text-yellow-800">Drug Interactions</h3>
+                </div>
+                <ul className="space-y-1">
+                  {analysis.drug_interactions.map((interaction: string, index: number) => (
+                    <li key={index} className="text-yellow-700 text-sm flex items-start">
+                      <span className="text-yellow-400 mr-2">•</span>
+                      {interaction}
+                    </li>
+                  ))}
+                </ul>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Recommendations */}
-          {analysis.recommendations?.length > 0 && (
-            <div className="bg-green-50 rounded-lg p-4 border border-green-200">
-              <h3 className="font-semibold text-green-800 mb-2">Recommendations</h3>
-              <ul className="space-y-1">
-                {analysis.recommendations.map((rec: string, index: number) => (
-                  <li key={index} className="text-sm text-green-700 flex items-start">
-                    <CheckCircle className="h-3 w-3 mr-2 mt-0.5 flex-shrink-0" />
-                    {rec}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+            {/* Lab Analysis Integration */}
+            {prescriptionData.labAnalysis && (
+              <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
+                <div className="flex items-center space-x-2 mb-3">
+                  <Beaker className="h-5 w-5 text-blue-600" />
+                  <h3 className="font-semibold text-blue-800">Lab Report Analysis</h3>
+                </div>
+                <div className="text-blue-700 text-sm">
+                  {prescriptionData.labAnalysis}
+                </div>
+              </div>
+            )}
 
-          {/* Additional Analysis Sections */}
-          {analysis.followUpSuggestions && (
-            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-              <h3 className="font-semibold text-blue-800 mb-2">Follow-up Suggestions</h3>
-              <p className="text-sm text-blue-700">{analysis.followUpSuggestions}</p>
-            </div>
-          )}
-        </CardContent>
-      )}
+            {/* Recommendations */}
+            {analysis.recommendations && analysis.recommendations.length > 0 && (
+              <div className="bg-green-50 p-4 rounded-xl border border-green-200">
+                <div className="flex items-center space-x-2 mb-3">
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  <h3 className="font-semibold text-green-800">Recommendations</h3>
+                </div>
+                <ul className="space-y-1">
+                  {analysis.recommendations.map((rec: string, index: number) => (
+                    <li key={index} className="text-green-700 text-sm flex items-start">
+                      <span className="text-green-400 mr-2">•</span>
+                      {rec}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Alternative Treatments */}
+            {analysis.alternative_treatments && analysis.alternative_treatments.length > 0 && (
+              <div className="bg-purple-50 p-4 rounded-xl border border-purple-200">
+                <div className="flex items-center space-x-2 mb-3">
+                  <Brain className="h-5 w-5 text-purple-600" />
+                  <h3 className="font-semibold text-purple-800">Alternative Treatments</h3>
+                </div>
+                <ul className="space-y-1">
+                  {analysis.alternative_treatments.map((treatment: string, index: number) => (
+                    <li key={index} className="text-purple-700 text-sm flex items-start">
+                      <span className="text-purple-400 mr-2">•</span>
+                      {treatment}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Overall Analysis */}
+            {analysis.analysis && (
+              <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                <h3 className="font-semibold text-gray-800 mb-3">Overall Analysis</h3>
+                <p className="text-gray-700 text-sm leading-relaxed">{analysis.analysis}</p>
+              </div>
+            )}
+
+            <Button
+              onClick={performAnalysis}
+              variant="outline"
+              size="sm"
+              disabled={isAnalyzing}
+            >
+              {isAnalyzing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Re-analyzing...
+                </>
+              ) : (
+                'Re-analyze'
+              )}
+            </Button>
+          </div>
+        )}
+      </CardContent>
     </Card>
   );
 };

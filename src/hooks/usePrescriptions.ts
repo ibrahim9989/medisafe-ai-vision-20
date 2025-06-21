@@ -1,11 +1,12 @@
-import { useState, useEffect } from 'react';
+
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useDoctorProfile } from '@/hooks/useDoctorProfile';
-import { toast } from '@/hooks/use-toast';
+import { PrescriptionData } from '@/types/prescription';
 
 export interface Prescription {
   id: string;
+  user_id: string;
   doctor_name: string;
   patient_name: string;
   age: number;
@@ -16,211 +17,64 @@ export interface Prescription {
   medications: any[];
   diagnosis: string | null;
   notes: string | null;
-  follow_up_date: string | null;
   consultation_notes: string | null;
-  recommended_tests: string | null;
+  recommended_tests: string[];
   lab_reports: any[];
   lab_analysis: string | null;
+  follow_up_date: string | null;
+  is_follow_up: boolean;
+  original_prescription_id: string | null;
   created_at: string;
   updated_at: string;
 }
 
-export interface AIAnalysisData {
-  id: string;
-  prescription_id: string;
-  drug_interactions: any[];
-  adverse_reactions: any[];
-  dosage_validation: any[];
-  overall_risk: string | null;
-  recommendations: any[];
-  alternatives: any[];
-  medication_resolutions: any[];
+export interface AIAnalysis {
+  prescriptionId: string;
+  analysis: string;
+  riskFactors: string[];
+  recommendations: string[];
+  drugInteractions: string[];
+  alternativeTreatments: string[];
   created_at: string;
-}
-
-export interface Patient {
-  id: string;
-  patient_id: string;
-  doctor_id: string;
-  full_name: string;
-  age: number | null;
-  gender: string | null;
-  phone_number: string | null;
-  address: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface PatientVisit {
-  id: string;
-  patient_id: string;
-  doctor_id: string;
-  visit_date: string;
-  reason_for_visit: string | null;
-  diagnosis: string | null;
-  prescription_id: string | null;
-  notes: string | null;
-  created_at: string;
-  updated_at: string;
 }
 
 export const usePrescriptions = () => {
-  const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
-  const [patients, setPatients] = useState<Patient[]>([]);
-  const [patientVisits, setPatientVisits] = useState<PatientVisit[]>([]);
-  const [loading, setLoading] = useState(true);
   const { user } = useAuth();
-  const { profile } = useDoctorProfile();
+  const queryClient = useQueryClient();
 
-  const fetchPrescriptions = async () => {
-    if (!user) return;
+  const {
+    data: prescriptions,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ['prescriptions', user?.id],
+    queryFn: async () => {
+      if (!user) throw new Error('User not authenticated');
 
-    try {
       const { data, error } = await supabase
         .from('prescriptions')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       
-      const typedData: Prescription[] = (data || []).map(item => ({
-        ...item,
-        medications: Array.isArray(item.medications) ? item.medications : []
-      }));
-      
-      setPrescriptions(typedData);
-    } catch (error) {
-      console.error('Error fetching prescriptions:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch prescriptions",
-        variant: "destructive"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+      // Transform the data to match our interface
+      return data.map(prescription => ({
+        ...prescription,
+        recommended_tests: Array.isArray(prescription.recommended_tests) 
+          ? prescription.recommended_tests.map(String) 
+          : []
+      })) as Prescription[];
+    },
+    enabled: !!user,
+  });
 
-  const fetchPatients = async () => {
-    if (!profile) return;
+  const savePrescriptionMutation = useMutation({
+    mutationFn: async (prescriptionData: PrescriptionData) => {
+      if (!user) throw new Error('User not authenticated');
 
-    try {
       const { data, error } = await supabase
-        .from('patients')
-        .select('*')
-        .eq('doctor_id', profile.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      
-      setPatients(data || []);
-    } catch (error) {
-      console.error('Error fetching patients:', error);
-    }
-  };
-
-  const fetchPatientVisits = async () => {
-    if (!profile) return;
-
-    try {
-      const { data, error } = await supabase
-        .from('patient_visits')
-        .select(`
-          *,
-          patients (
-            patient_id,
-            full_name
-          ),
-          prescriptions (
-            doctor_name,
-            medications
-          )
-        `)
-        .eq('doctor_id', profile.id)
-        .order('visit_date', { ascending: false });
-
-      if (error) throw error;
-      
-      setPatientVisits(data || []);
-    } catch (error) {
-      console.error('Error fetching patient visits:', error);
-    }
-  };
-
-  const findOrCreatePatient = async (patientData: any) => {
-    if (!profile) throw new Error('Doctor profile not found');
-
-    // First, try to find existing patient by name and phone
-    const { data: existingPatients, error: searchError } = await supabase
-      .from('patients')
-      .select('*')
-      .eq('doctor_id', profile.id)
-      .eq('full_name', patientData.patientName)
-      .eq('phone_number', patientData.contact || '');
-
-    if (searchError) throw searchError;
-
-    if (existingPatients && existingPatients.length > 0) {
-      return existingPatients[0];
-    }
-
-    // Create new patient if not found
-    const { data: newPatient, error: createError } = await supabase
-      .from('patients')
-      .insert({
-        doctor_id: profile.id,
-        full_name: patientData.patientName,
-        age: patientData.age,
-        gender: patientData.gender,
-        phone_number: patientData.contact,
-        address: null,
-        patient_id: ''
-      })
-      .select()
-      .single();
-
-    if (createError) throw createError;
-    
-    return newPatient;
-  };
-
-  const createPatientVisit = async (patient: any, prescription: any, prescriptionData: any) => {
-    if (!profile) throw new Error('Doctor profile not found');
-
-    const { data, error } = await supabase
-      .from('patient_visits')
-      .insert({
-        patient_id: patient.id,
-        doctor_id: profile.id,
-        visit_date: new Date().toISOString().split('T')[0],
-        reason_for_visit: 'Medical consultation',
-        diagnosis: prescriptionData.diagnosis || 'General consultation',
-        prescription_id: prescription.id,
-        notes: prescriptionData.notes
-      })
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
-  };
-
-  const savePrescription = async (prescriptionData: any) => {
-    if (!user) throw new Error('User not authenticated');
-
-    try {
-      // Convert File objects to base64 for storage
-      const labReportsData = await Promise.all(
-        prescriptionData.labReports.map(async (file: File) => ({
-          name: file.name,
-          type: file.type,
-          size: file.size,
-          data: await fileToBase64(file)
-        }))
-      );
-
-      // Save prescription with new fields
-      const { data: prescription, error: prescriptionError } = await supabase
         .from('prescriptions')
         .insert({
           user_id: user.id,
@@ -236,23 +90,25 @@ export const usePrescriptions = () => {
           notes: prescriptionData.notes,
           consultation_notes: prescriptionData.consultationNotes,
           recommended_tests: prescriptionData.recommendedTests,
-          lab_reports: labReportsData,
+          lab_reports: prescriptionData.labReports.map(file => ({ name: file.name, size: file.size, type: file.type })),
           lab_analysis: prescriptionData.labAnalysis,
-          follow_up_date: prescriptionData.followUpDate || null
+          follow_up_date: prescriptionData.followUpDate,
+          is_follow_up: prescriptionData.isFollowUp,
+          original_prescription_id: prescriptionData.originalPrescriptionId
         })
         .select()
         .single();
 
-      if (prescriptionError) throw prescriptionError;
+      if (error) throw error;
 
-      // Handle follow-up prescription relationship
+      // If this is a follow-up prescription, create the relationship
       if (prescriptionData.isFollowUp && prescriptionData.originalPrescriptionId) {
         const { error: followUpError } = await supabase
           .from('follow_up_prescriptions')
           .insert({
             original_prescription_id: prescriptionData.originalPrescriptionId,
-            follow_up_prescription_id: prescription.id,
-            notes: `Follow-up prescription created`
+            follow_up_prescription_id: data.id,
+            notes: `Follow-up prescription created on ${new Date().toISOString()}`
           });
 
         if (followUpError) {
@@ -260,179 +116,58 @@ export const usePrescriptions = () => {
         }
       }
 
-      // Create or find patient
-      const patient = await findOrCreatePatient(prescriptionData);
-      
-      // Create patient visit record
-      await createPatientVisit(patient, prescription, prescriptionData);
-      
-      // Refresh data
-      await fetchPrescriptions();
-      await fetchPatients();
-      await fetchPatientVisits();
-      
-      return prescription;
-    } catch (error) {
-      console.error('Error saving prescription:', error);
-      throw error;
-    }
-  };
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['prescriptions'] });
+    },
+  });
 
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => {
-        const result = reader.result as string;
-        resolve(result.split(',')[1]);
-      };
-      reader.onerror = reject;
-    });
-  };
+  const saveAIAnalysisMutation = useMutation({
+    mutationFn: async ({ prescriptionId, analysis }: { prescriptionId: string; analysis: any }) => {
+      if (!user) throw new Error('User not authenticated');
 
-  const saveAIAnalysis = async (prescriptionId: string, analysisData: any) => {
-    if (!user) throw new Error('User not authenticated');
-
-    try {
       const { data, error } = await supabase
         .from('ai_analysis')
         .insert({
           prescription_id: prescriptionId,
-          drug_interactions: analysisData.drugInteractions || [],
-          adverse_reactions: analysisData.adverseReactions || [],
-          dosage_validation: analysisData.dosageValidation || [],
-          overall_risk: analysisData.overallRisk,
-          recommendations: analysisData.recommendations || [],
-          alternatives: analysisData.alternatives || [],
-          medication_resolutions: analysisData.medicationResolutions || []
+          user_id: user.id,
+          analysis: analysis.analysis,
+          risk_factors: analysis.risk_factors,
+          recommendations: analysis.recommendations,
+          drug_interactions: analysis.drug_interactions,
+          alternative_treatments: analysis.alternative_treatments,
         })
         .select()
         .single();
 
       if (error) throw error;
       return data;
-    } catch (error) {
-      console.error('Error saving AI analysis:', error);
-      throw error;
-    }
-  };
-
-  const getAIAnalysis = async (prescriptionId: string): Promise<AIAnalysisData | null> => {
-    try {
-      const { data, error } = await supabase
-        .from('ai_analysis')
-        .select('*')
-        .eq('prescription_id', prescriptionId)
-        .single();
-
-      if (error && error.code !== 'PGRST116') throw error;
-      
-      if (!data) return null;
-      
-      const typedData: AIAnalysisData = {
-        ...data,
-        drug_interactions: Array.isArray(data.drug_interactions) ? data.drug_interactions : [],
-        adverse_reactions: Array.isArray(data.adverse_reactions) ? data.adverse_reactions : [],
-        dosage_validation: Array.isArray(data.dosage_validation) ? data.dosage_validation : [],
-        recommendations: Array.isArray(data.recommendations) ? data.recommendations : [],
-        alternatives: Array.isArray(data.alternatives) ? data.alternatives : [],
-        medication_resolutions: Array.isArray(data.medication_resolutions) ? data.medication_resolutions : []
-      };
-      
-      return typedData;
-    } catch (error) {
-      console.error('Error fetching AI analysis:', error);
-      return null;
-    }
-  };
-
-  const saveConsultationNotes = async (patientId: string, consultationData: any) => {
-    if (!profile) throw new Error('Doctor profile not found');
-
-    try {
-      // Create detailed visit record with consultation notes
-      const { data: visit, error: visitError } = await supabase
-        .from('patient_visits')
-        .insert({
-          patient_id: patientId,
-          doctor_id: profile.id,
-          visit_date: new Date().toISOString().split('T')[0],
-          reason_for_visit: consultationData.chiefComplaint || 'Consultation',
-          diagnosis: consultationData.diagnosis || 'General consultation',
-          notes: JSON.stringify({
-            transcript: consultationData.transcript,
-            summary: consultationData.summary,
-            symptoms: consultationData.symptoms,
-            medicalHistory: consultationData.medicalHistory,
-            physicalExam: consultationData.physicalExam,
-            treatmentPlan: consultationData.treatmentPlan,
-            followUp: consultationData.followUp,
-            actionItems: consultationData.actionItems,
-            clinicalNotes: consultationData.clinicalNotes
-          })
-        })
-        .select()
-        .single();
-
-      if (visitError) throw visitError;
-
-      // If prescription data is available, save it
-      if (consultationData.prescriptionData) {
-        const prescription = await savePrescription(consultationData);
-        
-        // Link prescription to visit
-        await supabase
-          .from('patient_visits')
-          .update({ prescription_id: prescription.id })
-          .eq('id', visit.id);
-      }
-
-      await fetchPatientVisits();
-      return visit;
-    } catch (error) {
-      console.error('Error saving consultation notes:', error);
-      throw error;
-    }
-  };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['prescriptions'] });
+    },
+  });
 
   const getFollowUpPrescriptions = async (originalPrescriptionId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('follow_up_prescriptions')
-        .select(`
-          *,
-          prescriptions!follow_up_prescriptions_follow_up_prescription_id_fkey (*)
-        `)
-        .eq('original_prescription_id', originalPrescriptionId);
+    const { data, error } = await supabase
+      .from('follow_up_prescriptions')
+      .select(`
+        *,
+        follow_up_prescription:prescriptions!follow_up_prescriptions_follow_up_prescription_id_fkey(*)
+      `)
+      .eq('original_prescription_id', originalPrescriptionId);
 
-      if (error) throw error;
-      return data || [];
-    } catch (error) {
-      console.error('Error fetching follow-up prescriptions:', error);
-      return [];
-    }
+    if (error) throw error;
+    return data;
   };
 
-  useEffect(() => {
-    if (user && profile) {
-      fetchPrescriptions();
-      fetchPatients();
-      fetchPatientVisits();
-    }
-  }, [user, profile]);
-
   return {
-    prescriptions,
-    patients,
-    patientVisits,
-    loading,
-    savePrescription,
-    saveAIAnalysis,
-    getAIAnalysis,
-    saveConsultationNotes,
+    prescriptions: prescriptions || [],
+    isLoading,
+    error,
+    savePrescription: savePrescriptionMutation.mutateAsync,
+    saveAIAnalysis: saveAIAnalysisMutation.mutateAsync,
     getFollowUpPrescriptions,
-    fetchPrescriptions,
-    fetchPatients,
-    fetchPatientVisits
   };
 };
