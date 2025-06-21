@@ -120,7 +120,7 @@ const ConsultationRecorder: React.FC<ConsultationRecorderProps> = ({
 
       if (error) {
         console.error('Supabase function error:', error);
-        throw error;
+        throw new Error(error.message || 'Failed to process consultation');
       }
 
       console.log('Consultation transcript result:', data);

@@ -20,11 +20,12 @@ const AIAnalysisSection = ({ prescriptionData, onAnalysisComplete }: AIAnalysisS
     setIsAnalyzing(true);
     
     try {
+      console.log('Starting AI prescription analysis...');
+      
       const { data, error } = await supabase.functions.invoke('ai-prescription-analysis', {
         body: {
           prescriptionData: {
             ...prescriptionData,
-            // Include all new fields for comprehensive analysis
             consultationNotes: prescriptionData.consultationNotes,
             recommendedTests: prescriptionData.recommendedTests,
             labReports: prescriptionData.labReports,
@@ -35,8 +36,12 @@ const AIAnalysisSection = ({ prescriptionData, onAnalysisComplete }: AIAnalysisS
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('AI analysis error:', error);
+        throw new Error(error.message || 'Failed to perform AI analysis');
+      }
 
+      console.log('AI analysis successful:', data);
       setAnalysis(data);
       toast.success('AI analysis completed successfully!');
       
@@ -45,7 +50,7 @@ const AIAnalysisSection = ({ prescriptionData, onAnalysisComplete }: AIAnalysisS
       }
     } catch (error) {
       console.error('Error performing AI analysis:', error);
-      toast.error('Failed to perform AI analysis');
+      toast.error(`Failed to perform AI analysis: ${error.message}`);
     } finally {
       setIsAnalyzing(false);
     }

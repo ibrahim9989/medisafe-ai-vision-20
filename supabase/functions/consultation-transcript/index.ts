@@ -19,9 +19,9 @@ serve(async (req) => {
   }
 
   try {
-    const { audioData, patientId, doctorId } = await req.json();
+    const { audio, patientId, doctorId } = await req.json();
 
-    if (!audioData) {
+    if (!audio) {
       throw new Error('No audio data provided');
     }
 
@@ -34,7 +34,7 @@ serve(async (req) => {
     }
 
     console.log('Processing consultation audio for patient:', patientId);
-    console.log('Audio data length:', audioData.length);
+    console.log('Audio data length:', audio.length);
 
     // Step 1: Convert audio to text using ElevenLabs
     let transcript = '';
@@ -42,15 +42,13 @@ serve(async (req) => {
     try {
       console.log('Starting audio transcription with ElevenLabs...');
       
-      // Validate base64 audio data
-      if (!audioData || typeof audioData !== 'string') {
+      if (!audio || typeof audio !== 'string') {
         throw new Error('Invalid audio data format');
       }
 
-      // Convert base64 to binary
       let audioBuffer;
       try {
-        const binaryString = atob(audioData);
+        const binaryString = atob(audio);
         audioBuffer = new Uint8Array(binaryString.length);
         for (let i = 0; i < binaryString.length; i++) {
           audioBuffer[i] = binaryString.charCodeAt(i);
@@ -61,7 +59,6 @@ serve(async (req) => {
         throw new Error('Failed to decode audio data');
       }
 
-      // Create form data for ElevenLabs speech-to-text
       const formData = new FormData();
       const audioBlob = new Blob([audioBuffer], { type: 'audio/webm' });
       formData.append('file', audioBlob, 'consultation.webm');
@@ -99,7 +96,7 @@ serve(async (req) => {
       throw new Error(`Failed to transcribe audio: ${error.message}`);
     }
 
-    // Step 2: Process transcript with Gemini AI to extract medical information
+    // Step 2: Process transcript with Gemini AI
     console.log('Starting AI analysis with Gemini...');
 
     const analysisPrompt = `You are an expert medical AI assistant analyzing a doctor-patient consultation transcript. Extract structured medical information and create comprehensive consultation notes.
@@ -242,7 +239,6 @@ RETURN RESPONSE AS JSON:
 
       console.log('Gemini analysis received, length:', analysisText.length);
       
-      // Extract JSON from Gemini response
       try {
         const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
@@ -267,7 +263,6 @@ RETURN RESPONSE AS JSON:
       try {
         const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
         
-        // Store consultation transcript and analysis
         const { data: consultationRecord, error: consultationError } = await supabase
           .from('consultation_transcripts')
           .insert({
@@ -287,20 +282,23 @@ RETURN RESPONSE AS JSON:
 
         if (consultationError) {
           console.error('Error storing consultation:', consultationError);
-          // Don't throw here - we still want to return the analysis even if storage fails
         } else {
           console.log('Consultation stored successfully:', consultationRecord.id);
         }
       } catch (storageError) {
         console.error('Storage error:', storageError);
-        // Continue execution - storage failure shouldn't block the response
       }
     }
 
     return new Response(JSON.stringify({
       success: true,
-      data: analysisData,
-      transcript: transcript
+      transcript: transcript,
+      summary: analysisData.summary,
+      diagnosis: analysisData.diagnosis,
+      chief_complaint: analysisData.chiefComplaint,
+      action_items: analysisData.actionItems,
+      follow_up_instructions: analysisData.followUp,
+      analysis_data: analysisData
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

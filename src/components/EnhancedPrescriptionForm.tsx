@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,23 +23,19 @@ const EnhancedPrescriptionForm = ({ data, onChange, children }: EnhancedPrescrip
   const [autoSelectCriteria, setAutoSelectCriteria] = useState<'most_visits' | 'latest_visit' | null>(null);
   const { patientHistory, getPatientHistory, loading } = usePatientHistory();
 
-  // Enhanced voice search event listener
   useEffect(() => {
     const handleVoiceSearch = (event: CustomEvent) => {
       const { query, autoSelect, switchToExisting } = event.detail;
       console.log('🎤 Enhanced voice search command received in EnhancedPrescriptionForm:', event.detail);
       
-      // Auto-switch to existing patient mode if requested
       if (switchToExisting) {
         console.log('🔄 Auto-switching to existing patient mode');
         setMode('existing');
       }
       
-      // Set enhanced search parameters
       setVoiceSearchTerm(query);
       setAutoSearch(true);
       
-      // Set auto-selection criteria based on command
       if (autoSelect === 'most_visits') {
         setAutoSelectCriteria('most_visits');
         toast({
@@ -69,10 +64,8 @@ const EnhancedPrescriptionForm = ({ data, onChange, children }: EnhancedPrescrip
     };
   }, []);
 
-  // Reset voice search state after use
   useEffect(() => {
     if (autoSearch && voiceSearchTerm) {
-      // Reset after a short delay to allow the search to complete
       const timer = setTimeout(() => {
         setAutoSearch(false);
         setVoiceSearchTerm('');
@@ -89,7 +82,6 @@ const EnhancedPrescriptionForm = ({ data, onChange, children }: EnhancedPrescrip
     const history = await getPatientHistory(patientId);
     
     if (history) {
-      // Pre-populate form with patient information
       onChange({
         ...data,
         patientName: history.patient.full_name,
@@ -98,7 +90,6 @@ const EnhancedPrescriptionForm = ({ data, onChange, children }: EnhancedPrescrip
         contact: history.patient.phone_number || '',
       });
 
-      // Show success toast
       toast({
         title: "✅ Patient Selected",
         description: `${history.patient.full_name} has been selected and form updated`,
@@ -109,7 +100,6 @@ const EnhancedPrescriptionForm = ({ data, onChange, children }: EnhancedPrescrip
   const handleNewPatient = () => {
     setMode('new');
     setSelectedPatientId(null);
-    // Clear patient data
     onChange({
       ...data,
       patientName: '',
@@ -128,11 +118,10 @@ const EnhancedPrescriptionForm = ({ data, onChange, children }: EnhancedPrescrip
             <div className="p-2 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl">
               <Users className="h-5 w-5 text-white" />
             </div>
-            <span className="text-xl font-medium">Patient Information</span>
+            <span className="text-xl font-medium">Patient Selection</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {/* Responsive flex: stack on mobile, inline on desktop */}
           <div className="flex flex-col xs:flex-row gap-3 xs:gap-4 mb-6 w-full max-w-none">
             <Button
               variant={mode === 'new' ? 'default' : 'outline'}
@@ -177,7 +166,7 @@ const EnhancedPrescriptionForm = ({ data, onChange, children }: EnhancedPrescrip
         <PatientHistoryView patientHistory={patientHistory} />
       )}
 
-      {/* Patient Info Form */}
+      {/* Patient Info Form - Only show when new patient or patient selected */}
       {(mode === 'new' || selectedPatientId) && (
         <PatientInfo data={data} onChange={onChange} />
       )}

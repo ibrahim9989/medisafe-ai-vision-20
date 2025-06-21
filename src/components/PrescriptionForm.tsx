@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
@@ -9,7 +10,6 @@ import ConsultationNotesSection from './ConsultationNotesSection';
 import RecommendedTestsSection from './RecommendedTestsSection';
 import LabReportsSection from './LabReportsSection';
 import FollowUpSection from './FollowUpSection';
-import PatientInfo from './PatientInfo';
 import VitalSigns from './VitalSigns';
 import EnhancedMedicationList from './EnhancedMedicationList';
 import ConsultationRecorder from './ConsultationRecorder';
@@ -60,18 +60,15 @@ const PrescriptionForm = () => {
       const analysisPromises = files.map(async (file) => {
         const base64 = await fileToBase64(file);
         
-        const response = await fetch('/api/analyze-lab-report', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+        const { data: result, error } = await supabase.functions.invoke('analyze-lab-report', {
+          body: {
             image: base64,
             mimeType: file.type
-          })
+          }
         });
 
-        if (!response.ok) throw new Error('Failed to analyze lab report');
+        if (error) throw new Error('Failed to analyze lab report');
         
-        const result = await response.json();
         return `${file.name}: ${result.analysis}`;
       });
 
@@ -79,6 +76,11 @@ const PrescriptionForm = () => {
       return analyses.join('\n\n');
     } catch (error) {
       console.error('Error analyzing lab reports:', error);
+      toast({
+        title: "Lab Analysis Error",
+        description: "Failed to analyze lab reports. Please try again.",
+        variant: "destructive"
+      });
       return 'Error analyzing lab reports';
     }
   };
@@ -96,10 +98,8 @@ const PrescriptionForm = () => {
   };
 
   const extractInfoFromConsultationNotes = (notes: string) => {
-    // Simple extraction logic - in production, you'd use more sophisticated NLP
     const extractedData = { ...data };
     
-    // Extract diagnosis
     if (notes.toLowerCase().includes('diagnosis:')) {
       const diagnosisMatch = notes.match(/diagnosis:\s*([^\n\r.]+)/i);
       if (diagnosisMatch) {
@@ -107,7 +107,6 @@ const PrescriptionForm = () => {
       }
     }
 
-    // Extract symptoms for clinical notes
     if (notes.toLowerCase().includes('symptoms:') || notes.toLowerCase().includes('complaint:')) {
       const symptomsMatch = notes.match(/(symptoms|complaint):\s*([^\n\r.]+)/i);
       if (symptomsMatch) {
@@ -115,7 +114,6 @@ const PrescriptionForm = () => {
       }
     }
 
-    // Extract recommended tests
     const testKeywords = ['blood test', 'x-ray', 'mri', 'ct scan', 'ultrasound', 'ecg', 'cbc', 'lipid profile'];
     testKeywords.forEach(keyword => {
       if (notes.toLowerCase().includes(keyword) && !extractedData.recommendedTests.includes(keyword)) {
@@ -127,7 +125,6 @@ const PrescriptionForm = () => {
   };
 
   const handleConsultationNotesChange = (newData: PrescriptionData) => {
-    // Auto-extract information when consultation notes change
     if (newData.consultationNotes !== data.consultationNotes) {
       const extractedData = extractInfoFromConsultationNotes(newData.consultationNotes);
       setData(extractedData);
@@ -139,7 +136,6 @@ const PrescriptionForm = () => {
   const handleLabReportsChange = async (newData: PrescriptionData) => {
     setData(newData);
     
-    // Analyze lab reports when they're uploaded
     if (newData.labReports.length > 0 && newData.labReports.length !== data.labReports.length) {
       const analysis = await analyzeLabReports(newData.labReports);
       setData(prev => ({ ...prev, labAnalysis: analysis }));
@@ -148,13 +144,20 @@ const PrescriptionForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !profile) return;
+    if (!user || !profile) {
+      toast({
+        title: "Authentication Error",
+        description: "Please log in to save prescriptions",
+        variant: "destructive"
+      });
+      return;
+    }
 
     setIsSubmitting(true);
     
     try {
       // Validate required fields
-      if (!data.patientName || !data.doctorName) {
+      if (!data.patientName?.trim() || !data.doctorName?.trim()) {
         toast({
           title: "Missing Information",
           description: "Patient name and doctor name are required",
@@ -163,14 +166,24 @@ const PrescriptionForm = () => {
         return;
       }
 
-      // Save prescription with all new fields
+      if (data.medications.every(med => !med.name.trim())) {
+        toast({
+          title: "Missing Medications",
+          description: "At least one medication is required",
+          variant: "destructive"
+        });
+        return;
+      }
+
       const prescriptionData = {
         ...data,
         medications: data.medications.filter(med => med.name.trim() !== ''),
         doctorName: profile.full_name || data.doctorName
       };
 
-      const prescription = await savePrescription(prescriptionData);
+      console.log('Saving prescription data:', prescriptionData);
+      
+      await savePrescription(prescriptionData);
       
       toast({
         title: "Success",
@@ -203,7 +216,7 @@ const PrescriptionForm = () => {
       console.error('Error saving prescription:', error);
       toast({
         title: "Error",
-        description: "Failed to save prescription",
+        description: "Failed to save prescription. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -212,6 +225,8 @@ const PrescriptionForm = () => {
   };
 
   const handleConsultationComplete = (consultationData: any) => {
+    console.log('Consultation data received:', consultationData);
+    
     setData(prev => ({
       ...prev,
       consultationNotes: consultationData.transcript || '',
@@ -219,9 +234,30 @@ const PrescriptionForm = () => {
       notes: consultationData.summary || prev.notes
     }));
     
-    // Extract additional information from consultation
     const extractedData = extractInfoFromConsultationNotes(consultationData.transcript || '');
     setData(prev => ({ ...prev, ...extractedData }));
+
+    toast({
+      title: "Voice Consultation Complete",
+      description: "Consultation has been processed and form updated",
+    });
+  };
+
+  const handleAIAnalysisComplete = async (analysis: any) => {
+    try {
+      console.log('AI Analysis completed:', analysis);
+      toast({
+        title: "AI Analysis Complete",
+        description: "Prescription analysis has been completed",
+      });
+    } catch (error) {
+      console.error('Error saving AI analysis:', error);
+      toast({
+        title: "Analysis Save Error",
+        description: "Failed to save AI analysis",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -237,18 +273,19 @@ const PrescriptionForm = () => {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
+          {/* Enhanced Prescription Form - This handles patient selection */}
           <EnhancedPrescriptionForm data={data} onChange={setData}>
             {/* Voice Recording */}
-            <ConsultationRecorder onConsultationComplete={handleConsultationComplete} />
+            <ConsultationRecorder 
+              onConsultationComplete={handleConsultationComplete}
+              patientId={undefined}
+            />
             
-            {/* Consultation Notes - New dedicated section */}
+            {/* Consultation Notes */}
             <ConsultationNotesSection 
               data={data} 
               onChange={handleConsultationNotesChange} 
             />
-            
-            {/* Patient Information */}
-            <PatientInfo data={data} onChange={setData} />
             
             {/* Vital Signs */}
             <VitalSigns data={data} onChange={setData} />
@@ -256,22 +293,20 @@ const PrescriptionForm = () => {
             {/* Medications */}
             <EnhancedMedicationList data={data} onChange={setData} />
             
-            {/* Recommended Tests - New section */}
+            {/* Recommended Tests */}
             <RecommendedTestsSection data={data} onChange={setData} />
             
-            {/* Lab Reports - New section */}
+            {/* Lab Reports */}
             <LabReportsSection data={data} onChange={handleLabReportsChange} />
             
-            {/* Follow-up Information - New section */}
+            {/* Follow-up Information */}
             <FollowUpSection data={data} onChange={setData} />
 
             {/* AI Analysis */}
             {showAIAnalysis && (
               <AIAnalysisSection 
                 prescriptionData={data}
-                onAnalysisComplete={(analysis) => {
-                  saveAIAnalysis(analysis.prescriptionId, analysis);
-                }}
+                onAnalysisComplete={handleAIAnalysisComplete}
               />
             )}
 
