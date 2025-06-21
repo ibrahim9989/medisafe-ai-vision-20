@@ -5,6 +5,7 @@ import { toast } from '@/hooks/use-toast';
 import { usePrescriptions } from '@/hooks/usePrescriptions';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDoctorProfile } from '@/hooks/useDoctorProfile';
+import { supabase } from '@/integrations/supabase/client';
 import EnhancedPrescriptionForm from './EnhancedPrescriptionForm';
 import ConsultationNotesSection from './ConsultationNotesSection';
 import RecommendedTestsSection from './RecommendedTestsSection';
