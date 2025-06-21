@@ -1,9 +1,8 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Pill, Plus, Trash2 } from 'lucide-react';
-import { PrescriptionData } from './PrescriptionForm';
+import { PrescriptionData } from '@/types/prescription';
 
 interface MedicationListProps {
   data: PrescriptionData;

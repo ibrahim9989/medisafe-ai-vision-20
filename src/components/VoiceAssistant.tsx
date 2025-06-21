@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Mic, MicOff, Volume2, VolumeX, MessageCircle } from 'lucide-react';
 import { useVoiceAssistant } from '@/hooks/useVoiceAssistant';
-import { PrescriptionData } from './PrescriptionForm';
+import { PrescriptionData } from '@/types/prescription';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';

@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Users, Plus, History } from 'lucide-react';
-import { PrescriptionData } from './PrescriptionForm';
+import { PrescriptionData } from '@/types/prescription';
 import PatientSearch from './PatientSearch';
 import PatientHistoryView from './PatientHistoryView';
 import PatientInfo from './PatientInfo';

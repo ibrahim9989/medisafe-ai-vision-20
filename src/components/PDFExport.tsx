@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { PrescriptionData } from './PrescriptionForm';
+import { PrescriptionData } from '@/types/prescription';
 import MobileFriendlyPDFExport from './MobileFriendlyPDFExport';
 
 interface PDFExportProps {

@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Pill, Plus, Trash2, CheckCircle } from 'lucide-react';
 import MedicineResolver from './MedicineResolver';
-import { PrescriptionData } from './PrescriptionForm';
+import { PrescriptionData } from '@/types/prescription';
 import { MedicineResolution } from '../services/tavilyService';
 
 interface EnhancedMedicationListProps {
