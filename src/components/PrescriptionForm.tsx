@@ -1,852 +1,303 @@
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Trash2, Search, Calendar, Download, Mic, Brain, Zap, Stethoscope, AlertCircle } from 'lucide-react';
-import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-import { useDoctorProfile } from '@/hooks/useDoctorProfile';
+import { toast } from '@/hooks/use-toast';
 import { usePrescriptions } from '@/hooks/usePrescriptions';
-import { useNavigate } from 'react-router-dom';
-import PatientSearch from './PatientSearch';
-import VitalSigns from './VitalSigns';
-import MedicationList from './MedicationList';
-import EnhancedMedicationList from './EnhancedMedicationList';
-import AIAnalysis from './AIAnalysis';
-import PDFExport from './PDFExport';
-import MobileFriendlyPDFExport from './MobileFriendlyPDFExport';
-import VoiceAssistant from './VoiceAssistant';
-import { ConsultationRecorder } from './ConsultationRecorder';
+import { useAuth } from '@/contexts/AuthContext';
+import { useDoctorProfile } from '@/hooks/useDoctorProfile';
 import EnhancedPrescriptionForm from './EnhancedPrescriptionForm';
-import PrescriptionPDFExport from './PrescriptionPDFExport';
-import { tavilyService } from '@/services/tavilyService';
-import { 
-  convertToDateInputFormat, 
-  isFutureDate 
-} from '@/utils/dateUtils';
-import { 
-  validateFrequency, 
-  processMedicationsFromVoice 
-} from '@/utils/medicationUtils';
-
-export interface PrescriptionData {
-  doctorName: string;
-  patientName: string;
-  age: number;
-  gender: string;
-  contact: string;
-  temperature: number;
-  bp: string;
-  medications: Array<{
-    name: string;
-    dosage: string;
-    frequency: string;
-    duration: string;
-  }>;
-  diagnosis: string;
-  notes: string;
-  followUpDate: string;
-}
+import ConsultationNotesSection from './ConsultationNotesSection';
+import RecommendedTestsSection from './RecommendedTestsSection';
+import LabReportsSection from './LabReportsSection';
+import FollowUpSection from './FollowUpSection';
+import PatientInfo from './PatientInfo';
+import VitalSigns from './VitalSigns';
+import EnhancedMedicationList from './EnhancedMedicationList';
+import ConsultationRecorder from './ConsultationRecorder';
+import AIAnalysisSection from './AIAnalysisSection';
+import { PrescriptionData } from '@/types/prescription';
 
 const PrescriptionForm = () => {
-  const [prescriptionData, setPrescriptionData] = useState<PrescriptionData>({
+  const { user } = useAuth();
+  const { profile } = useDoctorProfile();
+  const { savePrescription, saveAIAnalysis } = usePrescriptions();
+
+  const [data, setData] = useState<PrescriptionData>({
     doctorName: '',
     patientName: '',
     age: 0,
     gender: '',
     contact: '',
-    temperature: 98.6,
+    temperature: null,
     bp: '',
     medications: [{ name: '', dosage: '', frequency: '', duration: '' }],
     diagnosis: '',
     notes: '',
-    followUpDate: ''
+    consultationNotes: '',
+    recommendedTests: [],
+    labReports: [],
+    labAnalysis: '',
+    followUpDate: '',
+    isFollowUp: false,
+    originalPrescriptionId: ''
   });
 
-  const [analysis, setAnalysis] = useState<any>(null);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [isValidating, setIsValidating] = useState(false);
-  const [currentPrescriptionId, setCurrentPrescriptionId] = useState<string | null>(null);
-  const [showConsultationRecorder, setShowConsultationRecorder] = useState(false);
-  
-  const { savePrescription, saveAIAnalysis } = usePrescriptions();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showAIAnalysis, setShowAIAnalysis] = useState(false);
 
-  // Handle consultation data from AI recorder
-  const handleConsultationComplete = (consultationData: any) => {
-    console.log('Consultation completed:', consultationData);
-    
-    // Store consultation notes in patient history
-    if (consultationData.prescriptionData) {
-      // Update prescription form with extracted data
-      setPrescriptionData(prev => ({
+  useEffect(() => {
+    if (profile) {
+      setData(prev => ({
         ...prev,
-        ...consultationData.prescriptionData,
-        // Merge clinical notes with existing notes
-        notes: prev.notes ? 
-          `${prev.notes}\n\nConsultation Notes:\n${consultationData.clinicalNotes}` :
-          consultationData.clinicalNotes
+        doctorName: profile.full_name || '',
       }));
     }
-    
-    toast.success("📋 Consultation Notes Ready - AI has extracted key information and updated the prescription form.");
-  };
+  }, [profile]);
 
-  // Handle prescription data extracted from consultation
-  const handlePrescriptionDataExtracted = (prescriptionData: any) => {
-    console.log('Prescription data extracted:', prescriptionData);
-    
-    // Update form with extracted prescription data
-    setPrescriptionData(prev => ({
-      ...prev,
-      ...prescriptionData,
-      // Ensure medications are properly formatted
-      medications: prescriptionData.medications?.length > 0 ? 
-        prescriptionData.medications : prev.medications
-    }));
-  };
-
-  // Enhanced event listeners for complex global voice commands
-  useEffect(() => {
-    const handleVoiceFillForm = (event: CustomEvent) => {
-      const { prescription, clearForm, searchCriteria } = event.detail;
-      
-      console.log('🎤 Enhanced voice command received:', event.detail);
-      
-      // Handle form clearing first if requested
-      if (clearForm) {
-        console.log('🧹 Clearing form as requested');
-        setPrescriptionData({
-          doctorName: '',
-          patientName: '',
-          age: 0,
-          gender: '',
-          contact: '',
-          temperature: 98.6,
-          bp: '',
-          medications: [{ name: '', dosage: '', frequency: '', duration: '' }],
-          diagnosis: '',
-          notes: '',
-          followUpDate: ''
-        });
-      }
-      
-      // Handle prescription data if provided
-      if (prescription) {
-        console.log('💊 Processing prescription data:', prescription);
-        
-        const updatedData: PrescriptionData = clearForm ? {
-          doctorName: '',
-          patientName: '',
-          age: 0,
-          gender: '',
-          contact: '',
-          temperature: 98.6,
-          bp: '',
-          medications: [{ name: '', dosage: '', frequency: '', duration: '' }],
-          diagnosis: '',
-          notes: '',
-          followUpDate: ''
-        } : { ...prescriptionData };
-        
-        // Handle basic fields
-        if (prescription.doctorName) updatedData.doctorName = prescription.doctorName;
-        if (prescription.patientName) updatedData.patientName = prescription.patientName;
-        if (prescription.age) {
-          updatedData.age = typeof prescription.age === 'number' ? prescription.age : parseInt(prescription.age) || 0;
-        }
-        if (prescription.contact) updatedData.contact = prescription.contact;
-        if (prescription.temperature) {
-          updatedData.temperature = typeof prescription.temperature === 'number' ? prescription.temperature : parseFloat(prescription.temperature) || 98.6;
-        }
-        if (prescription.diagnosis) updatedData.diagnosis = prescription.diagnosis;
-        if (prescription.notes) updatedData.notes = prescription.notes;
-        
-        // Handle gender with validation
-        if (prescription.gender) {
-          const validGenders = ['Male', 'Female', 'Other'];
-          if (validGenders.includes(prescription.gender)) {
-            updatedData.gender = prescription.gender;
-          } else {
-            console.warn('Invalid gender value from voice command:', prescription.gender);
-          }
-        }
-        
-        // Handle blood pressure with validation  
-        if (prescription.bp) {
-          if (/^\d+\/\d+$/.test(prescription.bp)) {
-            updatedData.bp = prescription.bp;
-          } else {
-            console.warn('Invalid blood pressure format from voice command:', prescription.bp);
-          }
-        }
-        
-        // Handle follow-up date with format conversion
-        if (prescription.followUpDate) {
-          if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(prescription.followUpDate)) {
-            // Convert MM/DD/YYYY to YYYY-MM-DD for date input
-            const convertedDate = convertToDateInputFormat(prescription.followUpDate);
-            if (convertedDate && isFutureDate(convertedDate)) {
-              updatedData.followUpDate = convertedDate;
-            } else {
-              console.warn('Invalid or past follow-up date from voice command:', prescription.followUpDate);
-            }
-          } else {
-            console.warn('Invalid follow-up date format from voice command:', prescription.followUpDate);
-          }
-        }
-        
-        // Handle medications array - ENHANCED PROCESSING
-        if (prescription.medications && Array.isArray(prescription.medications) && prescription.medications.length > 0) {
-          console.log('Processing medications array from voice:', prescription.medications);
-          
-          // Process each medication with proper validation
-          const voiceMedications = prescription.medications
-            .filter((med: any) => med && med.name) // Filter out empty medications
-            .map((med: any) => ({
-              name: med.name.trim(),
-              dosage: med.dosage || '',
-              frequency: validateFrequency(med.frequency || ''),
-              duration: med.duration || ''
-            }));
-          
-          console.log('Processed voice medications:', voiceMedications);
-          
-          if (voiceMedications.length > 0) {
-            // Use the medication utility to properly merge with existing medications
-            updatedData.medications = processMedicationsFromVoice(
-              prescriptionData.medications,
-              voiceMedications
-            );
-            
-            console.log('Final medications array after processing:', updatedData.medications);
-          }
-        } else if (prescription.medication) {
-          // Handle single medication (legacy support)
-          console.log('Processing single medication from voice:', prescription.medication);
-          
-          const voiceMedication = {
-            name: prescription.medication.trim(),
-            dosage: prescription.dosage || '',
-            frequency: validateFrequency(prescription.frequency || ''),
-            duration: prescription.duration || ''
-          };
-          
-          updatedData.medications = processMedicationsFromVoice(
-            prescriptionData.medications,
-            [voiceMedication]
-          );
-        }
-        
-        console.log('Final prescription data after voice update:', updatedData);
-        
-        // Force re-render by creating a completely new object
-        setPrescriptionData({ ...updatedData });
-        
-        // Enhanced success message
-        const filledFields = [];
-        if (prescription.patientName) filledFields.push('patient name');
-        if (prescription.doctorName) filledFields.push('doctor name');
-        if (prescription.medications?.length) filledFields.push(`${prescription.medications.length} medication(s)`);
-        if (prescription.diagnosis) filledFields.push('diagnosis');
-        if (prescription.notes) filledFields.push('clinical notes');
-        
-        toast.success(`✅ Complex Voice Command Processed - Updated: ${filledFields.join(', ')}${clearForm ? ' (form cleared first)' : ''}`);
-      }
-      
-      // Handle search criteria for patient lookup
-      if (searchCriteria) {
-        console.log('🔍 Processing search criteria:', searchCriteria);
-        
-        // Forward enhanced search criteria to patient search
-        const enhancedSearchEvent = new CustomEvent('voice-search', {
-          detail: {
-            query: searchCriteria.patientName,
-            autoSelect: searchCriteria.autoSelect,
-            switchToExisting: searchCriteria.switchToExisting
-          }
-        });
-        window.dispatchEvent(enhancedSearchEvent);
-      }
-    };
-
-    const handleVoiceClearForm = () => {
-      setPrescriptionData({
-        doctorName: '',
-        patientName: '',
-        age: 0,
-        gender: '',
-        contact: '',
-        temperature: 98.6,
-        bp: '',
-        medications: [{ name: '', dosage: '', frequency: '', duration: '' }],
-        diagnosis: '',
-        notes: '',
-        followUpDate: ''
-      });
-      toast.success("✅ Form Cleared - All prescription data has been cleared");
-    };
-
-    const handleVoiceDownloadPdf = () => {
-      // Trigger the PDF download if form has data
-      if (prescriptionData.patientName && prescriptionData.doctorName) {
-        const downloadEvent = new CustomEvent('download-pdf', {
-          detail: { type: 'prescription' }
-        });
-        window.dispatchEvent(downloadEvent);
-      } else {
-        toast.error("Cannot Download PDF - Please fill in patient and doctor information first");
-      }
-    };
-
-    // Enhanced voice search handler
-    const handleVoiceSearch = (event: CustomEvent) => {
-      const { query, autoSelect, switchToExisting } = event.detail;
-      console.log('🎤 Enhanced voice search command received:', event.detail);
-      
-      // Forward enhanced search to EnhancedPrescriptionForm
-      const enhancedSearchEvent = new CustomEvent('voice-search', {
-        detail: { 
-          query,
-          autoSelect,
-          switchToExisting
-        }
-      });
-      window.dispatchEvent(enhancedSearchEvent);
-    };
-
-    // Listen for voice commands
-    window.addEventListener('voice-fill-form', handleVoiceFillForm as EventListener);
-    window.addEventListener('voice-clear-form', handleVoiceClearForm);
-    window.addEventListener('voice-download-pdf', handleVoiceDownloadPdf);
-    window.addEventListener('voice-search', handleVoiceSearch as EventListener);
-
-    return () => {
-      window.removeEventListener('voice-fill-form', handleVoiceFillForm as EventListener);
-      window.removeEventListener('voice-clear-form', handleVoiceClearForm);
-      window.removeEventListener('voice-download-pdf', handleVoiceDownloadPdf);
-      window.removeEventListener('voice-search', handleVoiceSearch as EventListener);
-    };
-  }, [prescriptionData]);
-
-  const analyzePrescriptionWithLyzr = async (data: PrescriptionData) => {
-    console.log('Resolving medicine names...');
-    const resolvedMedications = await Promise.all(
-      data.medications
-        .filter(med => med.name.trim())
-        .map(async (med) => {
-          try {
-            const resolution = await tavilyService.resolveMedicineName(med.name);
-            return {
-              originalName: med.name,
-              genericName: resolution.genericName,
-              activeIngredients: resolution.activeIngredients,
-              confidence: resolution.confidence,
-              dosage: med.dosage,
-              frequency: med.frequency,
-              duration: med.duration
-            };
-          } catch (error) {
-            return { 
-              originalName: med.name,
-              genericName: med.name, 
-              activeIngredients: [med.name], 
-              confidence: 0.3,
-              dosage: med.dosage,
-              frequency: med.frequency,
-              duration: med.duration
-            };
-          }
-        })
-    );
-
-    const medicationDetails = resolvedMedications
-      .map(med => `${med.genericName} (originally entered as: ${med.originalName}) - ${med.dosage} ${med.frequency} for ${med.duration}`)
-      .join(', ');
-
-    console.log('Medications being sent to AI analysis:', resolvedMedications.map(med => ({
-      generic: med.genericName,
-      original: med.originalName,
-      dosage: med.dosage,
-      frequency: med.frequency
-    })));
-
-    const analysisPrompt = `Analyze this prescription for drug interactions, adverse reactions, dosage validation, and provide specific alternative medications.
-
-IMPORTANT: Analyze the GENERIC NAMES ONLY for accurate medical interactions. The original branded names are provided for reference only.
-
-Patient Information:
-- Name: ${data.patientName}
-- Age: ${data.age}
-- Gender: ${data.gender}
-- Temperature: ${data.temperature}°F
-- Blood Pressure: ${data.bp}
-
-Current Diagnosis: ${data.diagnosis}
-
-Medications to Analyze (USE GENERIC NAMES):
-${medicationDetails}
-
-Active Ingredients Summary:
-${resolvedMedications.map(med => `${med.genericName}: ${med.activeIngredients.join(', ')}`).join('\n')}
-
-Underlying Medical Conditions/Clinical Notes: ${data.notes}
-
-Please provide a comprehensive analysis based on the GENERIC DRUG NAMES and active ingredients including:
-1. Drug-drug interactions (analyze interactions between the GENERIC medications)
-2. Potential adverse reactions based on patient profile
-3. Dosage validation for each GENERIC medication
-4. Overall risk assessment (Low/Medium/High)
-5. Clinical recommendations
-6. ALTERNATIVE MEDICATIONS: For any medication with HIGH or MEDIUM risk, suggest specific alternative GENERIC medicine names that would be safer and not interact with other prescribed medications
-
-CRITICAL: Base all analysis on the generic drug names and active ingredients, not the branded names.
-
-Format the response as JSON with the following structure:
-{
-  "drugInteractions": [{"medications": [], "severity": "", "description": ""}],
-  "adverseReactions": [{"medication": "", "reaction": "", "likelihood": "", "patientRisk": ""}],
-  "dosageValidation": [{"medication": "", "status": "", "recommendation": ""}],
-  "overallRisk": "",
-  "recommendations": [],
-  "alternatives": [{"originalMedication": "", "riskLevel": "", "alternativeMedicines": [], "reasoning": ""}],
-  "medicationResolutions": [{"originalName": "", "genericName": "", "activeIngredients": []}]
-}`;
+  const analyzeLabReports = async (files: File[]): Promise<string> => {
+    if (files.length === 0) return '';
 
     try {
-      const response = await fetch('https://agent-prod.studio.lyzr.ai/v3/inference/chat/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': 'sk-default-AsQXLZ1TMDXuZxqud7PGl6ae7Q5Gs5UX'
-        },
-        body: JSON.stringify({
-          user_id: "ibrahimshaheer75@gmail.com",
-          agent_id: "68401a5c0ff8ffe17f2c0aab",
-          session_id: "68401a5c0ff8ffe17f2c0aab-zzfkwq1hb0s",
-          message: analysisPrompt
-        })
+      const analysisPromises = files.map(async (file) => {
+        const base64 = await fileToBase64(file);
+        
+        const response = await fetch('/api/analyze-lab-report', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            image: base64,
+            mimeType: file.type
+          })
+        });
+
+        if (!response.ok) throw new Error('Failed to analyze lab report');
+        
+        const result = await response.json();
+        return `${file.name}: ${result.analysis}`;
       });
 
-      if (!response.ok) {
-        throw new Error(`API request failed with status ${response.status}`);
-      }
-
-      const result = await response.json();
-      console.log('Lyzr API Response:', result);
-
-      let analysisData;
-      try {
-        const messageContent = result.response || result.message || result.content || '';
-        analysisData = JSON.parse(messageContent);
-      } catch (parseError) {
-        console.log('Failed to parse JSON response, using fallback analysis');
-        analysisData = generateMockAnalysis(data, resolvedMedications);
-      }
-
-      analysisData.medicationResolutions = resolvedMedications.map(med => ({
-        originalName: med.originalName,
-        genericName: med.genericName,
-        activeIngredients: med.activeIngredients,
-        confidence: med.confidence
-      }));
-
-      if (analysisData.drugInteractions && analysisData.drugInteractions.length > 0) {
-        console.log('Validating drug interactions...');
-        setIsValidating(true);
-        
-        const validatedInteractions = await Promise.all(
-          analysisData.drugInteractions.map(async (interaction: any) => {
-            try {
-              const validation = await tavilyService.validateADRPrediction(
-                interaction.medications.join(' + '),
-                interaction.description
-              );
-              return {
-                ...interaction,
-                validated: validation.validated,
-                confidence: validation.confidence,
-                sources: validation.sources,
-                additionalInfo: validation.additionalInfo
-              };
-            } catch (error) {
-              return { ...interaction, validated: false, confidence: 0 };
-            }
-          })
-        );
-        
-        analysisData.drugInteractions = validatedInteractions;
-        setIsValidating(false);
-      }
-
-      return analysisData;
+      const analyses = await Promise.all(analysisPromises);
+      return analyses.join('\n\n');
     } catch (error) {
-      console.error('Lyzr API Error:', error);
-      return generateMockAnalysis(data, resolvedMedications);
+      console.error('Error analyzing lab reports:', error);
+      return 'Error analyzing lab reports';
     }
   };
 
-  const generateMockAnalysis = (data: PrescriptionData, resolvedMedications: any[]) => {
-    const genericNames = resolvedMedications.map(med => med.genericName.toLowerCase());
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const result = reader.result as string;
+        resolve(result.split(',')[1]);
+      };
+      reader.onerror = reject;
+    });
+  };
 
-    console.log('Generating mock analysis for generic medications:', genericNames);
-
-    const drugInteractions = [];
-    const adverseReactions = [];
-    const alternatives = [];
-
-    genericNames.forEach((genericName, index) => {
-      const originalMed = resolvedMedications[index];
-      
-      if (genericName.includes('amoxicillin')) {
-        adverseReactions.push({
-          medication: originalMed.genericName,
-          reaction: 'Gastrointestinal upset, allergic reactions including rash',
-          likelihood: 'Medium',
-          patientRisk: 'Monitor for allergic reactions and GI disturbances'
-        });
-        
-        alternatives.push({
-          originalMedication: originalMed.genericName,
-          riskLevel: 'Medium',
-          alternativeMedicines: ['Cefdinir', 'Clindamycin', 'Azithromycin'],
-          reasoning: 'Alternative antibiotics with different mechanisms and potentially fewer GI side effects'
-        });
+  const extractInfoFromConsultationNotes = (notes: string) => {
+    // Simple extraction logic - in production, you'd use more sophisticated NLP
+    const extractedData = { ...data };
+    
+    // Extract diagnosis
+    if (notes.toLowerCase().includes('diagnosis:')) {
+      const diagnosisMatch = notes.match(/diagnosis:\s*([^\n\r.]+)/i);
+      if (diagnosisMatch) {
+        extractedData.diagnosis = diagnosisMatch[1].trim();
       }
+    }
 
-      if (genericName.includes('verapamil')) {
-        adverseReactions.push({
-          medication: originalMed.genericName,
-          reaction: 'Hypotension, dizziness, constipation, bradycardia',
-          likelihood: 'Medium',
-          patientRisk: 'Monitor blood pressure and heart rate closely'
-        });
-
-        alternatives.push({
-          originalMedication: originalMed.genericName,
-          riskLevel: 'Medium',
-          alternativeMedicines: ['Amlodipine', 'Nifedipine', 'Lisinopril'],
-          reasoning: 'Alternative antihypertensives with better tolerability profiles and fewer drug interactions'
-        });
+    // Extract symptoms for clinical notes
+    if (notes.toLowerCase().includes('symptoms:') || notes.toLowerCase().includes('complaint:')) {
+      const symptomsMatch = notes.match(/(symptoms|complaint):\s*([^\n\r.]+)/i);
+      if (symptomsMatch) {
+        extractedData.notes = extractedData.notes + '\nSymptoms: ' + symptomsMatch[2].trim();
       }
+    }
 
-      if (genericName.includes('digoxin')) {
-        adverseReactions.push({
-          medication: originalMed.genericName,
-          reaction: 'Nausea, vomiting, confusion, arrhythmias',
-          likelihood: 'Medium',
-          patientRisk: 'Monitor for signs of toxicity'
-        });
-        
-        alternatives.push({
-          originalMedication: originalMed.genericName,
-          riskLevel: 'Medium',
-          alternativeMedicines: ['Metoprolol', 'Carvedilol', 'Atenolol'],
-          reasoning: 'Beta-blockers may provide similar cardiovascular benefits with lower toxicity risk'
-        });
+    // Extract recommended tests
+    const testKeywords = ['blood test', 'x-ray', 'mri', 'ct scan', 'ultrasound', 'ecg', 'cbc', 'lipid profile'];
+    testKeywords.forEach(keyword => {
+      if (notes.toLowerCase().includes(keyword) && !extractedData.recommendedTests.includes(keyword)) {
+        extractedData.recommendedTests.push(keyword.toUpperCase());
       }
     });
 
-    const hasAmoxicillin = genericNames.some(name => name.includes('amoxicillin'));
-    const hasVerapamil = genericNames.some(name => name.includes('verapamil'));
-    const hasDigoxin = genericNames.some(name => name.includes('digoxin'));
+    return extractedData;
+  };
 
-    if (hasAmoxicillin && hasVerapamil) {
-      drugInteractions.push({
-        medications: ['Amoxicillin/Clavulanate', 'Verapamil'],
-        severity: 'Medium',
-        description: 'Verapamil may increase serum levels of Amoxicillin by reducing renal clearance, potentially increasing risk of side effects'
-      });
+  const handleConsultationNotesChange = (newData: PrescriptionData) => {
+    // Auto-extract information when consultation notes change
+    if (newData.consultationNotes !== data.consultationNotes) {
+      const extractedData = extractInfoFromConsultationNotes(newData.consultationNotes);
+      setData(extractedData);
+    } else {
+      setData(newData);
     }
+  };
 
-    if (hasDigoxin && hasVerapamil) {
-      drugInteractions.push({
-        medications: ['Digoxin', 'Verapamil'],
-        severity: 'High',
-        description: 'Verapamil significantly increases digoxin levels, increasing risk of digoxin toxicity'
-      });
+  const handleLabReportsChange = async (newData: PrescriptionData) => {
+    setData(newData);
+    
+    // Analyze lab reports when they're uploaded
+    if (newData.labReports.length > 0 && newData.labReports.length !== data.labReports.length) {
+      const analysis = await analyzeLabReports(newData.labReports);
+      setData(prev => ({ ...prev, labAnalysis: analysis }));
     }
-
-    const dosageValidation = resolvedMedications.map(med => ({
-      medication: med.genericName,
-      status: 'Appropriate',
-      recommendation: `Dosage of ${med.dosage} ${med.frequency} appears within normal range for ${med.genericName}`
-    }));
-
-    let overallRisk = 'Low';
-    if (drugInteractions.some(interaction => interaction.severity === 'High') || 
-        alternatives.some(alt => alt.riskLevel === 'High')) {
-      overallRisk = 'High';
-    } else if (drugInteractions.some(interaction => interaction.severity === 'Medium') || 
-               alternatives.some(alt => alt.riskLevel === 'Medium')) {
-      overallRisk = 'Medium';
-    }
-
-    const recommendations = [
-      'Monitor patient response to prescribed medications',
-      'Schedule follow-up appointment as indicated',
-      'Educate patient about potential side effects',
-      'Analysis based on resolved generic drug names for accuracy'
-    ];
-
-    if (alternatives.length > 0) {
-      recommendations.unshift('Consider alternative medications due to identified risks');
-    }
-
-    return {
-      drugInteractions,
-      adverseReactions,
-      dosageValidation,
-      overallRisk,
-      recommendations,
-      alternatives,
-      medicationResolutions: resolvedMedications.map(med => ({
-        originalName: med.originalName,
-        genericName: med.genericName,
-        activeIngredients: med.activeIngredients,
-        confidence: med.confidence
-      }))
-    };
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!prescriptionData.patientName || !prescriptionData.doctorName) {
-      toast.error("Validation Error - Please fill in required patient and doctor information.");
-      return;
-    }
+    if (!user || !profile) return;
 
-    if (prescriptionData.medications.some(med => !med.name)) {
-      toast.error("Validation Error - Please specify all medication names.");
-      return;
-    }
-
-    setIsAnalyzing(true);
+    setIsSubmitting(true);
     
     try {
-      // Save prescription to database first
-      console.log('Saving prescription to database...');
-      const savedPrescription = await savePrescription(prescriptionData);
-      setCurrentPrescriptionId(savedPrescription.id);
-      
-      toast.success("Prescription Saved - Prescription has been saved successfully.");
+      // Validate required fields
+      if (!data.patientName || !data.doctorName) {
+        toast({
+          title: "Missing Information",
+          description: "Patient name and doctor name are required",
+          variant: "destructive"
+        });
+        return;
+      }
 
-      // Then perform AI analysis
-      console.log('Starting AI analysis...');
-      const analysisResult = await analyzePrescriptionWithLyzr(prescriptionData);
+      // Save prescription with all new fields
+      const prescriptionData = {
+        ...data,
+        medications: data.medications.filter(med => med.name.trim() !== ''),
+        doctorName: profile.full_name || data.doctorName
+      };
+
+      const prescription = await savePrescription(prescriptionData);
       
-      // Save AI analysis to database
-      console.log('Saving AI analysis to database...');
-      await saveAIAnalysis(savedPrescription.id, analysisResult);
+      toast({
+        title: "Success",
+        description: "Prescription saved successfully!",
+      });
+
+      // Reset form
+      setData({
+        doctorName: profile.full_name || '',
+        patientName: '',
+        age: 0,
+        gender: '',
+        contact: '',
+        temperature: null,
+        bp: '',
+        medications: [{ name: '', dosage: '', frequency: '', duration: '' }],
+        diagnosis: '',
+        notes: '',
+        consultationNotes: '',
+        recommendedTests: [],
+        labReports: [],
+        labAnalysis: '',
+        followUpDate: '',
+        isFollowUp: false,
+        originalPrescriptionId: ''
+      });
       
-      setAnalysis(analysisResult);
-      setIsAnalyzing(false);
-      toast.success("Analysis Complete - AI analysis completed and saved successfully.");
+      setShowAIAnalysis(false);
     } catch (error) {
-      console.error('Analysis error:', error);
-      setIsAnalyzing(false);
-      toast.error("Analysis Failed - Unable to complete AI analysis. Please try again.");
+      console.error('Error saving prescription:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save prescription",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
+  const handleConsultationComplete = (consultationData: any) => {
+    setData(prev => ({
+      ...prev,
+      consultationNotes: consultationData.transcript || '',
+      diagnosis: consultationData.diagnosis || prev.diagnosis,
+      notes: consultationData.summary || prev.notes
+    }));
+    
+    // Extract additional information from consultation
+    const extractedData = extractInfoFromConsultationNotes(consultationData.transcript || '');
+    setData(prev => ({ ...prev, ...extractedData }));
+  };
+
   return (
-    <div className="space-y-8 lg:space-y-16">
-      {/* AI Consultation Recorder Toggle */}
-      <Card className="border-0 bg-gradient-to-r from-purple-50 to-blue-50 backdrop-blur-xl shadow-lg rounded-xl">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl">
-                <Mic className="h-5 w-5 text-white" />
-              </div>
-              <div>
-                <h3 className="font-medium text-gray-900">AI Consultation Recorder</h3>
-                <p className="text-sm text-gray-600">Record consultation and auto-fill prescription with AI</p>
-              </div>
-            </div>
-            <Button
-              onClick={() => setShowConsultationRecorder(!showConsultationRecorder)}
-              variant={showConsultationRecorder ? "default" : "outline"}
-              className={showConsultationRecorder ? 
-                "bg-gradient-to-r from-purple-500 to-purple-600" : ""
-              }
-            >
-              {showConsultationRecorder ? "Hide Recorder" : "Show Recorder"}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4 lg:p-8">
+      <div className="max-w-4xl mx-auto space-y-8">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-4">
+            AI-Powered Prescription System
+          </h1>
+          <p className="text-gray-600 text-lg">
+            Create comprehensive prescriptions with AI assistance
+          </p>
+        </div>
 
-      {/* Consultation Recorder */}
-      {showConsultationRecorder && (
-        <ConsultationRecorder
-          onTranscriptComplete={handleConsultationComplete}
-        />
-      )}
+        <form onSubmit={handleSubmit} className="space-y-8">
+          <EnhancedPrescriptionForm data={data} onChange={setData}>
+            {/* Voice Recording */}
+            <ConsultationRecorder onConsultationComplete={handleConsultationComplete} />
+            
+            {/* Consultation Notes - New dedicated section */}
+            <ConsultationNotesSection 
+              data={data} 
+              onChange={handleConsultationNotesChange} 
+            />
+            
+            {/* Patient Information */}
+            <PatientInfo data={data} onChange={setData} />
+            
+            {/* Vital Signs */}
+            <VitalSigns data={data} onChange={setData} />
+            
+            {/* Medications */}
+            <EnhancedMedicationList data={data} onChange={setData} />
+            
+            {/* Recommended Tests - New section */}
+            <RecommendedTestsSection data={data} onChange={setData} />
+            
+            {/* Lab Reports - New section */}
+            <LabReportsSection data={data} onChange={handleLabReportsChange} />
+            
+            {/* Follow-up Information - New section */}
+            <FollowUpSection data={data} onChange={setData} />
 
-      <form onSubmit={handleSubmit} className="space-y-8 lg:space-y-16">
-        <EnhancedPrescriptionForm 
-          data={prescriptionData} 
-          onChange={setPrescriptionData}
-        >
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-12">
-            <div className="space-y-6 lg:space-y-12">
-              <VitalSigns 
-                data={prescriptionData} 
-                onChange={setPrescriptionData} 
+            {/* AI Analysis */}
+            {showAIAnalysis && (
+              <AIAnalysisSection 
+                prescriptionData={data}
+                onAnalysisComplete={(analysis) => {
+                  saveAIAnalysis(analysis.prescriptionId, analysis);
+                }}
               />
-            </div>
-          </div>
-          
-          {/* Diagnosis Section */}
-          <Card className="border-0 bg-white/40 backdrop-blur-xl shadow-lg shadow-gray-900/5 rounded-xl lg:rounded-2xl ring-1 ring-white/20 relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-blue-50/10 rounded-xl lg:rounded-2xl pointer-events-none"></div>
-            <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
-            
-            <CardHeader className="pb-4 lg:pb-6 relative">
-              <CardTitle className="flex items-center space-x-3 lg:space-x-6">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl opacity-20 blur-lg"></div>
-                  <div className="relative p-2 lg:p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
-                    <Stethoscope className="h-4 w-4 lg:h-6 lg:w-6 text-white" />
-                  </div>
-                </div>
-                <span className="text-lg lg:text-2xl xl:text-3xl font-medium text-gray-900 tracking-wide">Diagnosis</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6 lg:space-y-8 p-4 lg:p-6 pt-0 relative">
-              <div className="space-y-2">
-                <label className="block text-sm lg:text-lg font-medium text-gray-900 mb-3 tracking-wide">
-                  Current Diagnosis *
-                </label>
-                <div className="relative">
-                  <textarea
-                    value={prescriptionData.diagnosis}
-                    onChange={(e) => setPrescriptionData({
-                      ...prescriptionData,
-                      diagnosis: e.target.value
-                    })}
-                    className="w-full p-4 lg:p-6 border-0 bg-white/60 backdrop-blur-sm rounded-xl focus:ring-2 focus:ring-[#cb6ce6]/30 focus:outline-none transition-all duration-300 text-gray-700 placeholder-gray-400 shadow-inner ring-1 ring-white/30 text-base leading-relaxed resize-none"
-                    rows={3}
-                    placeholder="Enter the current medical diagnosis for this visit (e.g., Acute bronchitis, Type 2 diabetes mellitus, Essential hypertension)..."
-                    required
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent rounded-xl pointer-events-none"></div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <EnhancedMedicationList 
-            data={prescriptionData} 
-            onChange={setPrescriptionData} 
-          />
-
-          <Card className="border-0 bg-white/40 backdrop-blur-xl shadow-lg shadow-gray-900/5 rounded-xl lg:rounded-2xl ring-1 ring-white/20 relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-purple-50/10 rounded-xl lg:rounded-2xl pointer-events-none"></div>
-            <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
-            
-            <CardHeader className="pb-4 lg:pb-6 relative">
-              <CardTitle className="flex items-center space-x-3 lg:space-x-6">
-                <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl opacity-20 blur-lg"></div>
-                  <div className="relative p-2 lg:p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg">
-                    <AlertCircle className="h-4 w-4 lg:h-6 lg:w-6 text-white" />
-                  </div>
-                </div>
-                <span className="text-lg lg:text-2xl xl:text-3xl font-medium text-gray-900 tracking-wide">Clinical Notes & Underlying Conditions</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6 lg:space-y-8 p-4 lg:p-6 pt-0 relative">
-              <div className="space-y-2">
-                <label className="block text-sm lg:text-lg font-medium text-gray-900 mb-3 tracking-wide">
-                  Underlying Medical Conditions & Additional Observations
-                </label>
-                <div className="relative">
-                  <textarea
-                    value={prescriptionData.notes}
-                    onChange={(e) => setPrescriptionData({
-                      ...prescriptionData,
-                      notes: e.target.value
-                    })}
-                    className="w-full p-4 lg:p-6 border-0 bg-white/60 backdrop-blur-sm rounded-xl focus:ring-2 focus:ring-[#cb6ce6]/30 focus:outline-none transition-all duration-300 text-gray-700 placeholder-gray-400 shadow-inner ring-1 ring-white/30 text-base leading-relaxed resize-none"
-                    rows={4}
-                    placeholder="Enter underlying conditions (e.g., hypertension, diabetes), patient concerns, allergies, or additional clinical observations..."
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent rounded-xl pointer-events-none"></div>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="block text-sm lg:text-lg font-medium text-gray-900 mb-3 tracking-wide">
-                  Follow-up Appointment
-                </label>
-                <div className="relative">
-                  <input
-                    type="date"
-                    value={prescriptionData.followUpDate}
-                    onChange={(e) => setPrescriptionData({
-                      ...prescriptionData,
-                      followUpDate: e.target.value
-                    })}
-                    className="w-full p-4 lg:p-6 border-0 bg-white/60 backdrop-blur-sm rounded-xl focus:ring-2 focus:ring-[#cb6ce6]/30 focus:outline-none transition-all duration-300 text-gray-700 shadow-inner ring-1 ring-white/30 text-base"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent rounded-xl pointer-events-none"></div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Prescription Actions */}
-          <div className="flex flex-col sm:flex-row justify-center items-center gap-4 pt-8 lg:pt-12">
-            {/* Prescription PDF Export - Available after form is filled */}
-            {prescriptionData.patientName && prescriptionData.doctorName && prescriptionData.medications.some(med => med.name) && (
-              <PrescriptionPDFExport prescriptionData={prescriptionData} />
             )}
-            
-            {/* AI Analysis Button */}
-            <div className="relative group w-full max-w-md lg:max-w-lg">
-              <div className="absolute inset-0 bg-gradient-to-r from-[#cb6ce6] via-[#b84fd9] to-[#9c4bc7] rounded-xl lg:rounded-2xl blur-xl lg:blur-2xl opacity-30 group-hover:opacity-50 transition-all duration-700 transform scale-105 lg:scale-110"></div>
-              <div className="absolute inset-0 bg-gradient-to-r from-[#cb6ce6] via-[#b84fd9] to-[#9c4bc7] rounded-xl lg:rounded-2xl blur-lg opacity-40 group-hover:opacity-60 transition-all duration-700 transform scale-102 lg:scale-105"></div>
+
+            {/* Submit Section */}
+            <div className="flex flex-col sm:flex-row gap-4 pt-6">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowAIAnalysis(!showAIAnalysis)}
+                className="flex-1 bg-white/60 backdrop-blur-sm"
+                disabled={isSubmitting}
+              >
+                {showAIAnalysis ? 'Hide' : 'Show'} AI Analysis
+              </Button>
               
               <Button
                 type="submit"
-                disabled={isAnalyzing || isValidating}
-                className="relative w-full px-8 lg:px-16 py-4 lg:py-6 bg-gradient-to-r from-[#cb6ce6] via-[#b84fd9] to-[#9c4bc7] text-white text-base lg:text-lg xl:text-xl font-medium rounded-xl lg:rounded-2xl shadow-xl lg:shadow-2xl shadow-purple-500/25 hover:shadow-2xl lg:hover:shadow-3xl hover:shadow-purple-500/35 transform hover:scale-[1.02] transition-all duration-700 border-0 disabled:opacity-50 disabled:transform-none ring-1 ring-white/20 backdrop-blur-sm tracking-wide min-h-[48px] lg:min-h-[64px]"
+                disabled={isSubmitting}
+                className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg"
               >
-                {isAnalyzing ? (
-                  <>
-                    <Brain className="h-5 w-5 lg:h-6 lg:w-6 mr-3 lg:mr-4 animate-pulse" />
-                    Analyzing Prescription...
-                  </>
-                ) : isValidating ? (
-                  <>
-                    <Search className="h-5 w-5 lg:h-6 lg:w-6 mr-3 lg:mr-4 animate-pulse" />
-                    Validating Results...
-                  </>
-                ) : (
-                  <>
-                    <Zap className="h-5 w-5 lg:h-6 lg:w-6 mr-3 lg:mr-4" />
-                    Analyze with AI
-                  </>
-                )}
-                
-                <div className="absolute inset-0 bg-gradient-to-r from-white/15 via-white/8 to-white/5 rounded-xl lg:rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
-                <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/40 to-transparent group-hover:opacity-100 opacity-0 transition-opacity duration-700"></div>
+                {isSubmitting ? 'Saving...' : 'Save Prescription'}
               </Button>
             </div>
-          </div>
-        </EnhancedPrescriptionForm>
-      </form>
-
-      {/* AI Analysis Section - Separated from prescription */}
-      {analysis && (
-        <div className="border-t border-gray-200/50 pt-8 lg:pt-16">
-          <AIAnalysis analysis={analysis} prescriptionData={prescriptionData} />
-        </div>
-      )}
+          </EnhancedPrescriptionForm>
+        </form>
+      </div>
     </div>
   );
 };

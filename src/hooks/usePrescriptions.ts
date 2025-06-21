@@ -17,6 +17,10 @@ export interface Prescription {
   diagnosis: string | null;
   notes: string | null;
   follow_up_date: string | null;
+  consultation_notes: string | null;
+  recommended_tests: string | null;
+  lab_reports: any[];
+  lab_analysis: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -205,7 +209,17 @@ export const usePrescriptions = () => {
     if (!user) throw new Error('User not authenticated');
 
     try {
-      // Save prescription first
+      // Convert File objects to base64 for storage
+      const labReportsData = await Promise.all(
+        prescriptionData.labReports.map(async (file: File) => ({
+          name: file.name,
+          type: file.type,
+          size: file.size,
+          data: await fileToBase64(file)
+        }))
+      );
+
+      // Save prescription with new fields
       const { data: prescription, error: prescriptionError } = await supabase
         .from('prescriptions')
         .insert({
@@ -220,12 +234,31 @@ export const usePrescriptions = () => {
           medications: prescriptionData.medications,
           diagnosis: prescriptionData.diagnosis,
           notes: prescriptionData.notes,
+          consultation_notes: prescriptionData.consultationNotes,
+          recommended_tests: prescriptionData.recommendedTests,
+          lab_reports: labReportsData,
+          lab_analysis: prescriptionData.labAnalysis,
           follow_up_date: prescriptionData.followUpDate || null
         })
         .select()
         .single();
 
       if (prescriptionError) throw prescriptionError;
+
+      // Handle follow-up prescription relationship
+      if (prescriptionData.isFollowUp && prescriptionData.originalPrescriptionId) {
+        const { error: followUpError } = await supabase
+          .from('follow_up_prescriptions')
+          .insert({
+            original_prescription_id: prescriptionData.originalPrescriptionId,
+            follow_up_prescription_id: prescription.id,
+            notes: `Follow-up prescription created`
+          });
+
+        if (followUpError) {
+          console.error('Error creating follow-up relationship:', followUpError);
+        }
+      }
 
       // Create or find patient
       const patient = await findOrCreatePatient(prescriptionData);
@@ -243,6 +276,18 @@ export const usePrescriptions = () => {
       console.error('Error saving prescription:', error);
       throw error;
     }
+  };
+
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const result = reader.result as string;
+        resolve(result.split(',')[1]);
+      };
+      reader.onerror = reject;
+    });
   };
 
   const saveAIAnalysis = async (prescriptionId: string, analysisData: any) => {
@@ -350,6 +395,24 @@ export const usePrescriptions = () => {
     }
   };
 
+  const getFollowUpPrescriptions = async (originalPrescriptionId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('follow_up_prescriptions')
+        .select(`
+          *,
+          prescriptions!follow_up_prescriptions_follow_up_prescription_id_fkey (*)
+        `)
+        .eq('original_prescription_id', originalPrescriptionId);
+
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching follow-up prescriptions:', error);
+      return [];
+    }
+  };
+
   useEffect(() => {
     if (user && profile) {
       fetchPrescriptions();
@@ -367,6 +430,7 @@ export const usePrescriptions = () => {
     saveAIAnalysis,
     getAIAnalysis,
     saveConsultationNotes,
+    getFollowUpPrescriptions,
     fetchPrescriptions,
     fetchPatients,
     fetchPatientVisits

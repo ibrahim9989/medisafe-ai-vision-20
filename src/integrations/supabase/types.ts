@@ -66,7 +66,9 @@ export type Database = {
           doctor_id: string | null
           follow_up_instructions: Json | null
           id: string
+          lab_analysis: string | null
           patient_id: string | null
+          recommended_tests: Json | null
           summary: string | null
           transcript: string
           updated_at: string
@@ -80,7 +82,9 @@ export type Database = {
           doctor_id?: string | null
           follow_up_instructions?: Json | null
           id?: string
+          lab_analysis?: string | null
           patient_id?: string | null
+          recommended_tests?: Json | null
           summary?: string | null
           transcript: string
           updated_at?: string
@@ -94,7 +98,9 @@ export type Database = {
           doctor_id?: string | null
           follow_up_instructions?: Json | null
           id?: string
+          lab_analysis?: string | null
           patient_id?: string | null
+          recommended_tests?: Json | null
           summary?: string | null
           transcript?: string
           updated_at?: string
@@ -179,40 +185,94 @@ export type Database = {
         }
         Relationships: []
       }
+      follow_up_prescriptions: {
+        Row: {
+          created_at: string
+          follow_up_prescription_id: string
+          id: string
+          notes: string | null
+          original_prescription_id: string
+        }
+        Insert: {
+          created_at?: string
+          follow_up_prescription_id: string
+          id?: string
+          notes?: string | null
+          original_prescription_id: string
+        }
+        Update: {
+          created_at?: string
+          follow_up_prescription_id?: string
+          id?: string
+          notes?: string | null
+          original_prescription_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "follow_up_prescriptions_follow_up_prescription_id_fkey"
+            columns: ["follow_up_prescription_id"]
+            isOneToOne: false
+            referencedRelation: "prescriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "follow_up_prescriptions_original_prescription_id_fkey"
+            columns: ["original_prescription_id"]
+            isOneToOne: false
+            referencedRelation: "prescriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patient_visits: {
         Row: {
+          consultation_notes: string | null
           created_at: string
           diagnosis: string | null
           doctor_id: string
           id: string
+          is_follow_up: boolean | null
+          lab_reports: Json | null
           notes: string | null
+          original_visit_id: string | null
           patient_id: string
           prescription_id: string | null
           reason_for_visit: string | null
+          recommended_tests: Json | null
           updated_at: string
           visit_date: string
         }
         Insert: {
+          consultation_notes?: string | null
           created_at?: string
           diagnosis?: string | null
           doctor_id: string
           id?: string
+          is_follow_up?: boolean | null
+          lab_reports?: Json | null
           notes?: string | null
+          original_visit_id?: string | null
           patient_id: string
           prescription_id?: string | null
           reason_for_visit?: string | null
+          recommended_tests?: Json | null
           updated_at?: string
           visit_date?: string
         }
         Update: {
+          consultation_notes?: string | null
           created_at?: string
           diagnosis?: string | null
           doctor_id?: string
           id?: string
+          is_follow_up?: boolean | null
+          lab_reports?: Json | null
           notes?: string | null
+          original_visit_id?: string | null
           patient_id?: string
           prescription_id?: string | null
           reason_for_visit?: string | null
+          recommended_tests?: Json | null
           updated_at?: string
           visit_date?: string
         }
@@ -222,6 +282,13 @@ export type Database = {
             columns: ["doctor_id"]
             isOneToOne: false
             referencedRelation: "doctor_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "patient_visits_original_visit_id_fkey"
+            columns: ["original_visit_id"]
+            isOneToOne: false
+            referencedRelation: "patient_visits"
             referencedColumns: ["id"]
           },
           {
@@ -291,6 +358,7 @@ export type Database = {
         Row: {
           age: number
           bp: string | null
+          consultation_notes: string | null
           contact: string | null
           created_at: string
           diagnosis: string | null
@@ -298,9 +366,12 @@ export type Database = {
           follow_up_date: string | null
           gender: string
           id: string
+          lab_analysis: string | null
+          lab_reports: Json | null
           medications: Json
           notes: string | null
           patient_name: string
+          recommended_tests: Json | null
           temperature: number | null
           updated_at: string
           user_id: string
@@ -308,6 +379,7 @@ export type Database = {
         Insert: {
           age: number
           bp?: string | null
+          consultation_notes?: string | null
           contact?: string | null
           created_at?: string
           diagnosis?: string | null
@@ -315,9 +387,12 @@ export type Database = {
           follow_up_date?: string | null
           gender: string
           id?: string
+          lab_analysis?: string | null
+          lab_reports?: Json | null
           medications?: Json
           notes?: string | null
           patient_name: string
+          recommended_tests?: Json | null
           temperature?: number | null
           updated_at?: string
           user_id: string
@@ -325,6 +400,7 @@ export type Database = {
         Update: {
           age?: number
           bp?: string | null
+          consultation_notes?: string | null
           contact?: string | null
           created_at?: string
           diagnosis?: string | null
@@ -332,9 +408,12 @@ export type Database = {
           follow_up_date?: string | null
           gender?: string
           id?: string
+          lab_analysis?: string | null
+          lab_reports?: Json | null
           medications?: Json
           notes?: string | null
           patient_name?: string
+          recommended_tests?: Json | null
           temperature?: number | null
           updated_at?: string
           user_id?: string

@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -162,14 +161,14 @@ const PatientHistoryView = ({ patientHistory, onUpdatePatient }: PatientHistoryV
         </Card>
       )}
 
-      {/* Visit History */}
+      {/* Visit History with Enhanced Details */}
       <Card className="border-0 bg-white/40 backdrop-blur-xl shadow-lg rounded-xl">
         <CardHeader>
           <CardTitle className="flex items-center space-x-3">
             <div className="p-2 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl">
               <FileText className="h-5 w-5 text-white" />
             </div>
-            <span className="text-xl font-medium">Visit History</span>
+            <span className="text-xl font-medium">Enhanced Visit History</span>
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -182,32 +181,86 @@ const PatientHistoryView = ({ patientHistory, onUpdatePatient }: PatientHistoryV
                     <span className="font-medium">
                       {format(new Date(visit.visit_date), 'PPP')}
                     </span>
+                    {visit.is_follow_up && (
+                      <Badge variant="secondary" className="bg-orange-100 text-orange-700">
+                        Follow-up
+                      </Badge>
+                    )}
                   </div>
                   <Badge variant="outline" className="text-xs">
                     Visit #{visit.id.slice(-8)}
                   </Badge>
                 </div>
                 
-                {visit.diagnosis && (
-                  <div className="mb-2">
-                    <span className="text-sm font-medium text-gray-700">Diagnosis: </span>
-                    <span className="text-sm">{visit.diagnosis}</span>
-                  </div>
-                )}
-                
-                {visit.reason_for_visit && (
-                  <div className="mb-2">
-                    <span className="text-sm font-medium text-gray-700">Reason: </span>
-                    <span className="text-sm">{visit.reason_for_visit}</span>
-                  </div>
-                )}
-                
-                {visit.notes && (
+                {/* Enhanced visit details */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                   <div>
-                    <span className="text-sm font-medium text-gray-700">Notes: </span>
-                    <span className="text-sm">{visit.notes}</span>
+                    <span className="font-medium text-gray-700">Reason:</span>
+                    <p className="text-gray-600 mt-1">
+                      {visit.reason_for_visit || 'General consultation'}
+                    </p>
                   </div>
-                )}
+                  
+                  {visit.diagnosis && (
+                    <div>
+                      <span className="font-medium text-gray-700">Diagnosis:</span>
+                      <p className="text-gray-600 mt-1">{visit.diagnosis}</p>
+                    </div>
+                  )}
+                  
+                  {/* Consultation Notes */}
+                  {visit.consultation_notes && (
+                    <div className="md:col-span-2">
+                      <span className="font-medium text-gray-700">Consultation Notes:</span>
+                      <p className="text-gray-600 mt-1 text-xs bg-gray-50 p-2 rounded">
+                        {visit.consultation_notes}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {/* Recommended Tests */}
+                  {visit.recommended_tests && visit.recommended_tests.length > 0 && (
+                    <div className="md:col-span-2">
+                      <span className="font-medium text-gray-700">Recommended Tests:</span>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {visit.recommended_tests.map((test: string, index: number) => (
+                          <Badge key={index} variant="outline" className="text-xs">
+                            {test}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Lab Reports */}
+                  {visit.lab_reports && visit.lab_reports.length > 0 && (
+                    <div className="md:col-span-2">
+                      <span className="font-medium text-gray-700">Lab Reports:</span>
+                      <div className="mt-1">
+                        {visit.lab_reports.map((report: any, index: number) => (
+                          <Badge key={index} variant="secondary" className="mr-1 text-xs">
+                            {report.name}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Standard prescription info */}
+                  {visit.prescription_id && (
+                    <div className="md:col-span-2">
+                      <span className="font-medium text-gray-700">Medications:</span>
+                      {/* Keep existing medication display logic */}
+                    </div>
+                  )}
+                  
+                  {visit.notes && (
+                    <div className="md:col-span-2">
+                      <span className="font-medium text-gray-700">Additional Notes:</span>
+                      <p className="text-gray-600 mt-1">{visit.notes}</p>
+                    </div>
+                  )}
+                </div>
               </div>
             ))}
           </div>
