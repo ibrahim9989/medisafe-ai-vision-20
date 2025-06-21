@@ -16,18 +16,52 @@ const RecommendedTestsSection = ({ data, onChange }: RecommendedTestsSectionProp
   const [newTest, setNewTest] = useState('');
 
   const addTest = () => {
-    if (newTest.trim()) {
+    if (newTest.trim() && !data.recommendedTests.includes(newTest.trim())) {
+      const updatedTests = [...data.recommendedTests, newTest.trim()];
       onChange({
         ...data,
-        recommendedTests: [...data.recommendedTests, newTest.trim()]
+        recommendedTests: updatedTests
       });
       setNewTest('');
+      console.log('✅ Test added:', newTest.trim());
     }
   };
 
   const removeTest = (index: number) => {
     const updatedTests = data.recommendedTests.filter((_, i) => i !== index);
     onChange({ ...data, recommendedTests: updatedTests });
+    console.log('❌ Test removed at index:', index);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addTest();
+    }
+  };
+
+  // Common medical tests for quick selection
+  const commonTests = [
+    'Complete Blood Count (CBC)',
+    'Blood Sugar (Fasting)',
+    'Blood Pressure Check',
+    'Lipid Profile',
+    'Liver Function Test',
+    'Kidney Function Test',
+    'Thyroid Function Test',
+    'X-Ray Chest',
+    'ECG',
+    'Urine Analysis'
+  ];
+
+  const addCommonTest = (test: string) => {
+    if (!data.recommendedTests.includes(test)) {
+      const updatedTests = [...data.recommendedTests, test];
+      onChange({
+        ...data,
+        recommendedTests: updatedTests
+      });
+    }
   };
 
   return (
@@ -40,34 +74,77 @@ const RecommendedTestsSection = ({ data, onChange }: RecommendedTestsSectionProp
           <span className="text-xl font-medium">Recommended Tests</span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex gap-2">
-          <Input
-            value={newTest}
-            onChange={(e) => setNewTest(e.target.value)}
-            placeholder="Add recommended test (e.g., CBC, Blood Sugar, X-Ray)"
-            className="bg-white/60 border-white/30"
-            onKeyPress={(e) => e.key === 'Enter' && addTest()}
-          />
-          <Button onClick={addTest} size="sm">
-            <Plus className="h-4 w-4" />
-          </Button>
+      <CardContent className="space-y-6">
+        {/* Add New Test Input */}
+        <div className="space-y-3">
+          <label className="block text-sm font-medium text-gray-700">
+            Add Recommended Test
+          </label>
+          <div className="flex gap-2">
+            <Input
+              value={newTest}
+              onChange={(e) => setNewTest(e.target.value)}
+              placeholder="Enter test name (e.g., CBC, Blood Sugar, X-Ray)"
+              className="flex-1 bg-white/60 border-white/30"
+              onKeyPress={handleKeyPress}
+            />
+            <Button 
+              onClick={addTest} 
+              size="sm"
+              disabled={!newTest.trim()}
+              className="bg-green-600 hover:bg-green-700 text-white px-4"
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              Add
+            </Button>
+          </div>
         </div>
-        
-        <div className="flex flex-wrap gap-2">
-          {data.recommendedTests.map((test, index) => (
-            <Badge key={index} variant="secondary" className="bg-green-100 text-green-700">
-              {test}
+
+        {/* Common Tests Quick Add */}
+        <div className="space-y-3">
+          <label className="block text-sm font-medium text-gray-700">
+            Quick Add Common Tests
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {commonTests.map((test) => (
               <Button
-                variant="ghost"
+                key={test}
+                variant="outline"
                 size="sm"
-                onClick={() => removeTest(index)}
-                className="ml-1 h-4 w-4 p-0 hover:bg-red-100"
+                onClick={() => addCommonTest(test)}
+                disabled={data.recommendedTests.includes(test)}
+                className="text-xs bg-white/60 hover:bg-green-50 border-green-200"
               >
-                <X className="h-3 w-3" />
+                {test}
               </Button>
-            </Badge>
-          ))}
+            ))}
+          </div>
+        </div>
+
+        {/* Selected Tests Display */}
+        <div className="space-y-3">
+          <label className="block text-sm font-medium text-gray-700">
+            Selected Tests ({data.recommendedTests.length})
+          </label>
+          {data.recommendedTests.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {data.recommendedTests.map((test, index) => (
+                <Badge key={index} variant="secondary" className="bg-green-100 text-green-700 px-3 py-1">
+                  {test}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => removeTest(index)}
+                    className="ml-2 h-4 w-4 p-0 hover:bg-red-100"
+                  >
+                    <X className="h-3 w-3 text-red-500" />
+                  </Button>
+                </Badge>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-500 text-sm italic">No tests added yet. Use the input above to add recommended tests.</p>
+          )}
         </div>
       </CardContent>
     </Card>

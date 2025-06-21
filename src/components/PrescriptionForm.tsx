@@ -226,21 +226,38 @@ const PrescriptionForm = () => {
   };
 
   const handleConsultationComplete = (consultationData: any) => {
-    console.log('Consultation data received:', consultationData);
+    console.log('🎯 Consultation data received in PrescriptionForm:', consultationData);
     
-    setData(prev => ({
-      ...prev,
+    // Force update the form with new data
+    const updatedData = {
+      ...data,
       consultationNotes: consultationData.transcript || '',
-      diagnosis: consultationData.diagnosis || prev.diagnosis,
-      notes: consultationData.summary || prev.notes
-    }));
+      diagnosis: consultationData.diagnosis || data.diagnosis,
+      notes: consultationData.summary || data.notes,
+      patientName: consultationData.analysisData?.patientInfo?.name || data.patientName
+    };
+
+    // Extract medications if present
+    if (consultationData.analysisData?.treatmentPlan?.medications?.length > 0) {
+      const newMedications = consultationData.analysisData.treatmentPlan.medications.map((med: any) => ({
+        name: med.name || '',
+        dosage: med.dosage || '',
+        frequency: med.frequency || '',
+        duration: med.duration || ''
+      }));
+      updatedData.medications = [...newMedications, ...data.medications.slice(newMedications.length)];
+    }
+
+    console.log('🔄 Updating form with data:', updatedData);
+    setData(updatedData);
     
+    // Also extract additional info
     const extractedData = extractInfoFromConsultationNotes(consultationData.transcript || '');
     setData(prev => ({ ...prev, ...extractedData }));
 
     toast({
-      title: "Voice Consultation Complete",
-      description: "Consultation has been processed and form updated",
+      title: "✅ Voice Consultation Complete",
+      description: "Form has been updated with consultation data",
     });
   };
 

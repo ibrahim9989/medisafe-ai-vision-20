@@ -20,6 +20,7 @@ const ConsultationRecorder: React.FC<ConsultationRecorderProps> = ({
   const [isRecording, setIsRecording] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStatus, setProcessingStatus] = useState('');
+  const [lastTranscript, setLastTranscript] = useState('');
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
@@ -48,7 +49,7 @@ const ConsultationRecorder: React.FC<ConsultationRecorderProps> = ({
       
       mediaRecorder.start(1000);
       setIsRecording(true);
-      toast.success('Recording started');
+      toast.success('🎤 Recording started - speak now!');
       
     } catch (error) {
       console.error('Error starting recording:', error);
@@ -61,13 +62,13 @@ const ConsultationRecorder: React.FC<ConsultationRecorderProps> = ({
       mediaRecorderRef.current.stop();
       mediaRecorderRef.current.stream.getTracks().forEach(track => track.stop());
       setIsRecording(false);
-      toast.success('Recording stopped');
+      toast.success('🛑 Recording stopped');
     }
   };
 
   const processRecording = async () => {
     if (audioChunksRef.current.length === 0) {
-      toast.error('No audio recorded');
+      toast.error('No audio recorded. Please record some audio first.');
       return;
     }
 
@@ -76,13 +77,13 @@ const ConsultationRecorder: React.FC<ConsultationRecorderProps> = ({
 
     try {
       const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-      console.log('Audio blob size:', audioBlob.size);
+      console.log('🎵 Audio blob created, size:', audioBlob.size);
 
       if (audioBlob.size === 0) {
         throw new Error('No audio data recorded');
       }
 
-      setProcessingStatus('Converting audio...');
+      setProcessingStatus('Converting audio to base64...');
       const base64Audio = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => {
@@ -94,9 +95,9 @@ const ConsultationRecorder: React.FC<ConsultationRecorderProps> = ({
         reader.readAsDataURL(audioBlob);
       });
 
-      console.log('Base64 audio length:', base64Audio.length);
+      console.log('📝 Base64 audio length:', base64Audio.length);
 
-      setProcessingStatus('Getting doctor information...');
+      setProcessingStatus('Getting doctor profile...');
       const { data: doctorProfile, error: doctorError } = await supabase
         .from('doctor_profiles')
         .select('id')
@@ -107,8 +108,8 @@ const ConsultationRecorder: React.FC<ConsultationRecorderProps> = ({
         throw new Error('Doctor profile not found. Please complete your profile setup.');
       }
 
-      setProcessingStatus('Transcribing audio with AI...');
-      console.log('Calling consultation-transcript function...');
+      setProcessingStatus('🤖 Processing with AI...');
+      console.log('🚀 Calling consultation-transcript function...');
 
       const { data, error } = await supabase.functions.invoke('consultation-transcript', {
         body: {
@@ -119,11 +120,11 @@ const ConsultationRecorder: React.FC<ConsultationRecorderProps> = ({
       });
 
       if (error) {
-        console.error('Supabase function error:', error);
+        console.error('❌ Supabase function error:', error);
         throw new Error(error.message || 'Failed to process consultation');
       }
 
-      console.log('Consultation transcript result:', data);
+      console.log('✅ Consultation transcript result:', data);
 
       const consultationData = {
         transcript: data.transcript,
@@ -135,18 +136,24 @@ const ConsultationRecorder: React.FC<ConsultationRecorderProps> = ({
         analysisData: data.analysis_data
       };
 
+      // Store the transcript for display
+      setLastTranscript(data.transcript || 'No transcript generated');
+
+      // Call both callbacks if they exist
       if (onTranscriptComplete) {
+        console.log('📤 Calling onTranscriptComplete...');
         onTranscriptComplete(consultationData);
       }
 
       if (onConsultationComplete) {
+        console.log('📤 Calling onConsultationComplete...');
         onConsultationComplete(consultationData);
       }
 
-      toast.success('Consultation processed successfully!');
+      toast.success('✅ Consultation processed successfully!');
 
     } catch (error) {
-      console.error('Error processing consultation:', error);
+      console.error('💥 Error processing consultation:', error);
       toast.error(`Failed to process consultation: ${error.message}`);
     } finally {
       setIsProcessing(false);
@@ -217,8 +224,15 @@ const ConsultationRecorder: React.FC<ConsultationRecorderProps> = ({
           </div>
           
           {processingStatus && (
-            <div className="text-sm text-blue-600 bg-blue-50 p-3 rounded-lg">
+            <div className="text-sm text-blue-600 bg-blue-50 p-3 rounded-lg mb-4">
               {processingStatus}
+            </div>
+          )}
+
+          {lastTranscript && (
+            <div className="text-left bg-gray-50 p-4 rounded-lg border">
+              <h4 className="font-medium text-gray-700 mb-2">Last Transcript:</h4>
+              <p className="text-sm text-gray-600">{lastTranscript}</p>
             </div>
           )}
         </div>
