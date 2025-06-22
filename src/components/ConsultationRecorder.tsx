@@ -130,6 +130,8 @@ const ConsultationRecorder: React.FC<ConsultationRecorderProps> = ({
         transcript: data.transcript,
         summary: data.summary,
         diagnosis: data.diagnosis,
+        diagnosisDetails: data.diagnosis_details || '',
+        underlyingConditions: data.underlying_conditions || '',
         chiefComplaint: data.chief_complaint,
         actionItems: data.action_items,
         followUpInstructions: data.follow_up_instructions,
@@ -146,7 +148,7 @@ const ConsultationRecorder: React.FC<ConsultationRecorderProps> = ({
       }
 
       if (onConsultationComplete) {
-        console.log('📤 Calling onConsultationComplete with data:', consultationData);
+        console.log('📤 Calling onConsultationComplete with enhanced data:', consultationData);
         onConsultationComplete(consultationData);
       }
 
@@ -178,7 +180,7 @@ const ConsultationRecorder: React.FC<ConsultationRecorderProps> = ({
       <CardContent className="space-y-4 lg:space-y-6 p-4 lg:p-6 pt-0">
         <div className="text-center">
           <p className="text-gray-600 mb-4 text-sm lg:text-base">
-            Record your consultation to automatically extract diagnosis, symptoms, and treatment plans
+            Record your consultation to automatically extract patient info, diagnosis, underlying conditions, and treatment plans
           </p>
           
           <div className="flex justify-center space-x-4 mb-4">
@@ -235,6 +237,17 @@ const ConsultationRecorder: React.FC<ConsultationRecorderProps> = ({
               <p className="text-sm text-gray-600">{lastTranscript}</p>
             </div>
           )}
+        </div>
+
+        <div className="bg-gradient-to-r from-green-50 to-blue-50 p-4 lg:p-6 rounded-xl border border-green-100">
+          <h4 className="font-medium text-green-900 mb-3 text-sm lg:text-base">Voice Recognition Features</h4>
+          <div className="text-xs lg:text-sm text-green-800 space-y-2">
+            <div>• Automatically extracts patient information (name, age, gender)</div>
+            <div>• Identifies diagnosis and underlying conditions</div>
+            <div>• Captures vital signs and symptoms</div>
+            <div>• Extracts medications and treatment plans</div>
+            <div>• Fills consultation notes and recommendations</div>
+          </div>
         </div>
       </CardContent>
     </Card>

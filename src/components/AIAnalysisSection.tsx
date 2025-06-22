@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Brain, Loader2, AlertTriangle, CheckCircle, Zap, Beaker } from 'lucide-react';
+import { Brain, Loader2, AlertTriangle, CheckCircle, Zap, Beaker, Stethoscope } from 'lucide-react';
 import { PrescriptionData } from '@/types/prescription';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -20,12 +20,15 @@ const AIAnalysisSection = ({ prescriptionData, onAnalysisComplete }: AIAnalysisS
     setIsAnalyzing(true);
     
     try {
-      console.log('Starting AI prescription analysis...');
+      console.log('Starting enhanced AI prescription analysis...');
       
       const { data, error } = await supabase.functions.invoke('ai-prescription-analysis', {
         body: {
           prescriptionData: {
             ...prescriptionData,
+            diagnosis: prescriptionData.diagnosis,
+            diagnosisDetails: prescriptionData.diagnosisDetails,
+            underlyingConditions: prescriptionData.underlyingConditions,
             consultationNotes: prescriptionData.consultationNotes,
             recommendedTests: prescriptionData.recommendedTests,
             labReports: prescriptionData.labReports,
@@ -41,9 +44,9 @@ const AIAnalysisSection = ({ prescriptionData, onAnalysisComplete }: AIAnalysisS
         throw new Error(error.message || 'Failed to perform AI analysis');
       }
 
-      console.log('AI analysis successful:', data);
+      console.log('Enhanced AI analysis successful:', data);
       setAnalysis(data);
-      toast.success('AI analysis completed successfully!');
+      toast.success('Enhanced AI analysis completed successfully!');
       
       if (onAnalysisComplete) {
         onAnalysisComplete(data);
@@ -63,7 +66,7 @@ const AIAnalysisSection = ({ prescriptionData, onAnalysisComplete }: AIAnalysisS
           <div className="p-2 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl">
             <Brain className="h-5 w-5 text-white" />
           </div>
-          <span className="text-xl font-medium">AI Prescription Analysis</span>
+          <span className="text-xl font-medium">Enhanced AI Prescription Analysis</span>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -77,23 +80,42 @@ const AIAnalysisSection = ({ prescriptionData, onAnalysisComplete }: AIAnalysisS
               {isAnalyzing ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Analyzing Prescription...
+                  Analyzing Enhanced Prescription...
                 </>
               ) : (
                 <>
                   <Brain className="h-4 w-4 mr-2" />
-                  Analyze with AI
+                  Analyze with Enhanced AI
                 </>
               )}
             </Button>
             <p className="text-sm text-gray-600 mt-3">
-              Get comprehensive AI analysis including drug interactions, recommendations, and more
+              Get comprehensive AI analysis including diagnosis validation, drug interactions, underlying conditions assessment, and personalized recommendations
             </p>
           </div>
         )}
 
         {analysis && (
           <div className="space-y-6">
+            {/* Diagnosis Analysis */}
+            {prescriptionData.diagnosis && (
+              <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
+                <div className="flex items-center space-x-2 mb-3">
+                  <Stethoscope className="h-5 w-5 text-blue-600" />
+                  <h3 className="font-semibold text-blue-800">Diagnosis Analysis</h3>
+                </div>
+                <div className="text-blue-700 text-sm space-y-2">
+                  <div><strong>Primary Diagnosis:</strong> {prescriptionData.diagnosis}</div>
+                  {prescriptionData.diagnosisDetails && (
+                    <div><strong>Details:</strong> {prescriptionData.diagnosisDetails}</div>
+                  )}
+                  {prescriptionData.underlyingConditions && (
+                    <div><strong>Underlying Conditions:</strong> {prescriptionData.underlyingConditions}</div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Risk Factors */}
             {analysis.risk_factors && analysis.risk_factors.length > 0 && (
               <div className="bg-red-50 p-4 rounded-xl border border-red-200">
@@ -132,12 +154,12 @@ const AIAnalysisSection = ({ prescriptionData, onAnalysisComplete }: AIAnalysisS
 
             {/* Lab Analysis Integration */}
             {prescriptionData.labAnalysis && (
-              <div className="bg-blue-50 p-4 rounded-xl border border-blue-200">
+              <div className="bg-teal-50 p-4 rounded-xl border border-teal-200">
                 <div className="flex items-center space-x-2 mb-3">
-                  <Beaker className="h-5 w-5 text-blue-600" />
-                  <h3 className="font-semibold text-blue-800">Lab Report Analysis</h3>
+                  <Beaker className="h-5 w-5 text-teal-600" />
+                  <h3 className="font-semibold text-teal-800">Lab Report Analysis</h3>
                 </div>
-                <div className="text-blue-700 text-sm">
+                <div className="text-teal-700 text-sm">
                   {prescriptionData.labAnalysis}
                 </div>
               </div>
@@ -148,7 +170,7 @@ const AIAnalysisSection = ({ prescriptionData, onAnalysisComplete }: AIAnalysisS
               <div className="bg-green-50 p-4 rounded-xl border border-green-200">
                 <div className="flex items-center space-x-2 mb-3">
                   <CheckCircle className="h-5 w-5 text-green-600" />
-                  <h3 className="font-semibold text-green-800">Recommendations</h3>
+                  <h3 className="font-semibold text-green-800">AI Recommendations</h3>
                 </div>
                 <ul className="space-y-1">
                   {analysis.recommendations.map((rec: string, index: number) => (
@@ -199,7 +221,7 @@ const AIAnalysisSection = ({ prescriptionData, onAnalysisComplete }: AIAnalysisS
                   Re-analyzing...
                 </>
               ) : (
-                'Re-analyze'
+                'Re-analyze with Latest Data'
               )}
             </Button>
           </div>

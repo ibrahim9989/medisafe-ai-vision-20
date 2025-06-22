@@ -76,8 +76,13 @@ export const usePrescriptions = () => {
     mutationFn: async (prescriptionData: PrescriptionData) => {
       if (!user) throw new Error('User not authenticated');
 
-      console.log('💾 Saving prescription with data:', prescriptionData);
+      console.log('💾 Saving enhanced prescription with data:', prescriptionData);
       console.log('🔬 Lab analysis to save:', prescriptionData.labAnalysis ? 'Present' : 'Missing');
+      console.log('🩺 Diagnosis fields:', {
+        diagnosis: prescriptionData.diagnosis,
+        diagnosisDetails: prescriptionData.diagnosisDetails,
+        underlyingConditions: prescriptionData.underlyingConditions
+      });
 
       const prescriptionToSave = {
         user_id: user.id,
@@ -89,7 +94,7 @@ export const usePrescriptions = () => {
         temperature: prescriptionData.temperature,
         bp: prescriptionData.bp,
         medications: prescriptionData.medications,
-        diagnosis: prescriptionData.diagnosis,
+        diagnosis: prescriptionData.diagnosis || null,
         diagnosis_details: prescriptionData.diagnosisDetails || null,
         underlying_conditions: prescriptionData.underlyingConditions || null,
         notes: prescriptionData.notes,
@@ -104,9 +109,12 @@ export const usePrescriptions = () => {
         follow_up_date: prescriptionData.followUpDate || null
       };
 
-      console.log('🚀 Sending to database:', {
+      console.log('🚀 Sending enhanced prescription to database:', {
         ...prescriptionToSave,
-        lab_analysis: prescriptionToSave.lab_analysis ? `${prescriptionToSave.lab_analysis.length} characters` : 'null'
+        lab_analysis: prescriptionToSave.lab_analysis ? `${prescriptionToSave.lab_analysis.length} characters` : 'null',
+        diagnosis: prescriptionToSave.diagnosis || 'null',
+        diagnosis_details: prescriptionToSave.diagnosis_details || 'null',
+        underlying_conditions: prescriptionToSave.underlying_conditions || 'null'
       });
 
       const { data, error } = await supabase
@@ -116,11 +124,11 @@ export const usePrescriptions = () => {
         .single();
 
       if (error) {
-        console.error('❌ Error saving prescription:', error);
+        console.error('❌ Error saving enhanced prescription:', error);
         throw error;
       }
 
-      console.log('✅ Prescription saved successfully with all fields');
+      console.log('✅ Enhanced prescription saved successfully with all medical fields');
       return data;
     },
     onSuccess: () => {

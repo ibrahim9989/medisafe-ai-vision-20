@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
@@ -137,6 +138,7 @@ const PrescriptionForm = () => {
   };
 
   const handleLabReportsChange = async (newData: PrescriptionData) => {
+    // Store current form data to prevent clearing
     const currentFormData = { ...data };
     
     const updatedData = {
@@ -197,13 +199,13 @@ const PrescriptionForm = () => {
         doctorName: profile.full_name || data.doctorName
       };
 
-      console.log('💾 Saving prescription with all fields:', prescriptionData);
+      console.log('💾 Saving prescription with enhanced fields:', prescriptionData);
       
       await savePrescription(prescriptionData);
       
       toast({
         title: "Success",
-        description: "Prescription saved successfully!",
+        description: "Prescription saved successfully with all medical details!",
       });
 
       setData({
@@ -242,7 +244,7 @@ const PrescriptionForm = () => {
   };
 
   const handleConsultationComplete = (consultationData: any) => {
-    console.log('🎯 Voice consultation data received:', consultationData);
+    console.log('🎯 Enhanced voice consultation data received:', consultationData);
     
     const patientData = consultationData.analysisData?.patientInfo || {};
     const treatmentData = consultationData.analysisData?.treatmentPlan || {};
@@ -261,6 +263,8 @@ const PrescriptionForm = () => {
         gender: patientData.gender || prevData.gender,
         contact: patientData.contact || prevData.contact,
         diagnosis: consultationData.diagnosis || prevData.diagnosis,
+        diagnosisDetails: consultationData.diagnosisDetails || prevData.diagnosisDetails,
+        underlyingConditions: consultationData.underlyingConditions || prevData.underlyingConditions,
         notes: consultationData.summary || prevData.notes,
         temperature: vitalSigns.temperature || prevData.temperature,
         bp: vitalSigns.bloodPressure || prevData.bp,
@@ -282,22 +286,22 @@ const PrescriptionForm = () => {
         ];
       }
 
-      console.log('✅ Form updated with voice data:', updatedData);
+      console.log('✅ Form updated with enhanced voice data:', updatedData);
       return updatedData;
     });
 
     toast({
-      title: "✅ Voice Consultation Complete",
-      description: "Form has been updated with consultation data",
+      title: "✅ Enhanced Voice Consultation Complete",
+      description: "Form updated with comprehensive medical details including diagnosis and conditions",
     });
   };
 
   const handleAIAnalysisComplete = async (analysis: any) => {
     try {
-      console.log('🤖 AI Analysis completed:', analysis);
+      console.log('🤖 Enhanced AI Analysis completed:', analysis);
       toast({
         title: "AI Analysis Complete",
-        description: "Prescription analysis has been completed",
+        description: "Comprehensive prescription analysis with diagnosis and conditions completed",
       });
     } catch (error) {
       console.error('💥 Error with AI analysis:', error);
@@ -317,7 +321,7 @@ const PrescriptionForm = () => {
             AI-Powered Prescription System
           </h1>
           <p className="text-gray-600 text-lg">
-            Create comprehensive prescriptions with AI assistance
+            Create comprehensive prescriptions with enhanced AI assistance
           </p>
         </div>
 
@@ -363,7 +367,7 @@ const PrescriptionForm = () => {
                 className="flex-1 bg-white/60 backdrop-blur-sm"
                 disabled={isSubmitting}
               >
-                {showAIAnalysis ? 'Hide' : 'Show'} AI Analysis
+                {showAIAnalysis ? 'Hide' : 'Show'} Enhanced AI Analysis
               </Button>
               
               <Button
@@ -371,7 +375,7 @@ const PrescriptionForm = () => {
                 disabled={isSubmitting}
                 className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium py-3 px-6 rounded-xl transition-all duration-300 transform hover:scale-105 shadow-lg"
               >
-                {isSubmitting ? 'Saving...' : 'Save Prescription'}
+                {isSubmitting ? 'Saving...' : 'Save Enhanced Prescription'}
               </Button>
             </div>
           </EnhancedPrescriptionForm>
