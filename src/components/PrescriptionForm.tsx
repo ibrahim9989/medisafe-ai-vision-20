@@ -7,6 +7,7 @@ import { useDoctorProfile } from '@/hooks/useDoctorProfile';
 import { supabase } from '@/integrations/supabase/client';
 import EnhancedPrescriptionForm from './EnhancedPrescriptionForm';
 import ConsultationNotesSection from './ConsultationNotesSection';
+import DiagnosisSection from './DiagnosisSection';
 import RecommendedTestsSection from './RecommendedTestsSection';
 import LabReportsSection from './LabReportsSection';
 import FollowUpSection from './FollowUpSection';
@@ -31,6 +32,8 @@ const PrescriptionForm = () => {
     bp: '',
     medications: [{ name: '', dosage: '', frequency: '', duration: '' }],
     diagnosis: '',
+    diagnosisDetails: '',
+    underlyingConditions: '',
     notes: '',
     consultationNotes: '',
     recommendedTests: [],
@@ -134,10 +137,8 @@ const PrescriptionForm = () => {
   };
 
   const handleLabReportsChange = async (newData: PrescriptionData) => {
-    // Store current form data to prevent clearing
     const currentFormData = { ...data };
     
-    // Only update lab reports and keep other data
     const updatedData = {
       ...currentFormData,
       labReports: newData.labReports
@@ -145,12 +146,10 @@ const PrescriptionForm = () => {
     
     setData(updatedData);
     
-    // Analyze new lab reports if they were added
     if (newData.labReports.length > 0 && newData.labReports.length !== data.labReports.length) {
       console.log('🔬 Analyzing lab reports...');
       const analysis = await analyzeLabReports(newData.labReports);
       
-      // Update with analysis while preserving all other form data
       setData(prev => ({ 
         ...prev, 
         labAnalysis: analysis 
@@ -174,7 +173,6 @@ const PrescriptionForm = () => {
     setIsSubmitting(true);
     
     try {
-      // Validate required fields
       if (!data.patientName?.trim() || !data.doctorName?.trim()) {
         toast({
           title: "Missing Information",
@@ -199,16 +197,15 @@ const PrescriptionForm = () => {
         doctorName: profile.full_name || data.doctorName
       };
 
-      console.log('💾 Saving prescription with lab analysis:', prescriptionData.labAnalysis?.length || 0, 'characters');
+      console.log('💾 Saving prescription with all fields:', prescriptionData);
       
       await savePrescription(prescriptionData);
       
       toast({
         title: "Success",
-        description: "Prescription saved successfully with lab analysis!",
+        description: "Prescription saved successfully!",
       });
 
-      // Reset form
       setData({
         doctorName: profile.full_name || '',
         patientName: '',
@@ -219,6 +216,8 @@ const PrescriptionForm = () => {
         bp: '',
         medications: [{ name: '', dosage: '', frequency: '', duration: '' }],
         diagnosis: '',
+        diagnosisDetails: '',
+        underlyingConditions: '',
         notes: '',
         consultationNotes: '',
         recommendedTests: [],
@@ -245,7 +244,6 @@ const PrescriptionForm = () => {
   const handleConsultationComplete = (consultationData: any) => {
     console.log('🎯 Voice consultation data received:', consultationData);
     
-    // Safely extract patient data from analysis
     const patientData = consultationData.analysisData?.patientInfo || {};
     const treatmentData = consultationData.analysisData?.treatmentPlan || {};
     const vitalSigns = consultationData.analysisData?.physicalExam?.vitalSigns || {};
@@ -254,29 +252,20 @@ const PrescriptionForm = () => {
     console.log('💊 Treatment data extracted:', treatmentData);
     console.log('🩺 Vital signs extracted:', vitalSigns);
     
-    // Update form with voice consultation data while preserving existing data
     setData(prevData => {
       const updatedData = {
         ...prevData,
-        // Update consultation notes
         consultationNotes: consultationData.transcript || prevData.consultationNotes,
-        
-        // Update patient info if available
         patientName: patientData.name || prevData.patientName,
         age: patientData.age || prevData.age,
         gender: patientData.gender || prevData.gender,
         contact: patientData.contact || prevData.contact,
-        
-        // Update clinical data
         diagnosis: consultationData.diagnosis || prevData.diagnosis,
         notes: consultationData.summary || prevData.notes,
-        
-        // Update vital signs if available
         temperature: vitalSigns.temperature || prevData.temperature,
         bp: vitalSigns.bloodPressure || prevData.bp,
       };
 
-      // Update medications if present in voice data
       if (treatmentData.medications && treatmentData.medications.length > 0) {
         console.log('💊 Updating medications from voice:', treatmentData.medications);
         
@@ -287,10 +276,8 @@ const PrescriptionForm = () => {
           duration: med.duration || ''
         }));
         
-        // Replace existing medications with voice data
         updatedData.medications = [
           ...voiceMedications,
-          // Keep empty slots for additional medications
           ...Array(Math.max(0, 3 - voiceMedications.length)).fill({ name: '', dosage: '', frequency: '', duration: '' })
         ];
       }
@@ -335,36 +322,32 @@ const PrescriptionForm = () => {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Enhanced Prescription Form - This handles patient selection */}
           <EnhancedPrescriptionForm data={data} onChange={setData}>
-            {/* Voice Recording */}
             <ConsultationRecorder 
               onConsultationComplete={handleConsultationComplete}
               patientId={undefined}
             />
             
-            {/* Consultation Notes */}
             <ConsultationNotesSection 
               data={data} 
               onChange={handleConsultationNotesChange} 
             />
             
-            {/* Vital Signs */}
+            <DiagnosisSection 
+              data={data} 
+              onChange={setData} 
+            />
+            
             <VitalSigns data={data} onChange={setData} />
             
-            {/* Medications */}
             <EnhancedMedicationList data={data} onChange={setData} />
             
-            {/* Recommended Tests */}
             <RecommendedTestsSection data={data} onChange={setData} />
             
-            {/* Lab Reports */}
             <LabReportsSection data={data} onChange={handleLabReportsChange} />
             
-            {/* Follow-up Information */}
             <FollowUpSection data={data} onChange={setData} />
 
-            {/* AI Analysis */}
             {showAIAnalysis && (
               <AIAnalysisSection 
                 prescriptionData={data}
@@ -372,7 +355,6 @@ const PrescriptionForm = () => {
               />
             )}
 
-            {/* Submit Section */}
             <div className="flex flex-col sm:flex-row gap-4 pt-6">
               <Button
                 type="button"

@@ -16,6 +16,8 @@ export interface Prescription {
   bp: string | null;
   medications: any[];
   diagnosis: string | null;
+  diagnosis_details: string | null;
+  underlying_conditions: string | null;
   notes: string | null;
   consultation_notes: string | null;
   recommended_tests: string[];
@@ -88,6 +90,8 @@ export const usePrescriptions = () => {
         bp: prescriptionData.bp,
         medications: prescriptionData.medications,
         diagnosis: prescriptionData.diagnosis,
+        diagnosis_details: prescriptionData.diagnosisDetails || null,
+        underlying_conditions: prescriptionData.underlyingConditions || null,
         notes: prescriptionData.notes,
         consultation_notes: prescriptionData.consultationNotes,
         recommended_tests: prescriptionData.recommendedTests,
@@ -116,7 +120,7 @@ export const usePrescriptions = () => {
         throw error;
       }
 
-      console.log('✅ Prescription saved successfully with lab analysis');
+      console.log('✅ Prescription saved successfully with all fields');
       return data;
     },
     onSuccess: () => {
@@ -132,11 +136,10 @@ export const usePrescriptions = () => {
         .from('ai_analysis')
         .insert({
           prescription_id: prescriptionId,
-          analysis: analysis.analysis,
-          risk_factors: analysis.risk_factors,
-          recommendations: analysis.recommendations,
+          overall_risk: analysis.analysis,
           drug_interactions: analysis.drug_interactions,
-          alternative_treatments: analysis.alternative_treatments,
+          recommendations: analysis.recommendations,
+          alternatives: analysis.alternative_treatments,
         })
         .select()
         .single();

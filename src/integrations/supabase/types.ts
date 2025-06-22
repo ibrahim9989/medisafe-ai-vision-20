@@ -71,6 +71,7 @@ export type Database = {
           recommended_tests: Json | null
           summary: string | null
           transcript: string
+          underlying_conditions: string | null
           updated_at: string
         }
         Insert: {
@@ -87,6 +88,7 @@ export type Database = {
           recommended_tests?: Json | null
           summary?: string | null
           transcript: string
+          underlying_conditions?: string | null
           updated_at?: string
         }
         Update: {
@@ -103,6 +105,7 @@ export type Database = {
           recommended_tests?: Json | null
           summary?: string | null
           transcript?: string
+          underlying_conditions?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -362,6 +365,7 @@ export type Database = {
           contact: string | null
           created_at: string
           diagnosis: string | null
+          diagnosis_details: string | null
           doctor_name: string
           follow_up_date: string | null
           gender: string
@@ -373,6 +377,7 @@ export type Database = {
           patient_name: string
           recommended_tests: Json | null
           temperature: number | null
+          underlying_conditions: string | null
           updated_at: string
           user_id: string
         }
@@ -383,6 +388,7 @@ export type Database = {
           contact?: string | null
           created_at?: string
           diagnosis?: string | null
+          diagnosis_details?: string | null
           doctor_name: string
           follow_up_date?: string | null
           gender: string
@@ -394,6 +400,7 @@ export type Database = {
           patient_name: string
           recommended_tests?: Json | null
           temperature?: number | null
+          underlying_conditions?: string | null
           updated_at?: string
           user_id: string
         }
@@ -404,6 +411,7 @@ export type Database = {
           contact?: string | null
           created_at?: string
           diagnosis?: string | null
+          diagnosis_details?: string | null
           doctor_name?: string
           follow_up_date?: string | null
           gender?: string
@@ -415,6 +423,7 @@ export type Database = {
           patient_name?: string
           recommended_tests?: Json | null
           temperature?: number | null
+          underlying_conditions?: string | null
           updated_at?: string
           user_id?: string
         }

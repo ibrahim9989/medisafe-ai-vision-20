@@ -14,6 +14,8 @@ export interface PrescriptionData {
     duration: string;
   }[];
   diagnosis: string;
+  diagnosisDetails: string;
+  underlyingConditions: string;
   notes: string;
   consultationNotes: string;
   recommendedTests: string[];
