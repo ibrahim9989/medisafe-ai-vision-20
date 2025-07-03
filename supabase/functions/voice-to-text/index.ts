@@ -35,7 +35,7 @@ serve(async (req) => {
 
     console.log('Audio blob created - size:', audioBlob.size, 'bytes, type: audio/wav');
 
-    // Create form data for Azure OpenAI transcription using GPT-4o-transcribe endpoint
+    // Create form data for Azure OpenAI GPT-4o-transcribe
     const formData = new FormData();
     formData.append('file', audioBlob, 'recording.wav');
     formData.append('model', 'gpt-4o-transcribe');
@@ -51,7 +51,6 @@ serve(async (req) => {
     });
 
     console.log('Azure OpenAI API response status:', response.status);
-    console.log('Azure OpenAI API response headers:', Object.fromEntries(response.headers.entries()));
 
     if (!response.ok) {
       const errorText = await response.text();

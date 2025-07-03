@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -23,8 +22,8 @@ const VoiceAssistant = ({ prescriptionData, onPrescriptionChange, className }: V
     timestamp: Date;
   }>>([]);
 
-  // Add your API key here - replace with your actual key
-  const AZURE_OPENAI_GPT41_API_KEY = 'your-azure-openai-gpt41-api-key-here';
+  // Updated API key with your actual key
+  const AZURE_OPENAI_GPT41_API_KEY = '20ecnQrTCmX9zZXyIRXPGpS8gnGvjrLhea2usfq7MUGzkyqZyhKDJQQJ99BGACYeBjFXJ3w3AAAAACOGde3O';
 
   const processVoiceCommand = async (transcript: string) => {
     console.log('🎤 VOICE COMMAND START:', transcript);

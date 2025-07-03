@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
@@ -23,8 +22,8 @@ const PrescriptionForm = () => {
   const { profile } = useDoctorProfile();
   const { savePrescription, saveAIAnalysis } = usePrescriptions();
 
-  // Add your API key here - replace with your actual key
-  const AZURE_OPENAI_GPT41_API_KEY = 'your-azure-openai-gpt41-api-key-here';
+  // Updated API key with your actual key
+  const AZURE_OPENAI_GPT41_API_KEY = '20ecnQrTCmX9zZXyIRXPGpS8gnGvjrLhea2usfq7MUGzkyqZyhKDJQQJ99BGACYeBjFXJ3w3AAAAACOGde3O';
 
   const [data, setData] = useState<PrescriptionData>({
     doctorName: '',
