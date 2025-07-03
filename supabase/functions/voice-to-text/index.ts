@@ -36,12 +36,12 @@ serve(async (req) => {
 
     console.log('Audio blob created - size:', audioBlob.size, 'bytes, type: audio/wav');
 
-    // Create form data for Azure OpenAI transcription
+    // Create form data for Azure OpenAI transcription using GPT-4o-transcribe endpoint
     const formData = new FormData();
     formData.append('file', audioBlob, 'recording.wav');
     formData.append('model', 'gpt-4o-transcribe');
 
-    console.log('Sending request to Azure OpenAI transcription API...');
+    console.log('Sending request to Azure OpenAI GPT-4o-transcribe API...');
 
     const response = await fetch('https://otly.cognitiveservices.azure.com/openai/deployments/gpt-4o-transcribe/audio/transcriptions?api-version=2025-03-01-preview', {
       method: 'POST',
