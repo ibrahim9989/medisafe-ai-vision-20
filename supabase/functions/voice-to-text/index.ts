@@ -18,9 +18,9 @@ serve(async (req) => {
       throw new Error('No audio data provided');
     }
 
-    const elevenlabsApiKey = Deno.env.get('ELEVENLABS_API_KEY');
-    if (!elevenlabsApiKey) {
-      throw new Error('ElevenLabs API key not configured');
+    const azureOpenAIApiKey = Deno.env.get('AZURE_OPENAI_API_KEY');
+    if (!azureOpenAIApiKey) {
+      throw new Error('Azure OpenAI API key not configured');
     }
 
     console.log('Processing audio data, length:', audioData.length);
@@ -30,46 +30,46 @@ serve(async (req) => {
       throw new Error('Audio data too short - may be corrupted');
     }
 
-    // Convert base64 audio to blob with WAV format for better compatibility
+    // Convert base64 audio to blob
     const audioBuffer = Uint8Array.from(atob(audioData), c => c.charCodeAt(0));
     const audioBlob = new Blob([audioBuffer], { type: 'audio/wav' });
 
     console.log('Audio blob created - size:', audioBlob.size, 'bytes, type: audio/wav');
 
-    // Create form data for ElevenLabs speech-to-text with correct model ID
+    // Create form data for Azure OpenAI transcription
     const formData = new FormData();
     formData.append('file', audioBlob, 'recording.wav');
-    formData.append('model_id', 'scribe_v1');
+    formData.append('model', 'gpt-4o-transcribe');
 
-    console.log('Sending request to ElevenLabs speech-to-text API...');
+    console.log('Sending request to Azure OpenAI transcription API...');
 
-    const response = await fetch('https://api.elevenlabs.io/v1/speech-to-text', {
+    const response = await fetch('https://otly.cognitiveservices.azure.com/openai/deployments/gpt-4o-transcribe/audio/transcriptions?api-version=2025-03-01-preview', {
       method: 'POST',
       headers: {
-        'xi-api-key': elevenlabsApiKey,
+        'Authorization': `Bearer ${azureOpenAIApiKey}`,
       },
       body: formData,
     });
 
-    console.log('ElevenLabs API response status:', response.status);
-    console.log('ElevenLabs API response headers:', Object.fromEntries(response.headers.entries()));
+    console.log('Azure OpenAI API response status:', response.status);
+    console.log('Azure OpenAI API response headers:', Object.fromEntries(response.headers.entries()));
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('ElevenLabs API detailed error:', {
+      console.error('Azure OpenAI API detailed error:', {
         status: response.status,
         statusText: response.statusText,
         body: errorText
       });
-      throw new Error(`ElevenLabs API error: ${response.status} - ${errorText}`);
+      throw new Error(`Azure OpenAI API error: ${response.status} - ${errorText}`);
     }
 
     const result = await response.json();
-    console.log('ElevenLabs API successful result:', result);
+    console.log('Azure OpenAI API successful result:', result);
     
     return new Response(
       JSON.stringify({ 
-        transcript: result.text || result.transcript || '',
+        transcript: result.text || '',
         confidence: result.confidence || 0
       }),
       { 
