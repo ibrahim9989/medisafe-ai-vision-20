@@ -24,6 +24,10 @@ const ConsultationRecorder: React.FC<ConsultationRecorderProps> = ({
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
 
+  // Add your API keys here - replace with your actual keys
+  const AZURE_OPENAI_API_KEY = 'your-azure-openai-api-key-here';
+  const AZURE_OPENAI_GPT41_API_KEY = 'your-azure-openai-gpt41-api-key-here';
+
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
@@ -115,7 +119,9 @@ const ConsultationRecorder: React.FC<ConsultationRecorderProps> = ({
         body: {
           audio: base64Audio,
           doctor_id: doctorProfile.id,
-          patient_id: patientId
+          patient_id: patientId,
+          transcribeApiKey: AZURE_OPENAI_API_KEY,
+          gpt41ApiKey: AZURE_OPENAI_GPT41_API_KEY
         }
       });
 

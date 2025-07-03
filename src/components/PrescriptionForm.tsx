@@ -23,6 +23,9 @@ const PrescriptionForm = () => {
   const { profile } = useDoctorProfile();
   const { savePrescription, saveAIAnalysis } = usePrescriptions();
 
+  // Add your API key here - replace with your actual key
+  const AZURE_OPENAI_GPT41_API_KEY = 'your-azure-openai-gpt41-api-key-here';
+
   const [data, setData] = useState<PrescriptionData>({
     doctorName: '',
     patientName: '',
@@ -67,7 +70,8 @@ const PrescriptionForm = () => {
         const { data: result, error } = await supabase.functions.invoke('analyze-lab-report', {
           body: {
             image: base64,
-            mimeType: file.type
+            mimeType: file.type,
+            apiKey: AZURE_OPENAI_GPT41_API_KEY
           }
         });
 

@@ -1,3 +1,4 @@
+
 import { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,6 +24,11 @@ export const useGlobalVoiceAgent = () => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Add your API keys here - replace with your actual keys
+  const AZURE_OPENAI_API_KEY = 'your-azure-openai-api-key-here';
+  const AZURE_OPENAI_GPT41_API_KEY = 'your-azure-openai-gpt41-api-key-here';
+  const ELEVENLABS_API_KEY = 'your-elevenlabs-api-key-here';
 
   const startListening = useCallback(async () => {
     try {
@@ -108,7 +114,10 @@ export const useGlobalVoiceAgent = () => {
 
       // First, convert speech to text
       const { data: speechData, error: speechError } = await supabase.functions.invoke('voice-to-text', {
-        body: { audioData: base64Audio }
+        body: { 
+          audioData: base64Audio,
+          apiKey: AZURE_OPENAI_API_KEY
+        }
       });
 
       if (speechError) {
@@ -129,8 +138,8 @@ export const useGlobalVoiceAgent = () => {
       // Process the command with the enhanced global voice command handler
       const { data: commandData, error: commandError } = await supabase.functions.invoke('global-voice-commands', {
         body: { 
-          transcript: transcript.trim(),
-          currentPath: window.location.pathname
+          command: transcript.trim(),
+          apiKey: AZURE_OPENAI_GPT41_API_KEY
         }
       });
 
@@ -340,7 +349,8 @@ export const useGlobalVoiceAgent = () => {
       const { data, error } = await supabase.functions.invoke('text-to-speech', {
         body: { 
           text: text,
-          voiceId: 'EXAVITQu4vr4xnSDxMaL'
+          voiceId: 'EXAVITQu4vr4xnSDxMaL',
+          apiKey: ELEVENLABS_API_KEY
         }
       });
 
