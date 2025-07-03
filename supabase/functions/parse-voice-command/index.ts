@@ -1,5 +1,4 @@
 
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -13,78 +12,112 @@ serve(async (req) => {
   }
 
   try {
-    const { text, apiKey } = await req.json();
+    const { transcript, currentData } = await req.json();
     
-    if (!apiKey) {
-      throw new Error('API key is required');
+    if (!transcript) {
+      throw new Error('No transcript provided');
     }
 
-    console.log('Parsing voice command with Azure OpenAI GPT-4.1:', text);
+    const azureOpenAIGPT41ApiKey = Deno.env.get('AZURE_OPENAI_GPT41_API_KEY');
+    if (!azureOpenAIGPT41ApiKey) {
+      throw new Error('Azure OpenAI GPT-4.1 API key not configured');
+    }
 
-    const prompt = `You are a medical voice command parser. Analyze this voice command and extract structured information for a medical prescription system.
+    console.log('Processing voice command:', transcript);
+    console.log('Current prescription data:', currentData);
 
-Voice command: "${text}"
+    const prompt = `You are an intelligent medical prescription voice assistant. Your job is to parse natural language voice commands and extract structured medical information with high accuracy.
 
-Parse and return JSON with these fields:
+CONTEXT - Current prescription data:
+- Patient Name: ${currentData?.patientName || 'Not set'}
+- Age: ${currentData?.age || 'Not set'}
+- Gender: ${currentData?.gender || 'Not set'}
+- Contact: ${currentData?.contact || 'Not set'}
+- Temperature: ${currentData?.temperature || 'Not set'}
+- Blood Pressure: ${currentData?.bp || 'Not set'}
+- Diagnosis: ${currentData?.diagnosis || 'Not set'}
+- Diagnosis Details: ${currentData?.diagnosisDetails || 'Not set'}
+- Underlying Conditions: ${currentData?.underlyingConditions || 'Not set'}
+- Current Medications: ${JSON.stringify(currentData?.medications || [])}
+- Clinical Notes: ${currentData?.notes || 'Not set'}
+- Follow-up Date: ${currentData?.followUpDate || 'Not set'}
+
+VOICE COMMAND TO PARSE: "${transcript}"
+
+INTELLIGENCE RULES:
+1. Be extremely flexible with natural language - users don't speak in perfect medical terminology
+2. Infer meaning from context - if someone says "patient has diabetes" and there's no diagnosis set, that's likely the diagnosis
+3. Handle multiple ways of expressing the same thing:
+   - "Patient name is..." / "The patient's name is..." / "Name John Smith" / "Patient John Smith"
+   - "Age 45" / "Patient is 45 years old" / "45 year old patient"
+   - "Blood pressure 120 over 80" / "BP 120/80" / "Blood pressure is 120 slash 80"
+   - "Follow up next week" / "See patient in one week" / "Appointment next Tuesday"
+   - "Diagnosis is diabetes" / "Patient has diabetes" / "Diabetic patient"
+   - "Underlying condition hypertension" / "Has high blood pressure" / "History of hypertension"
+4. For medications, extract ALL components even if mentioned separately:
+   - "Add amoxicillin" + dosage/frequency context from the sentence
+   - "Give patient 500mg amoxicillin three times a day for a week"
+   - "Prescribe medication amoxicillin 500 milligrams TID for 7 days"
+5. For clinical notes, capture underlying conditions, allergies, symptoms, or medical history:
+   - "Patient has hypertension" / "History of high blood pressure" / "BP elevated"
+   - "Allergic to penicillin" / "Penicillin allergy" / "Cannot take penicillin"
+   - "Diabetic patient" / "Has diabetes" / "Blood sugar issues"
+   - "Complains of chest pain" / "Patient reports headache" / "Experiencing fatigue"
+6. Be smart about gender - "male"/"female"/"man"/"woman"/"he"/"she" all indicate gender
+7. Convert spoken numbers to digits: "forty-five" → 45, "one hundred and two" → 102
+
+EXACT FIELD MAPPINGS (USE THESE EXACTLY):
+- patientName: Patient's full name
+- age: Numeric age value
+- gender: "male" or "female" only
+- contact: Phone number or contact information
+- temperature: Numeric temperature value (Fahrenheit)
+- bp: Blood pressure as "systolic/diastolic" format (e.g., "120/80")
+- diagnosis: Primary medical diagnosis or condition
+- diagnosisDetails: Detailed information about the diagnosis
+- underlyingConditions: Underlying medical conditions, comorbidities
+- notes: Clinical notes, allergies, symptoms, complaints
+- followUpDate: Date in YYYY-MM-DD format
+- medications: Array of objects with {name, dosage, frequency, duration}
+
+SMART EXAMPLES:
+Input: "Patient John Smith age 45 has diabetes and hypertension"
+→ {"action": "update_field", "updates": {"patientName": "John Smith", "age": 45, "diagnosis": "diabetes", "underlyingConditions": "hypertension"}, "response": "Updated patient John Smith, age 45, with diabetes diagnosis and hypertension as underlying condition"}
+
+Input: "Diagnosis is acute bronchitis with underlying COPD"
+→ {"action": "update_field", "updates": {"diagnosis": "acute bronchitis", "underlyingConditions": "COPD"}, "response": "Updated diagnosis to acute bronchitis with COPD as underlying condition"}
+
+Input: "Patient complains of chest pain and has history of heart disease"
+→ {"action": "update_field", "updates": {"notes": "complains of chest pain", "underlyingConditions": "history of heart disease"}, "response": "Added chest pain complaint and cardiac history as underlying condition"}
+
+RESPONSE FORMAT (JSON only, no extra text):
 {
-  "command_type": "patient_search|form_fill|navigation|medication_add|unknown",
-  "patient_info": {
-    "name": "extracted patient name or null",
-    "age": "extracted age or null", 
-    "gender": "extracted gender or null",
-    "search_query": "search terms for patient lookup or null"
+  "action": "update_field",
+  "updates": {
+    "fieldName": "value"
   },
-  "medical_info": {
-    "diagnosis": "extracted diagnosis or null",
-    "medications": ["list of mentioned medications"],
-    "dosage": "extracted dosage information or null",
-    "vital_signs": {
-      "temperature": "extracted temperature or null",
-      "blood_pressure": "extracted BP or null"
-    }
-  },
-  "navigation": {
-    "action": "go_to|switch_to|open or null",
-    "target": "target page/section or null"
-  },
-  "form_actions": {
-    "field": "target form field or null", 
-    "value": "value to set or null",
-    "action": "set|clear|focus or null"
-  },
-  "search_criteria": {
-    "auto_select": "most_visits|latest_visit|null",
-    "switch_mode": "existing_patient|new_patient|null"
-  },
-  "confidence": 0.0-1.0
+  "response": "Natural confirmation message",
+  "confidence": 0.9
 }
 
-Examples:
-- "Search for patient John Smith" → patient_search with search_query
-- "Set temperature to 98.6" → form_fill for temperature field
-- "Add medication Aspirin 100mg" → medication_add
-- "Go to patient history" → navigation to patient history
-- "Find patient with most visits named Sarah" → patient_search with auto_select: "most_visits"
+PARSE THE COMMAND NOW AND RETURN ONLY THE JSON RESPONSE:`;
 
-Be precise and only extract information that is clearly stated.`;
-
-    // Use Azure OpenAI GPT-4.1 for command parsing
     const response = await fetch('https://otly.cognitiveservices.azure.com/openai/deployments/gpt-4.1/chat/completions?api-version=2025-01-01-preview', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
+        'Authorization': `Bearer ${azureOpenAIGPT41ApiKey}`,
       },
       body: JSON.stringify({
         messages: [
-          { role: 'system', content: 'You are a medical voice command parser. Always respond with valid JSON.' },
+          { role: 'system', content: 'You are an intelligent medical voice assistant. Always respond with valid JSON format.' },
           { role: 'user', content: prompt }
         ],
         model: 'gpt-4.1',
         max_completion_tokens: 1024,
         temperature: 0.1,
         top_p: 0.8,
-      })
+      }),
     });
 
     if (!response.ok) {
@@ -93,30 +126,31 @@ Be precise and only extract information that is clearly stated.`;
       throw new Error(`Azure OpenAI GPT-4.1 API error: ${response.status}`);
     }
 
-    const data = await response.json();
-    const commandText = data.choices?.[0]?.message?.content || '';
-
-    console.log('Voice command parsing completed');
-
-    // Parse the JSON response
+    const result = await response.json();
+    console.log('Azure OpenAI GPT-4.1 API response:', result);
+    
+    const generatedText = result.choices?.[0]?.message?.content || '';
+    console.log('Generated text from GPT-4.1:', generatedText);
+    
+    // Extract JSON from the response
     let parsedCommand;
     try {
-      const jsonMatch = commandText.match(/\{[\s\S]*\}/);
+      // Try to find JSON in the response
+      const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         parsedCommand = JSON.parse(jsonMatch[0]);
+        console.log('Successfully parsed JSON:', parsedCommand);
       } else {
-        throw new Error('No JSON found in command response');
+        throw new Error('No JSON found in response');
       }
     } catch (parseError) {
-      console.error('Failed to parse command JSON:', parseError);
+      console.error('Failed to parse GPT-4.1 response as JSON:', generatedText);
+      // Fallback response
       parsedCommand = {
-        command_type: 'unknown',
-        patient_info: { name: null, age: null, gender: null, search_query: null },
-        medical_info: { diagnosis: null, medications: [], dosage: null, vital_signs: {} },
-        navigation: { action: null, target: null },
-        form_actions: { field: null, value: null, action: null },
-        search_criteria: { auto_select: null, switch_mode: null },
-        confidence: 0.0
+        action: "unknown",
+        updates: {},
+        response: "I didn't understand that command. Try being more specific or say 'help' for examples.",
+        confidence: 0.1
       };
     }
 
@@ -128,11 +162,14 @@ Be precise and only extract information that is clearly stated.`;
     );
 
   } catch (error) {
-    console.error('Error parsing voice command:', error);
+    console.error('Voice command parsing error:', error);
     return new Response(
       JSON.stringify({ 
-        error: 'Failed to parse voice command',
-        details: error.message 
+        action: "error",
+        updates: {},
+        response: "Sorry, I had trouble processing that command.",
+        confidence: 0,
+        error: error.message
       }),
       {
         status: 500,

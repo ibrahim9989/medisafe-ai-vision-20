@@ -12,37 +12,39 @@ serve(async (req) => {
   }
 
   try {
-    const { text, apiKey } = await req.json();
+    const { text, voiceId = 'EXAVITQu4vr4xnSDxMaL' } = await req.json(); // Sarah voice by default
     
     if (!text) {
       throw new Error('No text provided');
     }
 
-    if (!apiKey) {
-      throw new Error('API key is required');
+    const elevenlabsApiKey = Deno.env.get('ELEVENLABS_API_KEY');
+    if (!elevenlabsApiKey) {
+      throw new Error('ElevenLabs API key not configured');
     }
 
-    console.log('Generating speech for text:', text.substring(0, 100) + '...');
-
-    // Use Azure OpenAI for text-to-speech
-    const response = await fetch('https://otly.cognitiveservices.azure.com/openai/deployments/gpt-4o-transcribe/audio/speech', {
+    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        'xi-api-key': elevenlabsApiKey,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'tts-1',
-        input: text,
-        voice: 'alloy',
-        response_format: 'mp3'
+        text: text,
+        model_id: 'eleven_multilingual_v2',
+        voice_settings: {
+          stability: 0.5,
+          similarity_boost: 0.5,
+          style: 0.0,
+          use_speaker_boost: true
+        }
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Azure OpenAI TTS API error:', errorText);
-      throw new Error(`Azure OpenAI TTS API error: ${response.status}`);
+      console.error('ElevenLabs TTS API error:', errorText);
+      throw new Error(`ElevenLabs API error: ${response.status}`);
     }
 
     const audioBuffer = await response.arrayBuffer();

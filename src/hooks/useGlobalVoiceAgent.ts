@@ -24,10 +24,6 @@ export const useGlobalVoiceAgent = () => {
   const audioChunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // Updated API keys with your actual keys
-  const AZURE_OPENAI_GPT4O_TRANSCRIBE_API_KEY = '4g6z7Fsq40SA0ipOk33t2LvEhBvUV3vas3KGJPQfxDL0XbozazovJQQJ99BGACHYHv6XJ3w3AAAAACOGqMlD';
-  const AZURE_OPENAI_GPT41_API_KEY = '20ecnQrTCmX9zZXyIRXPGpS8gnGvjrLhea2usfq7MUGzkyqZyhKDJQQJ99BGACYeBjFXJ3w3AAAAACOGde3O';
-
   const startListening = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
@@ -110,12 +106,9 @@ export const useGlobalVoiceAgent = () => {
         reader.readAsDataURL(audioBlob);
       });
 
-      // First, convert speech to text using GPT-4o-transcribe
+      // First, convert speech to text
       const { data: speechData, error: speechError } = await supabase.functions.invoke('voice-to-text', {
-        body: { 
-          audioData: base64Audio,
-          apiKey: AZURE_OPENAI_GPT4O_TRANSCRIBE_API_KEY
-        }
+        body: { audioData: base64Audio }
       });
 
       if (speechError) {
@@ -133,11 +126,11 @@ export const useGlobalVoiceAgent = () => {
         return;
       }
 
-      // Process the command with GPT-4.1
+      // Process the command with the enhanced global voice command handler
       const { data: commandData, error: commandError } = await supabase.functions.invoke('global-voice-commands', {
         body: { 
-          command: transcript.trim(),
-          apiKey: AZURE_OPENAI_GPT41_API_KEY
+          transcript: transcript.trim(),
+          currentPath: window.location.pathname
         }
       });
 
@@ -145,7 +138,7 @@ export const useGlobalVoiceAgent = () => {
         throw new Error(commandError.message || 'Failed to process command');
       }
 
-      // Execute the parsed command
+      // Execute the parsed command with enhanced logic
       await executeCommand(commandData);
 
     } catch (error) {
@@ -344,11 +337,10 @@ export const useGlobalVoiceAgent = () => {
     setIsSpeaking(true);
     
     try {
-      // Use GPT-4o-transcribe for text-to-speech (replacing ElevenLabs)
       const { data, error } = await supabase.functions.invoke('text-to-speech', {
         body: { 
           text: text,
-          apiKey: AZURE_OPENAI_GPT4O_TRANSCRIBE_API_KEY
+          voiceId: 'EXAVITQu4vr4xnSDxMaL'
         }
       });
 

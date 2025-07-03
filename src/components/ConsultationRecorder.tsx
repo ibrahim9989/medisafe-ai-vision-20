@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,10 +23,6 @@ const ConsultationRecorder: React.FC<ConsultationRecorderProps> = ({
   const [lastTranscript, setLastTranscript] = useState('');
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-
-  // Updated API keys with your actual keys
-  const AZURE_OPENAI_GPT4O_TRANSCRIBE_API_KEY = '4g6z7Fsq40SA0ipOk33t2LvEhBvUV3vas3KGJPQfxDL0XbozazovJQQJ99BGACHYHv6XJ3w3AAAAACOGqMlD';
-  const AZURE_OPENAI_GPT41_API_KEY = '20ecnQrTCmX9zZXyIRXPGpS8gnGvjrLhea2usfq7MUGzkyqZyhKDJQQJ99BGACYeBjFXJ3w3AAAAACOGde3O';
 
   const startRecording = async () => {
     try {
@@ -118,9 +115,7 @@ const ConsultationRecorder: React.FC<ConsultationRecorderProps> = ({
         body: {
           audio: base64Audio,
           doctor_id: doctorProfile.id,
-          patient_id: patientId,
-          transcribeApiKey: AZURE_OPENAI_GPT4O_TRANSCRIBE_API_KEY,
-          gpt41ApiKey: AZURE_OPENAI_GPT41_API_KEY
+          patient_id: patientId
         }
       });
 

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,9 +23,6 @@ const VoiceAssistant = ({ prescriptionData, onPrescriptionChange, className }: V
     timestamp: Date;
   }>>([]);
 
-  // Updated API key with your actual key
-  const AZURE_OPENAI_GPT41_API_KEY = '20ecnQrTCmX9zZXyIRXPGpS8gnGvjrLhea2usfq7MUGzkyqZyhKDJQQJ99BGACYeBjFXJ3w3AAAAACOGde3O';
-
   const processVoiceCommand = async (transcript: string) => {
     console.log('🎤 VOICE COMMAND START:', transcript);
     console.log('📋 Current form data BEFORE update:', JSON.stringify(prescriptionData, null, 2));
@@ -37,12 +35,11 @@ const VoiceAssistant = ({ prescriptionData, onPrescriptionChange, className }: V
     }]);
 
     try {
-      // Call Azure OpenAI GPT-4.1 to parse the voice command
+      // Call Gemini to parse the voice command
       const { data, error } = await supabase.functions.invoke('parse-voice-command', {
         body: { 
           transcript: transcript.trim(),
-          currentData: prescriptionData,
-          apiKey: AZURE_OPENAI_GPT41_API_KEY
+          currentData: prescriptionData
         }
       });
 
@@ -52,7 +49,7 @@ const VoiceAssistant = ({ prescriptionData, onPrescriptionChange, className }: V
         return;
       }
 
-      console.log('🤖 Azure OpenAI GPT-4.1 parsed result:', JSON.stringify(data, null, 2));
+      console.log('🤖 Gemini parsed result:', JSON.stringify(data, null, 2));
 
       if (data.action === 'update_field' && data.updates) {
         // Create a completely new prescription data object

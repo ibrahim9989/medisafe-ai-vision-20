@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
@@ -21,9 +22,6 @@ const PrescriptionForm = () => {
   const { user } = useAuth();
   const { profile } = useDoctorProfile();
   const { savePrescription, saveAIAnalysis } = usePrescriptions();
-
-  // Updated API key with your actual key
-  const AZURE_OPENAI_GPT41_API_KEY = '20ecnQrTCmX9zZXyIRXPGpS8gnGvjrLhea2usfq7MUGzkyqZyhKDJQQJ99BGACYeBjFXJ3w3AAAAACOGde3O';
 
   const [data, setData] = useState<PrescriptionData>({
     doctorName: '',
@@ -69,8 +67,7 @@ const PrescriptionForm = () => {
         const { data: result, error } = await supabase.functions.invoke('analyze-lab-report', {
           body: {
             image: base64,
-            mimeType: file.type,
-            apiKey: AZURE_OPENAI_GPT41_API_KEY
+            mimeType: file.type
           }
         });
 

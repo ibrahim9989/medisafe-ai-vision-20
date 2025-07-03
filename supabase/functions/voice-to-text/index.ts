@@ -12,14 +12,15 @@ serve(async (req) => {
   }
 
   try {
-    const { audioData, apiKey } = await req.json();
+    const { audioData } = await req.json();
     
     if (!audioData) {
       throw new Error('No audio data provided');
     }
 
-    if (!apiKey) {
-      throw new Error('API key is required');
+    const azureOpenAIApiKey = Deno.env.get('AZURE_OPENAI_API_KEY');
+    if (!azureOpenAIApiKey) {
+      throw new Error('Azure OpenAI API key not configured');
     }
 
     console.log('Processing audio data, length:', audioData.length);
@@ -35,22 +36,23 @@ serve(async (req) => {
 
     console.log('Audio blob created - size:', audioBlob.size, 'bytes, type: audio/wav');
 
-    // Create form data for Azure OpenAI GPT-4o-transcribe
+    // Create form data for Azure OpenAI transcription
     const formData = new FormData();
     formData.append('file', audioBlob, 'recording.wav');
     formData.append('model', 'gpt-4o-transcribe');
 
-    console.log('Sending request to Azure OpenAI GPT-4o-transcribe API...');
+    console.log('Sending request to Azure OpenAI transcription API...');
 
     const response = await fetch('https://otly.cognitiveservices.azure.com/openai/deployments/gpt-4o-transcribe/audio/transcriptions?api-version=2025-03-01-preview', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        'Authorization': `Bearer ${azureOpenAIApiKey}`,
       },
       body: formData,
     });
 
     console.log('Azure OpenAI API response status:', response.status);
+    console.log('Azure OpenAI API response headers:', Object.fromEntries(response.headers.entries()));
 
     if (!response.ok) {
       const errorText = await response.text();
