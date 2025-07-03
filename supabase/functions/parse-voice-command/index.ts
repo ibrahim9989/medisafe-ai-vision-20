@@ -18,9 +18,9 @@ serve(async (req) => {
       throw new Error('No transcript provided');
     }
 
-    const azureOpenAIGPT41ApiKey = Deno.env.get('AZURE_OPENAI_GPT41_API_KEY');
-    if (!azureOpenAIGPT41ApiKey) {
-      throw new Error('Azure OpenAI GPT-4.1 API key not configured');
+    const geminiApiKey = Deno.env.get('GEMINI_API_KEY');
+    if (!geminiApiKey) {
+      throw new Error('Gemini API key not configured');
     }
 
     console.log('Processing voice command:', transcript);
@@ -36,8 +36,6 @@ CONTEXT - Current prescription data:
 - Temperature: ${currentData?.temperature || 'Not set'}
 - Blood Pressure: ${currentData?.bp || 'Not set'}
 - Diagnosis: ${currentData?.diagnosis || 'Not set'}
-- Diagnosis Details: ${currentData?.diagnosisDetails || 'Not set'}
-- Underlying Conditions: ${currentData?.underlyingConditions || 'Not set'}
 - Current Medications: ${JSON.stringify(currentData?.medications || [])}
 - Clinical Notes: ${currentData?.notes || 'Not set'}
 - Follow-up Date: ${currentData?.followUpDate || 'Not set'}
@@ -52,8 +50,6 @@ INTELLIGENCE RULES:
    - "Age 45" / "Patient is 45 years old" / "45 year old patient"
    - "Blood pressure 120 over 80" / "BP 120/80" / "Blood pressure is 120 slash 80"
    - "Follow up next week" / "See patient in one week" / "Appointment next Tuesday"
-   - "Diagnosis is diabetes" / "Patient has diabetes" / "Diabetic patient"
-   - "Underlying condition hypertension" / "Has high blood pressure" / "History of hypertension"
 4. For medications, extract ALL components even if mentioned separately:
    - "Add amoxicillin" + dosage/frequency context from the sentence
    - "Give patient 500mg amoxicillin three times a day for a week"
@@ -73,22 +69,23 @@ EXACT FIELD MAPPINGS (USE THESE EXACTLY):
 - contact: Phone number or contact information
 - temperature: Numeric temperature value (Fahrenheit)
 - bp: Blood pressure as "systolic/diastolic" format (e.g., "120/80")
-- diagnosis: Primary medical diagnosis or condition
-- diagnosisDetails: Detailed information about the diagnosis
-- underlyingConditions: Underlying medical conditions, comorbidities
-- notes: Clinical notes, allergies, symptoms, complaints
+- diagnosis: Medical diagnosis or condition
+- notes: Clinical notes, underlying conditions, allergies, medical history, symptoms, complaints
 - followUpDate: Date in YYYY-MM-DD format
 - medications: Array of objects with {name, dosage, frequency, duration}
 
 SMART EXAMPLES:
 Input: "Patient John Smith age 45 has diabetes and hypertension"
-→ {"action": "update_field", "updates": {"patientName": "John Smith", "age": 45, "diagnosis": "diabetes", "underlyingConditions": "hypertension"}, "response": "Updated patient John Smith, age 45, with diabetes diagnosis and hypertension as underlying condition"}
-
-Input: "Diagnosis is acute bronchitis with underlying COPD"
-→ {"action": "update_field", "updates": {"diagnosis": "acute bronchitis", "underlyingConditions": "COPD"}, "response": "Updated diagnosis to acute bronchitis with COPD as underlying condition"}
+→ {"action": "update_field", "updates": {"patientName": "John Smith", "age": 45, "diagnosis": "diabetes", "notes": "hypertension"}, "response": "Updated patient John Smith, age 45, with diabetes diagnosis and noted hypertension"}
 
 Input: "Patient complains of chest pain and has history of heart disease"
-→ {"action": "update_field", "updates": {"notes": "complains of chest pain", "underlyingConditions": "history of heart disease"}, "response": "Added chest pain complaint and cardiac history as underlying condition"}
+→ {"action": "update_field", "updates": {"notes": "complains of chest pain, history of heart disease"}, "response": "Added clinical notes about chest pain complaint and cardiac history"}
+
+Input: "Allergic to penicillin, has elevated blood pressure"
+→ {"action": "update_field", "updates": {"notes": "allergic to penicillin, elevated blood pressure"}, "response": "Added allergy and blood pressure information to clinical notes"}
+
+Input: "Patient reports fatigue and dizziness, underlying diabetes"
+→ {"action": "update_field", "updates": {"notes": "reports fatigue and dizziness, underlying diabetes"}, "response": "Added symptoms and underlying condition to clinical notes"}
 
 RESPONSE FORMAT (JSON only, no extra text):
 {
@@ -102,35 +99,37 @@ RESPONSE FORMAT (JSON only, no extra text):
 
 PARSE THE COMMAND NOW AND RETURN ONLY THE JSON RESPONSE:`;
 
-    const response = await fetch('https://otly.cognitiveservices.azure.com/openai/deployments/gpt-4.1/chat/completions?api-version=2025-01-01-preview', {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${geminiApiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${azureOpenAIGPT41ApiKey}`,
       },
       body: JSON.stringify({
-        messages: [
-          { role: 'system', content: 'You are an intelligent medical voice assistant. Always respond with valid JSON format.' },
-          { role: 'user', content: prompt }
-        ],
-        model: 'gpt-4.1',
-        max_completion_tokens: 1024,
-        temperature: 0.1,
-        top_p: 0.8,
+        contents: [{
+          parts: [{
+            text: prompt
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.1,
+          topK: 1,
+          topP: 0.8,
+          maxOutputTokens: 1024,
+        }
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Azure OpenAI GPT-4.1 API error:', errorText);
-      throw new Error(`Azure OpenAI GPT-4.1 API error: ${response.status}`);
+      console.error('Gemini API error:', errorText);
+      throw new Error(`Gemini API error: ${response.status}`);
     }
 
     const result = await response.json();
-    console.log('Azure OpenAI GPT-4.1 API response:', result);
+    console.log('Gemini API response:', result);
     
-    const generatedText = result.choices?.[0]?.message?.content || '';
-    console.log('Generated text from GPT-4.1:', generatedText);
+    const generatedText = result.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    console.log('Generated text from Gemini:', generatedText);
     
     // Extract JSON from the response
     let parsedCommand;
@@ -144,7 +143,7 @@ PARSE THE COMMAND NOW AND RETURN ONLY THE JSON RESPONSE:`;
         throw new Error('No JSON found in response');
       }
     } catch (parseError) {
-      console.error('Failed to parse GPT-4.1 response as JSON:', generatedText);
+      console.error('Failed to parse Gemini response as JSON:', generatedText);
       // Fallback response
       parsedCommand = {
         action: "unknown",

@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -7,7 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const AZURE_OPENAI_GPT41_API_KEY = Deno.env.get('AZURE_OPENAI_GPT41_API_KEY');
+const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -64,10 +63,8 @@ RESPONSE FORMAT (ALWAYS ONE OBJECT):
     "prescription": {
       "doctorName": "...",
       "patientName": "...",
-      "diagnosis": "...",
-      "diagnosisDetails": "...",
-      "underlyingConditions": "...",
-      "downloadPrescription": true
+      // ... (etc) ...
+      "downloadPrescription": true   // Include if a download is requested!
     }
   },
   "response": "Human-friendly description of the workflow."
@@ -95,7 +92,7 @@ Input: "Go to patient history, search for Jane and select the Jane who has the m
   "response": "Navigating to patient history, searching for Jane (most visits), and downloading her prescription."
 }
 
-Input: "Clear the form. Also go to existing patient search for Jane, select Jane with most number of visits. Prescribe amoxycillin 500 mg, dolo 650 for seven days, diagnosis is acute bronchitis with underlying COPD, download her prescription as PDF."
+Input: "Clear the form. Also go to existing patient search for Jane, select Jane with most number of visits. Prescribe amoxycillin 500 mg, dolo 650 for seven days, diagnosis is acute bronchitis, download her prescription as PDF."
 → Output:
 {
   "action": "fill_form",
@@ -109,7 +106,6 @@ Input: "Clear the form. Also go to existing patient search for Jane, select Jane
     "clearForm": true,
     "prescription": {
       "diagnosis": "acute bronchitis",
-      "underlyingConditions": "COPD",
       "medications": [
         {"name": "amoxycillin", "dosage": "500mg", "frequency": "Twice daily", "duration": "7 days"},
         {"name": "dolo", "dosage": "650mg", "frequency": "Twice daily", "duration": "7 days"}
@@ -117,7 +113,7 @@ Input: "Clear the form. Also go to existing patient search for Jane, select Jane
       "downloadPrescription": true
     }
   },
-  "response": "Clearing form, searching for Jane, prescribing medications for acute bronchitis with underlying COPD and downloading prescription as PDF."
+  "response": "Clearing form, searching for Jane, prescribing medications for acute bronchitis and downloading prescription as PDF."
 }
 
 ALWAYS:
@@ -126,35 +122,35 @@ ALWAYS:
 
 Parse user command with MAXIMUM INTELLIGENCE: "${transcript}"`;
 
-    const response = await fetch('https://otly.cognitiveservices.azure.com/openai/deployments/gpt-4.1/chat/completions?api-version=2025-01-01-preview', {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${AZURE_OPENAI_GPT41_API_KEY}`,
       },
       body: JSON.stringify({
-        messages: [
-          { role: 'system', content: 'You are an intelligent global voice command assistant. Always respond with valid JSON format.' },
-          { role: 'user', content: systemPrompt }
-        ],
-        model: 'gpt-4.1',
-        max_completion_tokens: 2048,
-        temperature: 0.1,
-        top_p: 0.8,
+        contents: [{
+          parts: [{
+            text: systemPrompt
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.1,
+          maxOutputTokens: 2048,
+        }
       })
     });
 
     if (!response.ok) {
-      throw new Error(`Azure OpenAI GPT-4.1 API error: ${response.status}`);
+      throw new Error(`Gemini API error: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log('GPT-4.1 response:', data);
+    console.log('Gemini response:', data);
 
-    const generatedText = data.choices?.[0]?.message?.content;
+    const generatedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
     
     if (!generatedText) {
-      throw new Error('No response from Azure OpenAI GPT-4.1');
+      throw new Error('No response from Gemini');
     }
 
     // Enhanced JSON extraction with better error handling
@@ -175,7 +171,7 @@ Parse user command with MAXIMUM INTELLIGENCE: "${transcript}"`;
         throw new Error('No valid JSON structure found');
       }
     } catch (parseError) {
-      console.error('Failed to parse GPT-4.1 response as JSON:', generatedText);
+      console.error('Failed to parse Gemini response as JSON:', generatedText);
       console.error('Parse error:', parseError);
       
       // Intelligent fallback based on keywords in the original transcript
@@ -192,7 +188,6 @@ Parse user command with MAXIMUM INTELLIGENCE: "${transcript}"`;
             clearForm: transcript.toLowerCase().includes('clear'),
             prescription: {
               diagnosis: transcript.toLowerCase().includes('bronchitis') ? 'acute bronchitis' : '',
-              underlyingConditions: transcript.toLowerCase().includes('copd') ? 'COPD' : (transcript.toLowerCase().includes('hypertension') ? 'hypertension' : ''),
               medications: [],
               notes: transcript.toLowerCase().includes('hypertension') ? 'hypertension' : ''
             }
