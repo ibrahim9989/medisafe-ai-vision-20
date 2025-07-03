@@ -12,11 +12,10 @@ serve(async (req) => {
   }
 
   try {
-    const { image, mimeType } = await req.json()
+    const { image, mimeType, apiKey } = await req.json()
     
-    const AZURE_OPENAI_GPT41_API_KEY = Deno.env.get('AZURE_OPENAI_GPT41_API_KEY')
-    if (!AZURE_OPENAI_GPT41_API_KEY) {
-      throw new Error('AZURE_OPENAI_GPT41_API_KEY not configured')
+    if (!apiKey) {
+      throw new Error('API key is required')
     }
 
     console.log('Starting lab report analysis with Azure OpenAI GPT-4.1...')
@@ -26,7 +25,7 @@ serve(async (req) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${AZURE_OPENAI_GPT41_API_KEY}`,
+        'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
         messages: [

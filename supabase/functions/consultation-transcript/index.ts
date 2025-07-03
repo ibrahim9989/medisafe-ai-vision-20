@@ -14,17 +14,14 @@ serve(async (req) => {
   }
 
   try {
-    const { audio, doctor_id, patient_id } = await req.json();
+    const { audio, doctor_id, patient_id, transcribeApiKey, gpt41ApiKey } = await req.json();
     
     if (!audio) {
       throw new Error('No audio data provided');
     }
 
-    const azureOpenAIApiKey = Deno.env.get('AZURE_OPENAI_API_KEY');
-    const azureOpenAIGPT41ApiKey = Deno.env.get('AZURE_OPENAI_GPT41_API_KEY');
-    
-    if (!azureOpenAIApiKey || !azureOpenAIGPT41ApiKey) {
-      throw new Error('Azure OpenAI API keys not configured');
+    if (!transcribeApiKey || !gpt41ApiKey) {
+      throw new Error('API keys are required');
     }
 
     console.log('🎵 Processing consultation audio...');
@@ -42,7 +39,7 @@ serve(async (req) => {
     const transcriptionResponse = await fetch('https://otly.cognitiveservices.azure.com/openai/deployments/gpt-4o-transcribe/audio/transcriptions?api-version=2025-03-01-preview', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${azureOpenAIApiKey}`,
+        'Authorization': `Bearer ${transcribeApiKey}`,
       },
       body: formData,
     });
@@ -93,7 +90,7 @@ Be thorough but concise. If information is not available, use empty strings or a
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${azureOpenAIGPT41ApiKey}`,
+        'Authorization': `Bearer ${gpt41ApiKey}`,
       },
       body: JSON.stringify({
         messages: [

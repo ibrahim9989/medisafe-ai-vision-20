@@ -13,11 +13,10 @@ serve(async (req) => {
   }
 
   try {
-    const { prescriptionData } = await req.json();
+    const { prescriptionData, apiKey } = await req.json();
     
-    const AZURE_OPENAI_GPT41_API_KEY = Deno.env.get('AZURE_OPENAI_GPT41_API_KEY');
-    if (!AZURE_OPENAI_GPT41_API_KEY) {
-      throw new Error('AZURE_OPENAI_GPT41_API_KEY not configured');
+    if (!apiKey) {
+      throw new Error('API key is required');
     }
 
     console.log('Starting enhanced AI prescription analysis with Azure OpenAI GPT-4.1...');
@@ -55,7 +54,7 @@ Focus on patient safety, treatment efficacy, and comprehensive medical care.`;
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${AZURE_OPENAI_GPT41_API_KEY}`,
+        'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
         messages: [

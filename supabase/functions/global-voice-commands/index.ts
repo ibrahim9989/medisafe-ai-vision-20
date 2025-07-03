@@ -13,11 +13,10 @@ serve(async (req) => {
   }
 
   try {
-    const { command } = await req.json();
+    const { command, apiKey } = await req.json();
     
-    const AZURE_OPENAI_GPT41_API_KEY = Deno.env.get('AZURE_OPENAI_GPT41_API_KEY');
-    if (!AZURE_OPENAI_GPT41_API_KEY) {
-      throw new Error('AZURE_OPENAI_GPT41_API_KEY not configured');
+    if (!apiKey) {
+      throw new Error('API key is required');
     }
 
     console.log('Processing global voice command with Azure OpenAI GPT-4.1:', command);
@@ -57,7 +56,7 @@ Be precise and extract the user's intent clearly.`;
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${AZURE_OPENAI_GPT41_API_KEY}`,
+        'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
         messages: [
