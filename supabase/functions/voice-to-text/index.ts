@@ -48,7 +48,7 @@ serve(async (req) => {
     const response = await fetch('https://otly.cognitiveservices.azure.com/openai/deployments/gpt-4o-transcribe/audio/transcriptions?api-version=2025-03-01-preview', {
       method: 'POST',
       headers: {
-        'api-key': apiKey,
+        'Authorization': `Bearer ${apiKey}`,
       },
       body: formData,
     });
