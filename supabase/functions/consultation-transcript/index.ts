@@ -8,8 +8,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY');
-const ELEVENLABS_API_KEY = Deno.env.get('ELEVENLABS_API_KEY');
+const AZURE_API_KEY = 'FZ9RZqAVfAtln3qn1Y8CvVJck70dw2ijPZB51KFLbOg9EVWXyUtDJQQJ99BEACHYHv6XJ3w3AAAAACOGbxmN';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
@@ -25,22 +24,14 @@ serve(async (req) => {
       throw new Error('No audio data provided');
     }
 
-    if (!ELEVENLABS_API_KEY) {
-      throw new Error('ElevenLabs API key not configured');
-    }
-
-    if (!GEMINI_API_KEY) {
-      throw new Error('Gemini API key not configured');
-    }
-
     console.log('Processing consultation audio for patient:', patientId);
     console.log('Audio data length:', audio.length);
 
-    // Step 1: Convert audio to text using ElevenLabs
+    // Step 1: Convert audio to text using Azure OpenAI GPT-4o-mini-transcribe
     let transcript = '';
     
     try {
-      console.log('Starting audio transcription with ElevenLabs...');
+      console.log('Starting audio transcription with Azure OpenAI GPT-4o-mini-transcribe...');
       
       if (!audio || typeof audio !== 'string') {
         throw new Error('Invalid audio data format');
@@ -62,31 +53,30 @@ serve(async (req) => {
       const formData = new FormData();
       const audioBlob = new Blob([audioBuffer], { type: 'audio/webm' });
       formData.append('file', audioBlob, 'consultation.webm');
-      formData.append('model_id', 'scribe_v1');
 
-      console.log('Sending request to ElevenLabs speech-to-text API...');
+      console.log('Sending request to Azure OpenAI GPT-4o-mini-transcribe...');
 
-      const elevenLabsResponse = await fetch('https://api.elevenlabs.io/v1/speech-to-text', {
+      const transcribeResponse = await fetch('https://razam-mac1ml8q-eastus2.cognitiveservices.azure.com/openai/deployments/gpt-4o-mini-transcribe/audio/transcriptions?api-version=2025-03-01-preview', {
         method: 'POST',
         headers: {
-          'xi-api-key': ELEVENLABS_API_KEY,
+          'api-key': AZURE_API_KEY,
         },
         body: formData,
       });
 
-      console.log('ElevenLabs API response status:', elevenLabsResponse.status);
+      console.log('Azure OpenAI transcribe response status:', transcribeResponse.status);
 
-      if (!elevenLabsResponse.ok) {
-        const errorText = await elevenLabsResponse.text();
-        console.error('ElevenLabs API error:', errorText);
-        throw new Error(`ElevenLabs API error (${elevenLabsResponse.status}): ${errorText}`);
+      if (!transcribeResponse.ok) {
+        const errorText = await transcribeResponse.text();
+        console.error('Azure OpenAI transcribe error:', errorText);
+        throw new Error(`Azure OpenAI transcribe error (${transcribeResponse.status}): ${errorText}`);
       }
 
-      const elevenLabsResult = await elevenLabsResponse.json();
-      transcript = elevenLabsResult.text || '';
+      const transcribeResult = await transcribeResponse.json();
+      transcript = transcribeResult.text || '';
       
       if (!transcript || transcript.trim().length === 0) {
-        throw new Error('No transcription received from ElevenLabs API');
+        throw new Error('No transcription received from Azure OpenAI API');
       }
 
       console.log('Transcription completed successfully. Length:', transcript.length);
@@ -96,8 +86,8 @@ serve(async (req) => {
       throw new Error(`Failed to transcribe audio: ${error.message}`);
     }
 
-    // Step 2: Process transcript with Gemini AI
-    console.log('Starting AI analysis with Gemini...');
+    // Step 2: Process transcript with Azure OpenAI GPT-4.1
+    console.log('Starting AI analysis with Azure OpenAI GPT-4.1...');
 
     const analysisPrompt = `You are an expert medical AI assistant analyzing a doctor-patient consultation transcript. Extract structured medical information and create comprehensive consultation notes.
 
@@ -174,6 +164,8 @@ RETURN RESPONSE AS JSON:
     "findings": ["finding1", "finding2"]
   },
   "diagnosis": "primary diagnosis",
+  "diagnosisDetails": "detailed diagnosis explanation",
+  "underlyingConditions": "any underlying conditions",
   "treatmentPlan": {
     "medications": [
       {"name": "med", "dosage": "amount", "frequency": "schedule", "duration": "period"}
@@ -204,40 +196,38 @@ RETURN RESPONSE AS JSON:
 
     let analysisData;
     try {
-      const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
+      const gptResponse = await fetch('https://razam-mac1ml8q-eastus2.cognitiveservices.azure.com/openai/deployments/gpt-4.1/chat/completions?api-version=2025-01-01-preview', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'api-key': AZURE_API_KEY,
         },
         body: JSON.stringify({
-          contents: [{
-            parts: [{
-              text: analysisPrompt
-            }]
+          messages: [{
+            role: 'user',
+            content: analysisPrompt
           }],
-          generationConfig: {
-            temperature: 0.1,
-            maxOutputTokens: 4096,
-          }
+          max_tokens: 4096,
+          temperature: 0.1,
         }),
       });
 
-      console.log('Gemini API response status:', geminiResponse.status);
+      console.log('Azure OpenAI GPT-4.1 response status:', gptResponse.status);
 
-      if (!geminiResponse.ok) {
-        const errorText = await geminiResponse.text();
-        console.error('Gemini API error:', errorText);
-        throw new Error(`Gemini API error (${geminiResponse.status}): ${errorText}`);
+      if (!gptResponse.ok) {
+        const errorText = await gptResponse.text();
+        console.error('Azure OpenAI GPT-4.1 error:', errorText);
+        throw new Error(`Azure OpenAI GPT-4.1 error (${gptResponse.status}): ${errorText}`);
       }
 
-      const geminiResult = await geminiResponse.json();
-      const analysisText = geminiResult.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      const gptResult = await gptResponse.json();
+      const analysisText = gptResult.choices?.[0]?.message?.content || '';
       
       if (!analysisText) {
-        throw new Error('No analysis received from Gemini API');
+        throw new Error('No analysis received from Azure OpenAI GPT-4.1');
       }
 
-      console.log('Gemini analysis received, length:', analysisText.length);
+      console.log('GPT-4.1 analysis received, length:', analysisText.length);
       
       try {
         const jsonMatch = analysisText.match(/\{[\s\S]*\}/);
@@ -254,7 +244,7 @@ RETURN RESPONSE AS JSON:
       console.log('Consultation analysis completed successfully');
 
     } catch (error) {
-      console.error('Gemini analysis error:', error);
+      console.error('GPT-4.1 analysis error:', error);
       throw new Error(`Failed to analyze consultation: ${error.message}`);
     }
 
@@ -273,6 +263,7 @@ RETURN RESPONSE AS JSON:
             summary: analysisData.summary,
             chief_complaint: analysisData.chiefComplaint,
             diagnosis: analysisData.diagnosis,
+            underlying_conditions: analysisData.underlyingConditions,
             action_items: analysisData.actionItems,
             follow_up_instructions: analysisData.followUp,
             created_at: new Date().toISOString()
@@ -295,6 +286,8 @@ RETURN RESPONSE AS JSON:
       transcript: transcript,
       summary: analysisData.summary,
       diagnosis: analysisData.diagnosis,
+      diagnosis_details: analysisData.diagnosisDetails,
+      underlying_conditions: analysisData.underlyingConditions,
       chief_complaint: analysisData.chiefComplaint,
       action_items: analysisData.actionItems,
       follow_up_instructions: analysisData.followUp,

@@ -12,48 +12,23 @@ serve(async (req) => {
   }
 
   try {
-    const { text, voiceId = 'EXAVITQu4vr4xnSDxMaL' } = await req.json(); // Sarah voice by default
+    const { text } = await req.json();
     
     if (!text) {
       throw new Error('No text provided');
     }
 
-    const elevenlabsApiKey = Deno.env.get('ELEVENLABS_API_KEY');
-    if (!elevenlabsApiKey) {
-      throw new Error('ElevenLabs API key not configured');
-    }
-
-    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
-      method: 'POST',
-      headers: {
-        'xi-api-key': elevenlabsApiKey,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        text: text,
-        model_id: 'eleven_multilingual_v2',
-        voice_settings: {
-          stability: 0.5,
-          similarity_boost: 0.5,
-          style: 0.0,
-          use_speaker_boost: true
-        }
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('ElevenLabs TTS API error:', errorText);
-      throw new Error(`ElevenLabs API error: ${response.status}`);
-    }
-
-    const audioBuffer = await response.arrayBuffer();
-    const base64Audio = btoa(String.fromCharCode(...new Uint8Array(audioBuffer)));
+    // Note: Azure OpenAI doesn't have a direct text-to-speech endpoint like ElevenLabs
+    // For now, we'll return a simple response indicating TTS is not available
+    // You may want to integrate with Azure Speech Services instead
+    
+    console.log('Text-to-speech requested for:', text.substring(0, 50) + '...');
     
     return new Response(
       JSON.stringify({ 
-        audioContent: base64Audio,
-        contentType: 'audio/mpeg'
+        message: 'Text-to-speech feature temporarily unavailable. Azure OpenAI GPT models do not include TTS capabilities.',
+        audioContent: null,
+        contentType: null
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
