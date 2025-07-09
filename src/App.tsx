@@ -60,7 +60,6 @@ const App = () => (
                   </ProtectedRoute>
                 } 
               />
-              {/* Catch all route - redirect to auth */}
               <Route path="*" element={<Navigate to="/auth" replace />} />
             </Routes>
           </TutorialProvider>

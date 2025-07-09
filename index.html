@@ -16,18 +16,21 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@lovable_dev" />
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    
     <!-- PWA -->
     <link rel="manifest" href="/manifest.webmanifest" />
-    <link rel="icon" href="/icons/icon-192.png" sizes="192x192" />
     <meta name="theme-color" content="#cb6ce6" />
-    <!-- Apple support -->
-    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
 
     <script>
       // Register service worker for PWA
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', function () {
-          navigator.serviceWorker.register('/service-worker.js');
+          navigator.serviceWorker.register('/service-worker.js').catch(function(error) {
+            console.log('ServiceWorker registration failed: ', error);
+          });
         });
       }
     </script>
