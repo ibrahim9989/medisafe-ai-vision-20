@@ -14,7 +14,6 @@ import LabReportsSection from './LabReportsSection';
 import FollowUpSection from './FollowUpSection';
 import VitalSigns from './VitalSigns';
 import EnhancedMedicationList from './EnhancedMedicationList';
-import ConsultationRecorder from './ConsultationRecorder';
 import AIAnalysisSection from './AIAnalysisSection';
 import { PrescriptionData } from '@/types/prescription';
 
@@ -61,23 +60,8 @@ const PrescriptionForm = () => {
     if (files.length === 0) return '';
 
     try {
-      const analysisPromises = files.map(async (file) => {
-        const base64 = await fileToBase64(file);
-        
-        const { data: result, error } = await supabase.functions.invoke('analyze-lab-report', {
-          body: {
-            image: base64,
-            mimeType: file.type
-          }
-        });
-
-        if (error) throw new Error('Failed to analyze lab report');
-        
-        return `${file.name}: ${result.analysis}`;
-      });
-
-      const analyses = await Promise.all(analysisPromises);
-      return analyses.join('\n\n');
+      // For now, return a placeholder since lab analysis edge function was removed
+      return 'Lab analysis functionality will be implemented';
     } catch (error) {
       console.error('Error analyzing lab reports:', error);
       toast({
@@ -87,18 +71,6 @@ const PrescriptionForm = () => {
       });
       return 'Error analyzing lab reports';
     }
-  };
-
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => {
-        const result = reader.result as string;
-        resolve(result.split(',')[1]);
-      };
-      reader.onerror = reject;
-    });
   };
 
   const extractInfoFromConsultationNotes = (notes: string) => {
@@ -243,65 +215,12 @@ const PrescriptionForm = () => {
     }
   };
 
-  const handleConsultationComplete = (consultationData: any) => {
-    console.log('🎯 Enhanced voice consultation data received:', consultationData);
-    
-    const patientData = consultationData.analysisData?.patientInfo || {};
-    const treatmentData = consultationData.analysisData?.treatmentPlan || {};
-    const vitalSigns = consultationData.analysisData?.physicalExam?.vitalSigns || {};
-    
-    console.log('👤 Patient data extracted:', patientData);
-    console.log('💊 Treatment data extracted:', treatmentData);
-    console.log('🩺 Vital signs extracted:', vitalSigns);
-    
-    setData(prevData => {
-      const updatedData = {
-        ...prevData,
-        consultationNotes: consultationData.transcript || prevData.consultationNotes,
-        patientName: patientData.name || prevData.patientName,
-        age: patientData.age || prevData.age,
-        gender: patientData.gender || prevData.gender,
-        contact: patientData.contact || prevData.contact,
-        diagnosis: consultationData.diagnosis || prevData.diagnosis,
-        diagnosisDetails: consultationData.diagnosisDetails || prevData.diagnosisDetails,
-        underlyingConditions: consultationData.underlyingConditions || prevData.underlyingConditions,
-        notes: consultationData.summary || prevData.notes,
-        temperature: vitalSigns.temperature || prevData.temperature,
-        bp: vitalSigns.bloodPressure || prevData.bp,
-      };
-
-      if (treatmentData.medications && treatmentData.medications.length > 0) {
-        console.log('💊 Updating medications from voice:', treatmentData.medications);
-        
-        const voiceMedications = treatmentData.medications.map((med: any) => ({
-          name: med.name || '',
-          dosage: med.dosage || '',
-          frequency: med.frequency || '',
-          duration: med.duration || ''
-        }));
-        
-        updatedData.medications = [
-          ...voiceMedications,
-          ...Array(Math.max(0, 3 - voiceMedications.length)).fill({ name: '', dosage: '', frequency: '', duration: '' })
-        ];
-      }
-
-      console.log('✅ Form updated with enhanced voice data:', updatedData);
-      return updatedData;
-    });
-
-    toast({
-      title: "✅ Enhanced Voice Consultation Complete",
-      description: "Form updated with comprehensive medical details including diagnosis and conditions",
-    });
-  };
-
   const handleAIAnalysisComplete = async (analysis: any) => {
     try {
       console.log('🤖 Enhanced AI Analysis completed:', analysis);
       toast({
         title: "AI Analysis Complete",
-        description: "Comprehensive prescription analysis with diagnosis and conditions completed",
+        description: "Comprehensive prescription analysis completed",
       });
     } catch (error) {
       console.error('💥 Error with AI analysis:', error);
@@ -327,11 +246,6 @@ const PrescriptionForm = () => {
 
         <form onSubmit={handleSubmit} className="space-y-8">
           <EnhancedPrescriptionForm data={data} onChange={setData}>
-            <ConsultationRecorder 
-              onConsultationComplete={handleConsultationComplete}
-              patientId={undefined}
-            />
-            
             <ConsultationNotesSection 
               data={data} 
               onChange={handleConsultationNotesChange} 
