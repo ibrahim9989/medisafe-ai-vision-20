@@ -1,4 +1,5 @@
 
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
@@ -72,7 +73,7 @@ serve(async (req) => {
       const azureTranscribeResponse = await fetch('https://otly.cognitiveservices.azure.com/openai/deployments/gpt-4o-transcribe/audio/transcriptions?api-version=2025-03-01-preview', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${azureTranscribeApiKey}`,
+          'api-key': azureTranscribeApiKey,
         },
         body: formData,
       });
@@ -217,7 +218,7 @@ RETURN RESPONSE AS JSON:
       const azureGpt41Response = await fetch('https://otly.cognitiveservices.azure.com/openai/deployments/gpt-4.1/chat/completions?api-version=2025-01-01-preview', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${azureGpt41ApiKey}`,
+          'api-key': azureGpt41ApiKey,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -334,3 +335,4 @@ RETURN RESPONSE AS JSON:
     });
   }
 });
+
