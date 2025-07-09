@@ -35,7 +35,7 @@ serve(async (req) => {
       const formData = new FormData()
       const blob = new Blob([audioBuffer], { type: 'audio/webm' })
       formData.append('file', blob, 'audio.webm')
-      formData.append('model', 'whisper-1')
+      formData.append('model', 'gpt-4o-transcribe')
 
       const transcribeResponse = await fetch('https://otly.cognitiveservices.azure.com/openai/deployments/gpt-4o-transcribe/audio/transcriptions?api-version=2025-03-01-preview', {
         method: 'POST',
@@ -65,14 +65,14 @@ serve(async (req) => {
         throw new Error('No text to analyze')
       }
 
-      const analysisResponse = await fetch('https://otly.cognitiveservices.azure.com/openai/deployments/gpt-4.1/chat/completions?api-version=2025-01-01-preview', {
+      const analysisResponse = await fetch('https://otly.cognitiveservices.azure.com/openai/deployments/gpt-4.1/chat/completions?api-version=2024-12-01-preview', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'api-key': '20ecnQrTCmX9zZXyIRXPGpS8gnGvjrLhea2usfq7MUGzkyqZyhKDJQQJ99BGACYeBjFXJ3w3AAAAACOGde3O',
+          'api-key': '20ecnQrTCmX9zZXyIRXPGpS8gnGvjrLhea2usfq7MUGzkyqZyhKDJQQJ99BGACHYHv6XJ3w3AAAAACOGde3O',
         },
         body: JSON.stringify({
-          model: 'gpt-4',
+          model: 'gpt-4.1',
           messages: [
             {
               role: 'system',
@@ -98,8 +98,11 @@ serve(async (req) => {
               content: `Analyze this consultation transcript: ${textToAnalyze}`
             }
           ],
+          max_completion_tokens: 1500,
           temperature: 0.3,
-          max_tokens: 1500
+          top_p: 1.0,
+          frequency_penalty: 0.0,
+          presence_penalty: 0.0
         }),
       })
 
