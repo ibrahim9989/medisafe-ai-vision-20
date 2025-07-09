@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -20,7 +21,7 @@ const Auth = () => {
 
   useEffect(() => {
     if (user) {
-      navigate('/', { replace: true });
+      navigate('/app', { replace: true });
     }
   }, [user, navigate]);
 
@@ -102,7 +103,7 @@ const Auth = () => {
         <div className="w-full max-w-md">
           {/* Header with glass effect */}
           <div className="text-center mb-8">
-            <Link to="/" className="inline-flex items-center space-x-3 mb-6">
+            <div className="inline-flex items-center space-x-3 mb-6">
               <div className="relative">
                 <div className="glass-card flex items-center justify-center w-12 h-12 bg-gradient-to-br from-[#cb6ce6] via-[#b84fd9] to-[#9c4bc7] rounded-2xl">
                   <Stethoscope className="h-6 w-6 text-white" />
@@ -113,7 +114,7 @@ const Auth = () => {
                   MedVerse
                 </span>
               </h1>
-            </Link>
+            </div>
             <h2 className="text-3xl font-light text-gray-900 dark:text-gray-100 mb-2">
               {isSignUp ? 'Create Account' : 'Welcome Back'}
             </h2>

@@ -29,7 +29,7 @@ const App = () => (
           <TutorialProvider>
             <TutorialOverlay />
             <Routes>
-              <Route path="/auth" element={<Auth />} />
+              <Route path="/" element={<Auth />} />
               <Route 
                 path="/directory" 
                 element={
@@ -50,7 +50,7 @@ const App = () => (
                 } 
               />
               <Route 
-                path="/" 
+                path="/app" 
                 element={
                   <ProtectedRoute>
                     <ProfileGuard>
@@ -60,7 +60,7 @@ const App = () => (
                   </ProtectedRoute>
                 } 
               />
-              <Route path="*" element={<Navigate to="/auth" replace />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </TutorialProvider>
         </AuthProvider>
