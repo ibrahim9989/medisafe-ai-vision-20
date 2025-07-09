@@ -40,13 +40,14 @@ serve(async (req) => {
     // Create form data for Azure OpenAI GPT-4o-transcribe
     const formData = new FormData();
     formData.append('file', audioBlob, 'recording.webm');
+    formData.append('model', 'gpt-4o-transcribe');
 
     console.log('Sending request to Azure GPT-4o-transcribe API...');
 
     const response = await fetch('https://otly.cognitiveservices.azure.com/openai/deployments/gpt-4o-transcribe/audio/transcriptions?api-version=2025-03-01-preview', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        'api-key': apiKey,
       },
       body: formData,
     });

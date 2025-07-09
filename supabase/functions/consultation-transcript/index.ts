@@ -64,13 +64,14 @@ serve(async (req) => {
       const formData = new FormData();
       const audioBlob = new Blob([audioBuffer], { type: 'audio/webm' });
       formData.append('file', audioBlob, 'consultation.webm');
+      formData.append('model', 'gpt-4o-transcribe');
 
       console.log('Sending request to Azure GPT-4o-transcribe API...');
 
       const azureTranscribeResponse = await fetch('https://otly.cognitiveservices.azure.com/openai/deployments/gpt-4o-transcribe/audio/transcriptions?api-version=2025-03-01-preview', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${azureTranscribeApiKey}`,
+          'api-key': azureTranscribeApiKey,
         },
         body: formData,
       });
@@ -208,7 +209,7 @@ RETURN RESPONSE AS JSON:
       const azureGpt41Response = await fetch('https://otly.cognitiveservices.azure.com/openai/deployments/gpt-4.1/chat/completions?api-version=2025-01-01-preview', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${azureGpt41ApiKey}`,
+          'api-key': azureGpt41ApiKey,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
