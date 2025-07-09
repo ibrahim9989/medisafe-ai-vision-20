@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.50.0';
@@ -67,6 +66,7 @@ serve(async (req) => {
       formData.append('model', 'gpt-4o-transcribe');
 
       console.log('Sending request to Azure GPT-4o-transcribe API...');
+      console.log('Using transcribe API key (first 10 chars):', azureTranscribeApiKey.substring(0, 10) + '...');
 
       const azureTranscribeResponse = await fetch('https://otly.cognitiveservices.azure.com/openai/deployments/gpt-4o-transcribe/audio/transcriptions?api-version=2025-03-01-preview', {
         method: 'POST',
@@ -77,10 +77,16 @@ serve(async (req) => {
       });
 
       console.log('Azure GPT-4o-transcribe API response status:', azureTranscribeResponse.status);
+      console.log('Azure GPT-4o-transcribe API response headers:', Object.fromEntries(azureTranscribeResponse.headers.entries()));
 
       if (!azureTranscribeResponse.ok) {
         const errorText = await azureTranscribeResponse.text();
-        console.error('Azure GPT-4o-transcribe API error:', errorText);
+        console.error('Azure GPT-4o-transcribe API error:', {
+          status: azureTranscribeResponse.status,
+          statusText: azureTranscribeResponse.statusText,
+          body: errorText,
+          headers: Object.fromEntries(azureTranscribeResponse.headers.entries())
+        });
         throw new Error(`Azure GPT-4o-transcribe API error (${azureTranscribeResponse.status}): ${errorText}`);
       }
 
@@ -100,6 +106,7 @@ serve(async (req) => {
 
     // Step 2: Process transcript with Azure GPT-4.1
     console.log('Starting AI analysis with Azure GPT-4.1...');
+    console.log('Using GPT-4.1 API key (first 10 chars):', azureGpt41ApiKey.substring(0, 10) + '...');
 
     const analysisPrompt = `You are an expert medical AI assistant analyzing a doctor-patient consultation transcript. Extract structured medical information and create comprehensive consultation notes.
 
@@ -224,10 +231,16 @@ RETURN RESPONSE AS JSON:
       });
 
       console.log('Azure GPT-4.1 API response status:', azureGpt41Response.status);
+      console.log('Azure GPT-4.1 API response headers:', Object.fromEntries(azureGpt41Response.headers.entries()));
 
       if (!azureGpt41Response.ok) {
         const errorText = await azureGpt41Response.text();
-        console.error('Azure GPT-4.1 API error:', errorText);
+        console.error('Azure GPT-4.1 API error:', {
+          status: azureGpt41Response.status,
+          statusText: azureGpt41Response.statusText,
+          body: errorText,
+          headers: Object.fromEntries(azureGpt41Response.headers.entries())
+        });
         throw new Error(`Azure GPT-4.1 API error (${azureGpt41Response.status}): ${errorText}`);
       }
 
@@ -305,7 +318,11 @@ RETURN RESPONSE AS JSON:
     });
 
   } catch (error) {
-    console.error('Consultation transcript error:', error);
+    console.error('Consultation transcript error:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
     return new Response(JSON.stringify({
       success: false,
       error: error.message,

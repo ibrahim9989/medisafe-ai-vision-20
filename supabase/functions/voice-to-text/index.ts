@@ -43,6 +43,7 @@ serve(async (req) => {
     formData.append('model', 'gpt-4o-transcribe');
 
     console.log('Sending request to Azure GPT-4o-transcribe API...');
+    console.log('Using API key (first 10 chars):', apiKey.substring(0, 10) + '...');
 
     const response = await fetch('https://otly.cognitiveservices.azure.com/openai/deployments/gpt-4o-transcribe/audio/transcriptions?api-version=2025-03-01-preview', {
       method: 'POST',
@@ -60,7 +61,8 @@ serve(async (req) => {
       console.error('Azure GPT-4o-transcribe API detailed error:', {
         status: response.status,
         statusText: response.statusText,
-        body: errorText
+        body: errorText,
+        headers: Object.fromEntries(response.headers.entries())
       });
       throw new Error(`Azure GPT-4o-transcribe API error: ${response.status} - ${errorText}`);
     }
@@ -81,7 +83,8 @@ serve(async (req) => {
   } catch (error) {
     console.error('Voice-to-text processing error:', {
       message: error.message,
-      stack: error.stack
+      stack: error.stack,
+      name: error.name
     });
     return new Response(
       JSON.stringify({ 
