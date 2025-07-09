@@ -1,3 +1,4 @@
+
 import { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -106,9 +107,12 @@ export const useGlobalVoiceAgent = () => {
         reader.readAsDataURL(audioBlob);
       });
 
-      // First, convert speech to text
+      // First, convert speech to text using Azure GPT-4o-transcribe
       const { data: speechData, error: speechError } = await supabase.functions.invoke('voice-to-text', {
-        body: { audioData: base64Audio }
+        body: { 
+          audioData: base64Audio,
+          transcribeApiKey: '4g6z7Fsq40SA0ipOk33t2LvEhBvUV3vas3KGJPQfxDL0XbozazovJQQJ99BGACHYHv6XJ3w3AAAAACOGqMlD'
+        }
       });
 
       if (speechError) {
@@ -130,7 +134,8 @@ export const useGlobalVoiceAgent = () => {
       const { data: commandData, error: commandError } = await supabase.functions.invoke('global-voice-commands', {
         body: { 
           transcript: transcript.trim(),
-          currentPath: window.location.pathname
+          currentPath: window.location.pathname,
+          gpt41ApiKey: '20ecnQrTCmX9zZXyIRXPGpS8gnGvjrLhea2usfq7MUGzkyqZyhKDJQQJ99BGACYeBjFXJ3w3AAAAACOGde3O'
         }
       });
 

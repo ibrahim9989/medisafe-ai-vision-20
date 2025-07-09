@@ -108,14 +108,16 @@ const ConsultationRecorder: React.FC<ConsultationRecorderProps> = ({
         throw new Error('Doctor profile not found. Please complete your profile setup.');
       }
 
-      setProcessingStatus('🤖 Processing with AI...');
+      setProcessingStatus('🤖 Processing with Azure AI...');
       console.log('🚀 Calling consultation-transcript function...');
 
       const { data, error } = await supabase.functions.invoke('consultation-transcript', {
         body: {
           audio: base64Audio,
           doctor_id: doctorProfile.id,
-          patient_id: patientId
+          patient_id: patientId,
+          transcribeApiKey: '4g6z7Fsq40SA0ipOk33t2LvEhBvUV3vas3KGJPQfxDL0XbozazovJQQJ99BGACHYHv6XJ3w3AAAAACOGqMlD',
+          gpt41ApiKey: '20ecnQrTCmX9zZXyIRXPGpS8gnGvjrLhea2usfq7MUGzkyqZyhKDJQQJ99BGACYeBjFXJ3w3AAAAACOGde3O'
         }
       });
 
@@ -152,7 +154,7 @@ const ConsultationRecorder: React.FC<ConsultationRecorderProps> = ({
         onConsultationComplete(consultationData);
       }
 
-      toast.success('✅ Consultation processed successfully!');
+      toast.success('✅ Consultation processed successfully with Azure AI!');
 
     } catch (error) {
       console.error('💥 Error processing consultation:', error);
@@ -180,7 +182,7 @@ const ConsultationRecorder: React.FC<ConsultationRecorderProps> = ({
       <CardContent className="space-y-4 lg:space-y-6 p-4 lg:p-6 pt-0">
         <div className="text-center">
           <p className="text-gray-600 mb-4 text-sm lg:text-base">
-            Record your consultation to automatically extract patient info, diagnosis, underlying conditions, and treatment plans
+            Record your consultation to automatically extract patient info, diagnosis, underlying conditions, and treatment plans using Azure AI
           </p>
           
           <div className="flex justify-center space-x-4 mb-4">
@@ -240,8 +242,10 @@ const ConsultationRecorder: React.FC<ConsultationRecorderProps> = ({
         </div>
 
         <div className="bg-gradient-to-r from-green-50 to-blue-50 p-4 lg:p-6 rounded-xl border border-green-100">
-          <h4 className="font-medium text-green-900 mb-3 text-sm lg:text-base">Voice Recognition Features</h4>
+          <h4 className="font-medium text-green-900 mb-3 text-sm lg:text-base">Azure AI Voice Recognition Features</h4>
           <div className="text-xs lg:text-sm text-green-800 space-y-2">
+            <div>• Powered by Azure GPT-4o-transcribe for accurate speech-to-text</div>
+            <div>• AI analysis using Azure GPT-4.1 for medical insights</div>
             <div>• Automatically extracts patient information (name, age, gender)</div>
             <div>• Identifies diagnosis and underlying conditions</div>
             <div>• Captures vital signs and symptoms</div>

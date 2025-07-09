@@ -12,65 +12,65 @@ serve(async (req) => {
   }
 
   try {
-    const { audioData } = await req.json();
+    const { audioData, transcribeApiKey } = await req.json();
     
     if (!audioData) {
       throw new Error('No audio data provided');
     }
 
-    const elevenlabsApiKey = Deno.env.get('ELEVENLABS_API_KEY');
-    if (!elevenlabsApiKey) {
-      throw new Error('ElevenLabs API key not configured');
+    // Use client-provided API key or fallback to environment variable
+    const apiKey = transcribeApiKey || Deno.env.get('AZURE_OPENAI_GPT4O_TRANSCRIBE_API_KEY');
+    if (!apiKey) {
+      throw new Error('Azure OpenAI GPT-4o-transcribe API key not configured');
     }
 
-    console.log('Processing audio data, length:', audioData.length);
+    console.log('Processing audio data with Azure GPT-4o-transcribe, length:', audioData.length);
 
     // Validate base64 audio data
     if (audioData.length < 100) {
       throw new Error('Audio data too short - may be corrupted');
     }
 
-    // Convert base64 audio to blob with WAV format for better compatibility
+    // Convert base64 audio to blob
     const audioBuffer = Uint8Array.from(atob(audioData), c => c.charCodeAt(0));
-    const audioBlob = new Blob([audioBuffer], { type: 'audio/wav' });
+    const audioBlob = new Blob([audioBuffer], { type: 'audio/webm' });
 
-    console.log('Audio blob created - size:', audioBlob.size, 'bytes, type: audio/wav');
+    console.log('Audio blob created - size:', audioBlob.size, 'bytes');
 
-    // Create form data for ElevenLabs speech-to-text with correct model ID
+    // Create form data for Azure OpenAI GPT-4o-transcribe
     const formData = new FormData();
-    formData.append('file', audioBlob, 'recording.wav');
-    formData.append('model_id', 'scribe_v1');
+    formData.append('file', audioBlob, 'recording.webm');
 
-    console.log('Sending request to ElevenLabs speech-to-text API...');
+    console.log('Sending request to Azure GPT-4o-transcribe API...');
 
-    const response = await fetch('https://api.elevenlabs.io/v1/speech-to-text', {
+    const response = await fetch('https://otly.cognitiveservices.azure.com/openai/deployments/gpt-4o-transcribe/audio/transcriptions?api-version=2025-03-01-preview', {
       method: 'POST',
       headers: {
-        'xi-api-key': elevenlabsApiKey,
+        'Authorization': `Bearer ${apiKey}`,
       },
       body: formData,
     });
 
-    console.log('ElevenLabs API response status:', response.status);
-    console.log('ElevenLabs API response headers:', Object.fromEntries(response.headers.entries()));
+    console.log('Azure GPT-4o-transcribe API response status:', response.status);
+    console.log('Azure GPT-4o-transcribe API response headers:', Object.fromEntries(response.headers.entries()));
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('ElevenLabs API detailed error:', {
+      console.error('Azure GPT-4o-transcribe API detailed error:', {
         status: response.status,
         statusText: response.statusText,
         body: errorText
       });
-      throw new Error(`ElevenLabs API error: ${response.status} - ${errorText}`);
+      throw new Error(`Azure GPT-4o-transcribe API error: ${response.status} - ${errorText}`);
     }
 
     const result = await response.json();
-    console.log('ElevenLabs API successful result:', result);
+    console.log('Azure GPT-4o-transcribe API successful result:', result);
     
     return new Response(
       JSON.stringify({ 
-        transcript: result.text || result.transcript || '',
-        confidence: result.confidence || 0
+        transcript: result.text || '',
+        confidence: 1.0 // Azure doesn't provide confidence, default to 1.0
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' } 

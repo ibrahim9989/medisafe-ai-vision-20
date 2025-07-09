@@ -31,7 +31,7 @@ export const useVoiceAssistant = (config: VoiceAssistantConfig = {}) => {
         }
       });
 
-      // Use WAV format for better compatibility with ElevenLabs
+      // Use WAV format for better compatibility with Azure
       const options = {
         mimeType: 'audio/wav'
       };
@@ -120,9 +120,12 @@ export const useVoiceAssistant = (config: VoiceAssistantConfig = {}) => {
 
       console.log('Calling voice-to-text function...');
 
-      // Call voice-to-text edge function
+      // Call voice-to-text edge function with Azure GPT-4o-transcribe API key
       const { data, error } = await supabase.functions.invoke('voice-to-text', {
-        body: { audioData: base64Audio }
+        body: { 
+          audioData: base64Audio,
+          transcribeApiKey: '4g6z7Fsq40SA0ipOk33t2LvEhBvUV3vas3KGJPQfxDL0XbozazovJQQJ99BGACHYHv6XJ3w3AAAAACOGqMlD'
+        }
       });
 
       if (error) {
@@ -168,6 +171,7 @@ export const useVoiceAssistant = (config: VoiceAssistantConfig = {}) => {
     setIsSpeaking(true);
     
     try {
+      // Note: Text-to-speech is kept as is for now since you only requested STT changes
       const { data, error } = await supabase.functions.invoke('text-to-speech', {
         body: { 
           text: text,
