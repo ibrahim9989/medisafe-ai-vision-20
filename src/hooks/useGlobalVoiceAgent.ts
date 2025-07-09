@@ -135,7 +135,7 @@ export const useGlobalVoiceAgent = () => {
         body: { 
           transcript: transcript.trim(),
           currentPath: window.location.pathname,
-          gpt41ApiKey: '20ecnQrTCmX9zZXyIRXPGpS8gnGvjrLhea2usfq7MUGzkyqZyhKDJQQJ99BGACYeBjFXJ3w3AAAAACOGde3O'
+          gpt41ApiKey: '20ecnQrTCmX9zZXyIRXPGpS8gnGvjrLhea2usfq7MUGzkyqZyhKDJQQJ99BGACHYHv6XJ3w3AAAAACOGde3O'
         }
       });
 
