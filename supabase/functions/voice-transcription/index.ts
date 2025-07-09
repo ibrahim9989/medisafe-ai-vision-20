@@ -20,11 +20,16 @@ serve(async (req) => {
   try {
     const { audioBlob, action, existingTranscript }: TranscriptionRequest = await req.json()
 
+    console.log('Received request with action:', action)
+
     let transcription = ''
     let analysis = null
 
     // Step 1: Transcribe audio if needed
     if (action === 'transcribe' || action === 'both') {
+      console.log('Starting transcription...')
+      
+      // Convert base64 to Uint8Array
       const audioBuffer = Uint8Array.from(atob(audioBlob), c => c.charCodeAt(0))
       
       const formData = new FormData()
@@ -41,16 +46,24 @@ serve(async (req) => {
       })
 
       if (!transcribeResponse.ok) {
-        throw new Error(`Transcription failed: ${await transcribeResponse.text()}`)
+        const errorText = await transcribeResponse.text()
+        console.error('Transcription failed:', errorText)
+        throw new Error(`Transcription failed: ${errorText}`)
       }
 
       const transcribeResult = await transcribeResponse.json()
       transcription = transcribeResult.text
+      console.log('Transcription completed:', transcription)
     }
 
     // Step 2: Analyze transcript if needed
     if (action === 'analyze' || action === 'both') {
+      console.log('Starting analysis...')
       const textToAnalyze = transcription || existingTranscript
+
+      if (!textToAnalyze) {
+        throw new Error('No text to analyze')
+      }
 
       const analysisResponse = await fetch('https://otly.cognitiveservices.azure.com/openai/deployments/gpt-4.1/chat/completions?api-version=2025-01-01-preview', {
         method: 'POST',
@@ -91,13 +104,17 @@ serve(async (req) => {
       })
 
       if (!analysisResponse.ok) {
-        throw new Error(`Analysis failed: ${await analysisResponse.text()}`)
+        const errorText = await analysisResponse.text()
+        console.error('Analysis failed:', errorText)
+        throw new Error(`Analysis failed: ${errorText}`)
       }
 
       const analysisResult = await analysisResponse.json()
+      console.log('Analysis result:', analysisResult)
       
       try {
         analysis = JSON.parse(analysisResult.choices[0].message.content)
+        console.log('Parsed analysis:', analysis)
       } catch (parseError) {
         console.error('Failed to parse analysis JSON:', parseError)
         analysis = {

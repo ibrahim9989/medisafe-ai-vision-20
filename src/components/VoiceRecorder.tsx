@@ -104,27 +104,42 @@ const VoiceRecorder = ({ onTranscriptionComplete, existingTranscript }: VoiceRec
       
       const reader = new FileReader();
       reader.onloadend = async () => {
-        const base64Audio = (reader.result as string).split(',')[1];
+        try {
+          const base64Audio = (reader.result as string).split(',')[1];
 
-        const { data, error } = await supabase.functions.invoke('voice-transcription', {
-          body: {
-            audioBlob: base64Audio,
-            action: 'both' // Both transcribe and analyze
-          }
-        });
-
-        if (error) {
-          throw error;
-        }
-
-        if (data.success) {
-          onTranscriptionComplete(data.transcription, data.analysis);
-          toast({
-            title: "Processing Complete",
-            description: "Transcription and analysis completed successfully!",
+          console.log('Calling voice-transcription function...');
+          const { data, error } = await supabase.functions.invoke('voice-transcription', {
+            body: {
+              audioBlob: base64Audio,
+              action: 'both' // Both transcribe and analyze
+            }
           });
-        } else {
-          throw new Error(data.error || 'Processing failed');
+
+          console.log('Function response:', { data, error });
+
+          if (error) {
+            console.error('Supabase function error:', error);
+            throw new Error(error.message || 'Function call failed');
+          }
+
+          if (data && data.success) {
+            onTranscriptionComplete(data.transcription, data.analysis);
+            toast({
+              title: "Processing Complete",
+              description: "Transcription and analysis completed successfully!",
+            });
+          } else {
+            throw new Error(data?.error || 'Processing failed');
+          }
+        } catch (innerError) {
+          console.error('Error in reader.onloadend:', innerError);
+          toast({
+            title: "Processing Error",
+            description: `Failed to process audio: ${innerError.message}`,
+            variant: "destructive"
+          });
+        } finally {
+          setIsProcessing(false);
         }
       };
 
@@ -134,10 +149,9 @@ const VoiceRecorder = ({ onTranscriptionComplete, existingTranscript }: VoiceRec
       console.error('Error processing audio:', error);
       toast({
         title: "Processing Error",
-        description: "Failed to process audio. Please try again.",
+        description: `Failed to process audio: ${error.message}`,
         variant: "destructive"
       });
-    } finally {
       setIsProcessing(false);
     }
   };
@@ -148,6 +162,7 @@ const VoiceRecorder = ({ onTranscriptionComplete, existingTranscript }: VoiceRec
     setIsProcessing(true);
 
     try {
+      console.log('Analyzing existing transcript...');
       const { data, error } = await supabase.functions.invoke('voice-transcription', {
         body: {
           action: 'analyze',
@@ -155,25 +170,28 @@ const VoiceRecorder = ({ onTranscriptionComplete, existingTranscript }: VoiceRec
         }
       });
 
+      console.log('Analysis response:', { data, error });
+
       if (error) {
-        throw error;
+        console.error('Supabase function error:', error);
+        throw new Error(error.message || 'Analysis failed');
       }
 
-      if (data.success) {
+      if (data && data.success) {
         onTranscriptionComplete(existingTranscript, data.analysis);
         toast({
           title: "Analysis Complete",
           description: "Consultation notes analyzed successfully!",
         });
       } else {
-        throw new Error(data.error || 'Analysis failed');
+        throw new Error(data?.error || 'Analysis failed');
       }
 
     } catch (error) {
       console.error('Error analyzing transcript:', error);
       toast({
         title: "Analysis Error",
-        description: "Failed to analyze transcript. Please try again.",
+        description: `Failed to analyze transcript: ${error.message}`,
         variant: "destructive"
       });
     } finally {
