@@ -1,12 +1,11 @@
 
 // Basic service worker with precaching for PWA support
-const CACHE_NAME = 'medisafe-ai-vision-cache-v1';
+const CACHE_NAME = 'medverse-cache-v1';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/manifest.webmanifest',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png'
+  '/favicon.ico'
 ];
 
 self.addEventListener('install', (event) => {
