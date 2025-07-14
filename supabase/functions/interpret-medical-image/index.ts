@@ -20,31 +20,11 @@ serve(async (req) => {
       throw new Error('No image data provided');
     }
 
-    // Check for Azure OpenAI credentials
-    const azureApiKey = Deno.env.get('AZURE_OPENAI_GPT41_API_KEY');
-    const azureEndpoint = Deno.env.get('AZURE_OPENAI_ENDPOINT');
-
-    console.log('Environment check:');
-    console.log('- Azure API Key present:', !!azureApiKey);
-    console.log('- Azure Endpoint present:', !!azureEndpoint);
-    console.log('- Azure Endpoint value:', azureEndpoint);
-
-    if (!azureApiKey || !azureEndpoint) {
-      console.error('Missing Azure OpenAI credentials');
-      return new Response(
-        JSON.stringify({ 
-          error: 'Azure OpenAI credentials not configured. Please set AZURE_OPENAI_GPT41_API_KEY and AZURE_OPENAI_ENDPOINT in Supabase secrets.',
-          timestamp: new Date().toISOString()
-        }),
-        { 
-          status: 400,
-          headers: { 
-            ...corsHeaders, 
-            'Content-Type': 'application/json' 
-          } 
-        }
-      );
-    }
+    // Use the specific Azure OpenAI configuration provided
+    const azureApiKey = 'FZ9RZqAVfAtln3qn1Y8CvVJck70dw2ijPZB51KFLbOg9EVWXyUtDJQQJ99BEACHYHv6XJ3w3AAAAACOGbxmN';
+    const azureEndpoint = 'https://razam-mac1ml8q-eastus2.cognitiveservices.azure.com';
+    const deploymentName = 'gpt-4.1';
+    const apiVersion = '2025-01-01-preview';
 
     console.log('Processing medical image interpretation request...');
     console.log('Image type:', imageType);
@@ -129,75 +109,91 @@ Please analyze this medical image and provide:
 
     console.log('Sending request to Azure OpenAI...');
     
-    // Try different deployment names and API versions
-    const deploymentNames = ['gpt-4o', 'gpt-4-vision-preview', 'gpt-4v'];
-    const apiVersions = ['2024-02-15-preview', '2023-12-01-preview', '2024-02-01'];
-    
-    let lastError = null;
-    
-    for (const deployment of deploymentNames) {
-      for (const apiVersion of apiVersions) {
-        try {
-          const azureUrl = `${azureEndpoint}/openai/deployments/${deployment}/chat/completions?api-version=${apiVersion}`;
-          console.log(`Trying Azure URL: ${azureUrl}`);
+    const azureUrl = `${azureEndpoint}/openai/deployments/${deploymentName}/chat/completions?api-version=${apiVersion}`;
+    console.log('Azure URL:', azureUrl);
 
-          const response = await fetch(azureUrl, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'api-key': azureApiKey,
-            },
-            body: JSON.stringify(requestBody),
-          });
+    const response = await fetch(azureUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-key': azureApiKey,
+      },
+      body: JSON.stringify(requestBody),
+    });
 
-          console.log(`Response status for ${deployment} with ${apiVersion}:`, response.status);
+    console.log('Azure OpenAI response status:', response.status);
 
-          if (response.ok) {
-            const data = await response.json();
-            console.log('Azure OpenAI response received successfully');
-            
-            if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-              console.error('Invalid response format:', data);
-              continue;
-            }
-
-            const interpretation = data.choices[0].message.content;
-
-            if (!interpretation || interpretation.trim().length === 0) {
-              console.error('No interpretation generated');
-              continue;
-            }
-
-            console.log('Medical image interpretation completed successfully');
-
-            return new Response(
-              JSON.stringify({ 
-                interpretation: interpretation.trim(),
-                timestamp: new Date().toISOString(),
-                deployment_used: deployment,
-                api_version_used: apiVersion
-              }),
-              { 
-                headers: { 
-                  ...corsHeaders, 
-                  'Content-Type': 'application/json' 
-                } 
-              }
-            );
-          } else {
-            const errorText = await response.text();
-            console.error(`Error with ${deployment} and ${apiVersion}:`, response.status, errorText);
-            lastError = `${deployment}/${apiVersion}: ${response.status} - ${errorText}`;
-          }
-        } catch (error) {
-          console.error(`Exception with ${deployment} and ${apiVersion}:`, error);
-          lastError = `${deployment}/${apiVersion}: ${error.message}`;
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Azure OpenAI API error:', response.status, errorText);
+      return new Response(
+        JSON.stringify({ 
+          error: `Azure OpenAI API error: ${response.status} - ${errorText}`,
+          timestamp: new Date().toISOString()
+        }),
+        { 
+          status: 500,
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json' 
+          } 
         }
-      }
+      );
     }
 
-    // If we get here, all attempts failed
-    throw new Error(`All deployment attempts failed. Last error: ${lastError}`);
+    const data = await response.json();
+    console.log('Azure OpenAI response received successfully');
+    
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      console.error('Invalid response format:', data);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Invalid response format from Azure OpenAI',
+          timestamp: new Date().toISOString()
+        }),
+        { 
+          status: 500,
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json' 
+          } 
+        }
+      );
+    }
+
+    const interpretation = data.choices[0].message.content;
+
+    if (!interpretation || interpretation.trim().length === 0) {
+      console.error('No interpretation generated');
+      return new Response(
+        JSON.stringify({ 
+          error: 'No interpretation generated',
+          timestamp: new Date().toISOString()
+        }),
+        { 
+          status: 500,
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json' 
+          } 
+        }
+      );
+    }
+
+    console.log('Medical image interpretation completed successfully');
+
+    return new Response(
+      JSON.stringify({ 
+        interpretation: interpretation.trim(),
+        timestamp: new Date().toISOString()
+      }),
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        } 
+      }
+    );
 
   } catch (error) {
     console.error('Error in interpret-medical-image function:', error);
@@ -206,12 +202,7 @@ Please analyze this medical image and provide:
     return new Response(
       JSON.stringify({ 
         error: error.message || 'Failed to interpret medical image',
-        timestamp: new Date().toISOString(),
-        debug_info: {
-          has_azure_key: !!Deno.env.get('AZURE_OPENAI_GPT41_API_KEY'),
-          has_azure_endpoint: !!Deno.env.get('AZURE_OPENAI_ENDPOINT'),
-          endpoint_value: Deno.env.get('AZURE_OPENAI_ENDPOINT')
-        }
+        timestamp: new Date().toISOString()
       }),
       { 
         status: 500,
