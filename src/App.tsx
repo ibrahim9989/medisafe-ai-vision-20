@@ -14,8 +14,6 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import ProfileSetup from "./pages/ProfileSetup";
 import DoctorsDirectory from "./pages/DoctorsDirectory";
-import Dashboard from "./pages/Dashboard";
-import InterpretAI from "./pages/InterpretAI";
 import { TutorialProvider } from "@/components/tutorial/TutorialProvider";
 import TutorialOverlay from "@/components/tutorial/TutorialOverlay";
 
@@ -53,33 +51,11 @@ const App = () => (
                 } 
               />
               <Route 
-                path="/dashboard" 
-                element={
-                  <ProtectedRoute>
-                    <ProfileGuard>
-                      <Dashboard />
-                      <GlobalVoiceControl />
-                    </ProfileGuard>
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
                 path="/app" 
                 element={
                   <ProtectedRoute>
                     <ProfileGuard>
                       <Index />
-                      <GlobalVoiceControl />
-                    </ProfileGuard>
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/interpret-ai" 
-                element={
-                  <ProtectedRoute>
-                    <ProfileGuard>
-                      <InterpretAI />
                       <GlobalVoiceControl />
                     </ProfileGuard>
                   </ProtectedRoute>
