@@ -470,6 +470,18 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      insert_ai_interpretation: {
+        Args: {
+          p_user_id: string
+          p_image_url: string
+          p_image_type: string
+          p_interpretation: string
+          p_patient_name?: string
+          p_patient_age?: number
+          p_clinical_context?: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       [_ in never]: never
