@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -139,49 +138,83 @@ const InterpretAI = () => {
     setPatientAge('');
   };
 
-  // Function to format the interpretation text with proper structure
+  // Enhanced function to format the interpretation text with proper structure
   const formatInterpretation = (text: string) => {
-    // Split the text into sections
-    const sections = text.split(/(?=\d+\.\s+[A-Z\s&:]+)/);
+    // Clean the text and split into sections
+    const cleanText = text.replace(/\*\*/g, '').trim();
+    
+    // Split by numbered sections (1. 2. 3. etc) or ### headers
+    const sections = cleanText.split(/(?=(?:\d+\.\s+[A-Z\s&:]+|###\s+\d+\.\s+[A-Z\s&:]+))/);
     
     return sections.map((section, index) => {
-      if (section.trim() === '') return null;
+      if (section.trim() === '' || section.trim() === '---') return null;
       
-      // Check if this is a numbered section
+      // Handle ### headers
+      if (section.startsWith('###')) {
+        const lines = section.split('\n');
+        const title = lines[0].replace('###', '').trim();
+        const content = lines.slice(1).join('\n').trim();
+        
+        return (
+          <div key={index} className="mb-8">
+            <h3 className="text-xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-purple-200">
+              {title}
+            </h3>
+            <div className="space-y-3">
+              {content.split('\n').map((line, lineIndex) => {
+                if (line.trim() === '') return null;
+                
+                // Handle bullet points
+                if (line.trim().match(/^[-•]\s*(.*)$/)) {
+                  const match = line.trim().match(/^[-•]\s*(.*)$/);
+                  if (match) {
+                    return (
+                      <div key={lineIndex} className="flex items-start space-x-3 ml-4">
+                        <span className="text-purple-600 mt-1.5 text-sm">●</span>
+                        <p className="text-gray-700 leading-relaxed">{match[1]}</p>
+                      </div>
+                    );
+                  }
+                }
+                
+                // Regular paragraph
+                if (line.trim()) {
+                  return (
+                    <p key={lineIndex} className="text-gray-700 leading-relaxed">
+                      {line.trim()}
+                    </p>
+                  );
+                }
+                
+                return null;
+              })}
+            </div>
+          </div>
+        );
+      }
+      
+      // Handle numbered sections (1. 2. 3. etc)
       const sectionMatch = section.match(/^(\d+\.\s+[A-Z\s&:]+)(.*)$/s);
       
       if (sectionMatch) {
         const [, title, content] = sectionMatch;
         return (
-          <div key={index} className="mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">
+          <div key={index} className="mb-8">
+            <h3 className="text-xl font-bold text-gray-900 mb-4 pb-2 border-b-2 border-purple-200">
               {title.trim()}
             </h3>
-            <div className="space-y-2">
+            <div className="space-y-3">
               {content.trim().split('\n').map((line, lineIndex) => {
                 if (line.trim() === '') return null;
                 
-                // Check if line starts with a bullet point or dash
-                if (line.trim().match(/^[-•]\s*\*\*(.*?)\*\*(.*)$/)) {
-                  const match = line.trim().match(/^[-•]\s*\*\*(.*?)\*\*(.*)$/);
-                  if (match) {
-                    return (
-                      <div key={lineIndex} className="flex items-start space-x-2">
-                        <span className="text-purple-600 mt-1">•</span>
-                        <div>
-                          <span className="font-medium text-gray-800">{match[1]}:</span>
-                          <span className="text-gray-700 ml-1">{match[2]}</span>
-                        </div>
-                      </div>
-                    );
-                  }
-                } else if (line.trim().match(/^[-•]\s*(.*)$/)) {
+                // Handle bullet points
+                if (line.trim().match(/^[-•]\s*(.*)$/)) {
                   const match = line.trim().match(/^[-•]\s*(.*)$/);
                   if (match) {
                     return (
-                      <div key={lineIndex} className="flex items-start space-x-2">
-                        <span className="text-purple-600 mt-1">•</span>
-                        <span className="text-gray-700">{match[1]}</span>
+                      <div key={lineIndex} className="flex items-start space-x-3 ml-4">
+                        <span className="text-purple-600 mt-1.5 text-sm">●</span>
+                        <p className="text-gray-700 leading-relaxed">{match[1]}</p>
                       </div>
                     );
                   }
@@ -205,12 +238,12 @@ const InterpretAI = () => {
         // Handle introduction or other text
         return (
           <div key={index} className="mb-6">
-            <div className="space-y-2">
+            <div className="space-y-3">
               {section.trim().split('\n').map((line, lineIndex) => {
                 if (line.trim() === '' || line.trim() === '---') return null;
                 
                 return (
-                  <p key={lineIndex} className="text-gray-700 leading-relaxed">
+                  <p key={lineIndex} className="text-gray-700 leading-relaxed text-base">
                     {line.trim()}
                   </p>
                 );
@@ -392,14 +425,14 @@ const InterpretAI = () => {
                   <p className="text-sm text-gray-500">AI is processing your medical image</p>
                 </div>
               ) : interpretation ? (
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-2 text-green-600 mb-4">
+                <div className="space-y-6">
+                  <div className="flex items-center space-x-2 text-green-600 mb-6">
                     <CheckCircle className="h-5 w-5" />
                     <span className="font-medium">Analysis Complete</span>
                   </div>
                   
-                  <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 max-h-96 overflow-y-auto">
-                    <div className="space-y-4">
+                  <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-100 max-h-[600px] overflow-y-auto">
+                    <div className="space-y-6">
                       {formatInterpretation(interpretation)}
                     </div>
                   </div>
