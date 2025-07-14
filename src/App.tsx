@@ -10,10 +10,12 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import ProfileGuard from "@/components/ProfileGuard";
 import Header from "@/components/Header";
 import GlobalVoiceControl from "@/components/GlobalVoiceControl";
+import Home from "./pages/Home";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import ProfileSetup from "./pages/ProfileSetup";
 import DoctorsDirectory from "./pages/DoctorsDirectory";
+import InterpretAI from "./pages/InterpretAI";
 import { TutorialProvider } from "@/components/tutorial/TutorialProvider";
 import TutorialOverlay from "@/components/tutorial/TutorialOverlay";
 
@@ -29,8 +31,9 @@ const App = () => (
           <TutorialProvider>
             <TutorialOverlay />
             <Routes>
-              <Route path="/" element={<Navigate to="/auth" replace />} />
+              <Route path="/" element={<Home />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/interpret-ai" element={<InterpretAI />} />
               <Route 
                 path="/directory" 
                 element={
@@ -61,7 +64,7 @@ const App = () => (
                   </ProtectedRoute>
                 } 
               />
-              <Route path="*" element={<Navigate to="/auth" replace />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </TutorialProvider>
         </AuthProvider>
