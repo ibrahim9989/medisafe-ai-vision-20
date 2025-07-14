@@ -139,6 +139,89 @@ const InterpretAI = () => {
     setPatientAge('');
   };
 
+  // Function to format the interpretation text with proper structure
+  const formatInterpretation = (text: string) => {
+    // Split the text into sections
+    const sections = text.split(/(?=\d+\.\s+[A-Z\s&:]+)/);
+    
+    return sections.map((section, index) => {
+      if (section.trim() === '') return null;
+      
+      // Check if this is a numbered section
+      const sectionMatch = section.match(/^(\d+\.\s+[A-Z\s&:]+)(.*)$/s);
+      
+      if (sectionMatch) {
+        const [, title, content] = sectionMatch;
+        return (
+          <div key={index} className="mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-3 border-b border-gray-200 pb-2">
+              {title.trim()}
+            </h3>
+            <div className="space-y-2">
+              {content.trim().split('\n').map((line, lineIndex) => {
+                if (line.trim() === '') return null;
+                
+                // Check if line starts with a bullet point or dash
+                if (line.trim().match(/^[-•]\s*\*\*(.*?)\*\*(.*)$/)) {
+                  const match = line.trim().match(/^[-•]\s*\*\*(.*?)\*\*(.*)$/);
+                  if (match) {
+                    return (
+                      <div key={lineIndex} className="flex items-start space-x-2">
+                        <span className="text-purple-600 mt-1">•</span>
+                        <div>
+                          <span className="font-medium text-gray-800">{match[1]}:</span>
+                          <span className="text-gray-700 ml-1">{match[2]}</span>
+                        </div>
+                      </div>
+                    );
+                  }
+                } else if (line.trim().match(/^[-•]\s*(.*)$/)) {
+                  const match = line.trim().match(/^[-•]\s*(.*)$/);
+                  if (match) {
+                    return (
+                      <div key={lineIndex} className="flex items-start space-x-2">
+                        <span className="text-purple-600 mt-1">•</span>
+                        <span className="text-gray-700">{match[1]}</span>
+                      </div>
+                    );
+                  }
+                }
+                
+                // Regular paragraph
+                if (line.trim()) {
+                  return (
+                    <p key={lineIndex} className="text-gray-700 leading-relaxed">
+                      {line.trim()}
+                    </p>
+                  );
+                }
+                
+                return null;
+              })}
+            </div>
+          </div>
+        );
+      } else {
+        // Handle introduction or other text
+        return (
+          <div key={index} className="mb-6">
+            <div className="space-y-2">
+              {section.trim().split('\n').map((line, lineIndex) => {
+                if (line.trim() === '' || line.trim() === '---') return null;
+                
+                return (
+                  <p key={lineIndex} className="text-gray-700 leading-relaxed">
+                    {line.trim()}
+                  </p>
+                );
+              })}
+            </div>
+          </div>
+        );
+      }
+    }).filter(Boolean);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-stone-50/80 via-amber-50/30 to-purple-50/20">
       <Header />
@@ -315,12 +398,9 @@ const InterpretAI = () => {
                     <span className="font-medium">Analysis Complete</span>
                   </div>
                   
-                  <div className="bg-gray-50 rounded-xl p-6">
-                    <h3 className="font-semibold mb-3 text-gray-900">Medical Interpretation:</h3>
-                    <div className="prose prose-sm max-w-none">
-                      <pre className="whitespace-pre-wrap text-gray-700 font-sans text-sm leading-relaxed">
-                        {interpretation}
-                      </pre>
+                  <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 max-h-96 overflow-y-auto">
+                    <div className="space-y-4">
+                      {formatInterpretation(interpretation)}
                     </div>
                   </div>
                   
