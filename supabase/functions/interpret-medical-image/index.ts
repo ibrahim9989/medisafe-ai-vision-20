@@ -20,11 +20,18 @@ serve(async (req) => {
       throw new Error('No image data provided');
     }
 
+    // Check for Azure OpenAI credentials
     const azureApiKey = Deno.env.get('AZURE_OPENAI_GPT41_API_KEY');
     const azureEndpoint = Deno.env.get('AZURE_OPENAI_ENDPOINT');
 
+    console.log('Environment check:');
+    console.log('- Azure API Key present:', !!azureApiKey);
+    console.log('- Azure Endpoint present:', !!azureEndpoint);
+    console.log('- Azure Endpoint value:', azureEndpoint);
+
     if (!azureApiKey || !azureEndpoint) {
-      throw new Error('Azure OpenAI credentials not configured');
+      console.error('Missing Azure OpenAI credentials');
+      throw new Error('Azure OpenAI credentials not configured. Please set AZURE_OPENAI_GPT41_API_KEY and AZURE_OPENAI_ENDPOINT in Supabase secrets.');
     }
 
     console.log('Processing medical image interpretation request...');
@@ -106,8 +113,11 @@ Please analyze this medical image and provide:
     };
 
     console.log('Sending request to Azure OpenAI...');
+    
+    const azureUrl = `${azureEndpoint}/openai/deployments/gpt-4o/chat/completions?api-version=2024-02-15-preview`;
+    console.log('Azure URL:', azureUrl);
 
-    const response = await fetch(`${azureEndpoint}/openai/deployments/gpt-4o/chat/completions?api-version=2024-02-15-preview`, {
+    const response = await fetch(azureUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -115,6 +125,9 @@ Please analyze this medical image and provide:
       },
       body: JSON.stringify(requestBody),
     });
+
+    console.log('Azure OpenAI response status:', response.status);
+    console.log('Azure OpenAI response headers:', Object.fromEntries(response.headers.entries()));
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -124,6 +137,12 @@ Please analyze this medical image and provide:
 
     const data = await response.json();
     console.log('Azure OpenAI response received');
+    console.log('Response structure:', {
+      hasChoices: !!data.choices,
+      choicesLength: data.choices?.length,
+      hasMessage: !!data.choices?.[0]?.message,
+      hasContent: !!data.choices?.[0]?.message?.content
+    });
 
     if (!data.choices || !data.choices[0] || !data.choices[0].message) {
       console.error('Invalid response format:', data);
@@ -153,6 +172,7 @@ Please analyze this medical image and provide:
 
   } catch (error) {
     console.error('Error in interpret-medical-image function:', error);
+    console.error('Error stack:', error.stack);
     
     return new Response(
       JSON.stringify({ 
