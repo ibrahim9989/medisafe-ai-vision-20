@@ -31,7 +31,19 @@ serve(async (req) => {
 
     if (!azureApiKey || !azureEndpoint) {
       console.error('Missing Azure OpenAI credentials');
-      throw new Error('Azure OpenAI credentials not configured. Please set AZURE_OPENAI_GPT41_API_KEY and AZURE_OPENAI_ENDPOINT in Supabase secrets.');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Azure OpenAI credentials not configured. Please set AZURE_OPENAI_GPT41_API_KEY and AZURE_OPENAI_ENDPOINT in Supabase secrets.',
+          timestamp: new Date().toISOString()
+        }),
+        { 
+          status: 400,
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json' 
+          } 
+        }
+      );
     }
 
     console.log('Processing medical image interpretation request...');
@@ -117,61 +129,75 @@ Please analyze this medical image and provide:
 
     console.log('Sending request to Azure OpenAI...');
     
-    const azureUrl = `${azureEndpoint}/openai/deployments/gpt-4o/chat/completions?api-version=2024-02-15-preview`;
-    console.log('Azure URL:', azureUrl);
+    // Try different deployment names and API versions
+    const deploymentNames = ['gpt-4o', 'gpt-4-vision-preview', 'gpt-4v'];
+    const apiVersions = ['2024-02-15-preview', '2023-12-01-preview', '2024-02-01'];
+    
+    let lastError = null;
+    
+    for (const deployment of deploymentNames) {
+      for (const apiVersion of apiVersions) {
+        try {
+          const azureUrl = `${azureEndpoint}/openai/deployments/${deployment}/chat/completions?api-version=${apiVersion}`;
+          console.log(`Trying Azure URL: ${azureUrl}`);
 
-    const response = await fetch(azureUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'api-key': azureApiKey,
-      },
-      body: JSON.stringify(requestBody),
-    });
+          const response = await fetch(azureUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'api-key': azureApiKey,
+            },
+            body: JSON.stringify(requestBody),
+          });
 
-    console.log('Azure OpenAI response status:', response.status);
-    console.log('Azure OpenAI response headers:', Object.fromEntries(response.headers.entries()));
+          console.log(`Response status for ${deployment} with ${apiVersion}:`, response.status);
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Azure OpenAI API error:', response.status, errorText);
-      throw new Error(`Azure OpenAI API error: ${response.status} - ${errorText}`);
-    }
+          if (response.ok) {
+            const data = await response.json();
+            console.log('Azure OpenAI response received successfully');
+            
+            if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+              console.error('Invalid response format:', data);
+              continue;
+            }
 
-    const data = await response.json();
-    console.log('Azure OpenAI response received');
-    console.log('Response structure:', {
-      hasChoices: !!data.choices,
-      choicesLength: data.choices?.length,
-      hasMessage: !!data.choices?.[0]?.message,
-      hasContent: !!data.choices?.[0]?.message?.content
-    });
+            const interpretation = data.choices[0].message.content;
 
-    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-      console.error('Invalid response format:', data);
-      throw new Error('Invalid response format from Azure OpenAI');
-    }
+            if (!interpretation || interpretation.trim().length === 0) {
+              console.error('No interpretation generated');
+              continue;
+            }
 
-    const interpretation = data.choices[0].message.content;
+            console.log('Medical image interpretation completed successfully');
 
-    if (!interpretation || interpretation.trim().length === 0) {
-      throw new Error('No interpretation generated');
-    }
-
-    console.log('Medical image interpretation completed successfully');
-
-    return new Response(
-      JSON.stringify({ 
-        interpretation: interpretation.trim(),
-        timestamp: new Date().toISOString()
-      }),
-      { 
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        } 
+            return new Response(
+              JSON.stringify({ 
+                interpretation: interpretation.trim(),
+                timestamp: new Date().toISOString(),
+                deployment_used: deployment,
+                api_version_used: apiVersion
+              }),
+              { 
+                headers: { 
+                  ...corsHeaders, 
+                  'Content-Type': 'application/json' 
+                } 
+              }
+            );
+          } else {
+            const errorText = await response.text();
+            console.error(`Error with ${deployment} and ${apiVersion}:`, response.status, errorText);
+            lastError = `${deployment}/${apiVersion}: ${response.status} - ${errorText}`;
+          }
+        } catch (error) {
+          console.error(`Exception with ${deployment} and ${apiVersion}:`, error);
+          lastError = `${deployment}/${apiVersion}: ${error.message}`;
+        }
       }
-    );
+    }
+
+    // If we get here, all attempts failed
+    throw new Error(`All deployment attempts failed. Last error: ${lastError}`);
 
   } catch (error) {
     console.error('Error in interpret-medical-image function:', error);
@@ -180,7 +206,12 @@ Please analyze this medical image and provide:
     return new Response(
       JSON.stringify({ 
         error: error.message || 'Failed to interpret medical image',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        debug_info: {
+          has_azure_key: !!Deno.env.get('AZURE_OPENAI_GPT41_API_KEY'),
+          has_azure_endpoint: !!Deno.env.get('AZURE_OPENAI_ENDPOINT'),
+          endpoint_value: Deno.env.get('AZURE_OPENAI_ENDPOINT')
+        }
       }),
       { 
         status: 500,
