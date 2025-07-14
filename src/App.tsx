@@ -31,17 +31,31 @@ const App = () => (
           <TutorialProvider>
             <TutorialOverlay />
             <Routes>
-              <Route path="/" element={<Home />} />
               <Route path="/auth" element={<Auth />} />
-              <Route path="/interpret-ai" element={<InterpretAI />} />
+              <Route 
+                path="/" 
+                element={
+                  <ProtectedRoute>
+                    <Home />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/interpret-ai" 
+                element={
+                  <ProtectedRoute>
+                    <InterpretAI />
+                  </ProtectedRoute>
+                } 
+              />
               <Route 
                 path="/directory" 
                 element={
-                  <>
+                  <ProtectedRoute>
                     <Header />
                     <DoctorsDirectory />
                     <GlobalVoiceControl />
-                  </>
+                  </ProtectedRoute>
                 } 
               />
               <Route 
@@ -64,7 +78,7 @@ const App = () => (
                   </ProtectedRoute>
                 } 
               />
-              <Route path="*" element={<Navigate to="/" replace />} />
+              <Route path="*" element={<Navigate to="/auth" replace />} />
             </Routes>
           </TutorialProvider>
         </AuthProvider>
