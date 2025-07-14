@@ -37,7 +37,10 @@ serve(async (req) => {
     console.log('Processing medical image interpretation request...');
     console.log('Image type:', imageType);
     console.log('Clinical context provided:', !!clinicalContext);
-    console.log('Patient info provided:', { name: !!patientName, age: !!patientAge });
+    console.log('Patient info provided:', {
+      name: !!patientName,
+      age: !!patientAge
+    });
 
     // Construct the prompt for medical image interpretation
     let prompt = `You are an expert AI radiologist specializing in medical image interpretation. Please analyze this medical image and provide a detailed, accurate interpretation.
