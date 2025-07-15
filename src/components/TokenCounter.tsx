@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { useTokenUsage } from '@/hooks/useTokenUsage';
@@ -25,7 +25,48 @@ const TokenCounter: React.FC<TokenCounterProps> = ({
   });
   const [isLoading, setIsLoading] = useState(true);
 
+  // Memoize the counters configuration to prevent re-renders
+  const counters = useMemo(() => {
+    const getIcon = (type: string) => {
+      switch (type) {
+        case 'gpt41':
+          return <Brain className="w-4 h-4" />;
+        case 'stt':
+          return <Mic className="w-4 h-4" />;
+        case 'lyzr':
+          return <BarChart3 className="w-4 h-4" />;
+        default:
+          return <Activity className="w-4 h-4" />;
+      }
+    };
+
+    const getLabel = (type: string) => {
+      switch (type) {
+        case 'gpt41':
+          return 'AI Counter';
+        case 'stt':
+          return 'STT Counter';
+        case 'lyzr':
+          return 'Analysis Counter';
+        default:
+          return type;
+      }
+    };
+
+    return featureType === 'prescription' 
+      ? [
+          { type: 'gpt41', count: tokenCounts.gpt41, label: getLabel('gpt41'), icon: getIcon('gpt41') },
+          { type: 'stt', count: tokenCounts.stt, label: getLabel('stt'), icon: getIcon('stt') },
+          { type: 'lyzr', count: tokenCounts.lyzr, label: getLabel('lyzr'), icon: getIcon('lyzr') }
+        ]
+      : [
+          { type: 'gpt41', count: tokenCounts.gpt41, label: getLabel('gpt41'), icon: getIcon('gpt41') }
+        ];
+  }, [featureType, tokenCounts]);
+
   useEffect(() => {
+    let isMounted = true;
+
     const fetchTokenCounts = async () => {
       try {
         setIsLoading(true);
@@ -36,66 +77,40 @@ const TokenCounter: React.FC<TokenCounterProps> = ({
           getTotalTokens(featureType, 'lyzr')
         ]);
 
-        const total = gpt41Count + sttCount + lyzrCount;
+        if (isMounted) {
+          const total = gpt41Count + sttCount + lyzrCount;
 
-        setTokenCounts({
-          gpt41: gpt41Count,
-          stt: sttCount,
-          lyzr: lyzrCount,
-          total
-        });
+          setTokenCounts({
+            gpt41: gpt41Count,
+            stt: sttCount,
+            lyzr: lyzrCount,
+            total
+          });
+        }
       } catch (error) {
         console.error('Error fetching token counts:', error);
-        // Set to 0 if there's an error
-        setTokenCounts({
-          gpt41: 0,
-          stt: 0,
-          lyzr: 0,
-          total: 0
-        });
+        if (isMounted) {
+          setTokenCounts({
+            gpt41: 0,
+            stt: 0,
+            lyzr: 0,
+            total: 0
+          });
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     fetchTokenCounts();
+
+    // Cleanup function to prevent state updates after unmount
+    return () => {
+      isMounted = false;
+    };
   }, [featureType, getTotalTokens]);
-
-  const getIcon = (type: string) => {
-    switch (type) {
-      case 'gpt41':
-        return <Brain className="w-4 h-4" />;
-      case 'stt':
-        return <Mic className="w-4 h-4" />;
-      case 'lyzr':
-        return <BarChart3 className="w-4 h-4" />;
-      default:
-        return <Activity className="w-4 h-4" />;
-    }
-  };
-
-  const getLabel = (type: string) => {
-    switch (type) {
-      case 'gpt41':
-        return 'AI Counter';
-      case 'stt':
-        return 'STT Counter';
-      case 'lyzr':
-        return 'Analysis Counter';
-      default:
-        return type;
-    }
-  };
-
-  const counters = featureType === 'prescription' 
-    ? [
-        { type: 'gpt41', count: tokenCounts.gpt41, label: getLabel('gpt41') },
-        { type: 'stt', count: tokenCounts.stt, label: getLabel('stt') },
-        { type: 'lyzr', count: tokenCounts.lyzr, label: getLabel('lyzr') }
-      ]
-    : [
-        { type: 'gpt41', count: tokenCounts.gpt41, label: getLabel('gpt41') }
-      ];
 
   if (isLoading) {
     return (
@@ -131,7 +146,7 @@ const TokenCounter: React.FC<TokenCounterProps> = ({
               className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200 shadow-sm"
             >
               <div className="flex items-center gap-2">
-                {getIcon(counter.type)}
+                {counter.icon}
                 <span className="text-sm font-medium text-gray-700">
                   {counter.label}
                 </span>

@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
@@ -20,7 +20,7 @@ export const useTokenUsage = () => {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
-  const logTokenUsage = async ({
+  const logTokenUsage = useCallback(async ({
     feature_type,
     counter_type,
     tokens_used,
@@ -64,17 +64,12 @@ export const useTokenUsage = () => {
     } catch (error) {
       console.error('Failed to log token usage:', error);
       // Don't show toast for token logging errors to avoid spam
-      // toast({
-      //   title: "Token Logging Error",
-      //   description: "Failed to log token usage",
-      //   variant: "destructive"
-      // });
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user]);
 
-  const getTokenUsage = async (feature_type?: 'prescription' | 'interpret_ai') => {
+  const getTokenUsage = useCallback(async (feature_type?: 'prescription' | 'interpret_ai') => {
     if (!user) return [];
 
     try {
@@ -100,9 +95,9 @@ export const useTokenUsage = () => {
       console.error('Failed to fetch token usage:', error);
       return [];
     }
-  };
+  }, [user]);
 
-  const getTotalTokens = async (feature_type?: 'prescription' | 'interpret_ai', counter_type?: 'gpt41' | 'stt' | 'lyzr') => {
+  const getTotalTokens = useCallback(async (feature_type?: 'prescription' | 'interpret_ai', counter_type?: 'gpt41' | 'stt' | 'lyzr') => {
     if (!user) return 0;
 
     try {
@@ -131,7 +126,7 @@ export const useTokenUsage = () => {
       console.error('Failed to fetch total tokens:', error);
       return 0;
     }
-  };
+  }, [user]);
 
   return {
     logTokenUsage,
