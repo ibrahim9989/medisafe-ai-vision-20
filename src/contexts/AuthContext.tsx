@@ -30,11 +30,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(session?.user ?? null);
         setLoading(false);
 
-        // Handle successful authentication
+        // Handle successful authentication - redirect to home page
         if (event === 'SIGNED_IN' && session) {
           // Clean up URL fragments after OAuth
           if (window.location.hash.includes('access_token')) {
             window.history.replaceState(null, '', window.location.pathname);
+          }
+          // Redirect to home page after successful authentication
+          if (window.location.pathname === '/auth') {
+            window.location.href = '/home';
           }
         }
       }
@@ -52,7 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signUp = async (email: string, password: string, fullName?: string) => {
-    const redirectUrl = `${window.location.origin}/`;
+    const redirectUrl = `${window.location.origin}/home`;
     
     const { error } = await supabase.auth.signUp({
       email,
@@ -79,7 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/`
+        redirectTo: `${window.location.origin}/home`
       }
     });
     return { error };

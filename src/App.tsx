@@ -33,7 +33,7 @@ const App = () => (
             <Routes>
               <Route path="/auth" element={<Auth />} />
               <Route 
-                path="/" 
+                path="/home" 
                 element={
                   <ProtectedRoute>
                     <Home />
@@ -78,6 +78,7 @@ const App = () => (
                   </ProtectedRoute>
                 } 
               />
+              <Route path="/" element={<Navigate to="/auth" replace />} />
               <Route path="*" element={<Navigate to="/auth" replace />} />
             </Routes>
           </TutorialProvider>
