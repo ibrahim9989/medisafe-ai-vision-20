@@ -23,23 +23,39 @@ const TokenCounter: React.FC<TokenCounterProps> = ({
     lyzr: 0,
     total: 0
   });
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchTokenCounts = async () => {
-      const [gpt41Count, sttCount, lyzrCount] = await Promise.all([
-        getTotalTokens(featureType, 'gpt41'),
-        getTotalTokens(featureType, 'stt'),
-        getTotalTokens(featureType, 'lyzr')
-      ]);
+      try {
+        setIsLoading(true);
+        
+        const [gpt41Count, sttCount, lyzrCount] = await Promise.all([
+          getTotalTokens(featureType, 'gpt41'),
+          getTotalTokens(featureType, 'stt'),
+          getTotalTokens(featureType, 'lyzr')
+        ]);
 
-      const total = gpt41Count + sttCount + lyzrCount;
+        const total = gpt41Count + sttCount + lyzrCount;
 
-      setTokenCounts({
-        gpt41: gpt41Count,
-        stt: sttCount,
-        lyzr: lyzrCount,
-        total
-      });
+        setTokenCounts({
+          gpt41: gpt41Count,
+          stt: sttCount,
+          lyzr: lyzrCount,
+          total
+        });
+      } catch (error) {
+        console.error('Error fetching token counts:', error);
+        // Set to 0 if there's an error
+        setTokenCounts({
+          gpt41: 0,
+          stt: 0,
+          lyzr: 0,
+          total: 0
+        });
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     fetchTokenCounts();
@@ -80,6 +96,24 @@ const TokenCounter: React.FC<TokenCounterProps> = ({
     : [
         { type: 'gpt41', count: tokenCounts.gpt41, label: getLabel('gpt41') }
       ];
+
+  if (isLoading) {
+    return (
+      <Card className={`bg-gradient-to-br from-blue-50 to-purple-50 border-blue-200 ${className}`}>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+            <Activity className="w-5 h-5 text-blue-600" />
+            Token Usage - {featureType === 'prescription' ? 'Prescription Management' : 'Interpret AI'}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center justify-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card className={`bg-gradient-to-br from-blue-50 to-purple-50 border-blue-200 ${className}`}>

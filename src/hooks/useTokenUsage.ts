@@ -63,11 +63,12 @@ export const useTokenUsage = () => {
       return data;
     } catch (error) {
       console.error('Failed to log token usage:', error);
-      toast({
-        title: "Token Logging Error",
-        description: "Failed to log token usage",
-        variant: "destructive"
-      });
+      // Don't show toast for token logging errors to avoid spam
+      // toast({
+      //   title: "Token Logging Error",
+      //   description: "Failed to log token usage",
+      //   variant: "destructive"
+      // });
     } finally {
       setIsLoading(false);
     }
@@ -91,7 +92,7 @@ export const useTokenUsage = () => {
 
       if (error) {
         console.error('Error fetching token usage:', error);
-        throw error;
+        return [];
       }
 
       return data || [];
@@ -122,7 +123,7 @@ export const useTokenUsage = () => {
 
       if (error) {
         console.error('Error fetching total tokens:', error);
-        throw error;
+        return 0;
       }
 
       return data?.reduce((total, usage) => total + usage.tokens_used, 0) || 0;
