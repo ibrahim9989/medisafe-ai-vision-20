@@ -31,6 +31,9 @@ const App = () => (
           <TutorialProvider>
             <TutorialOverlay />
             <Routes>
+              {/* Root route redirects to auth */}
+              <Route path="/" element={<Navigate to="/auth" replace />} />
+              
               <Route path="/auth" element={<Auth />} />
               <Route 
                 path="/home" 
@@ -78,7 +81,7 @@ const App = () => (
                   </ProtectedRoute>
                 } 
               />
-              <Route path="/" element={<Navigate to="/auth" replace />} />
+              {/* Catch all other routes and redirect to auth */}
               <Route path="*" element={<Navigate to="/auth" replace />} />
             </Routes>
           </TutorialProvider>

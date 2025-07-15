@@ -2,7 +2,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
-import { useNavigate } from 'react-router-dom';
 
 interface AuthContextType {
   user: User | null;
@@ -32,13 +31,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         // Handle successful authentication - redirect to home page
         if (event === 'SIGNED_IN' && session) {
+          console.log('User signed in, current path:', window.location.pathname);
+          
           // Clean up URL fragments after OAuth
           if (window.location.hash.includes('access_token')) {
             window.history.replaceState(null, '', window.location.pathname);
           }
+          
           // Redirect to home page after successful authentication
-          if (window.location.pathname === '/auth') {
+          if (window.location.pathname === '/auth' || window.location.pathname === '/') {
+            console.log('Redirecting to /home');
             window.location.href = '/home';
+          }
+        }
+
+        // Handle sign out - redirect to auth
+        if (event === 'SIGNED_OUT') {
+          console.log('User signed out, redirecting to /auth');
+          if (window.location.pathname !== '/auth') {
+            window.location.href = '/auth';
           }
         }
       }
@@ -90,6 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signOut = async () => {
+    console.log('Signing out user');
     await supabase.auth.signOut();
   };
 
