@@ -8,9 +8,12 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import Header from '@/components/Header';
+import TokenCounter from '@/components/TokenCounter';
+import { useInterpretAITokenTracker } from '@/components/InterpretAITokenTracker';
 
 const InterpretAI = () => {
   const navigate = useNavigate();
+  const { trackTokenUsage } = useInterpretAITokenTracker();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [clinicalContext, setClinicalContext] = useState('');
@@ -104,9 +107,16 @@ const InterpretAI = () => {
 
       if (data.interpretation) {
         setInterpretation(data.interpretation);
+        
+        // Track token usage using the actual token count from API
+        const tokensUsed = data.tokensUsed || Math.ceil(data.interpretation.length / 4);
+        const sessionId = `interpret-ai-${Date.now()}`;
+        
+        await trackTokenUsage(tokensUsed, sessionId);
+        
         toast({
           title: "Analysis Complete",
-          description: "Medical image interpretation has been generated successfully"
+          description: `Medical image interpretation generated using ${tokensUsed} tokens`
         });
       } else {
         throw new Error('No interpretation received from AI');
@@ -302,6 +312,11 @@ const InterpretAI = () => {
               Advanced AI radiologist for precise medical image interpretation
             </p>
           </div>
+        </div>
+
+        {/* Token Counter */}
+        <div className="mb-8 max-w-7xl mx-auto">
+          <TokenCounter featureType="interpret_ai" className="mb-6" />
         </div>
 
         <div className="grid lg:grid-cols-2 gap-8 max-w-7xl mx-auto">

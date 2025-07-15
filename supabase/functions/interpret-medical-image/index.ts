@@ -180,11 +180,16 @@ Please analyze this medical image and provide:
       );
     }
 
+    // Calculate token usage from the response
+    const tokensUsed = data.usage ? data.usage.total_tokens : Math.ceil(interpretation.length / 4);
+    
     console.log('Medical image interpretation completed successfully');
+    console.log('Tokens used:', tokensUsed);
 
     return new Response(
       JSON.stringify({ 
         interpretation: interpretation.trim(),
+        tokensUsed: tokensUsed,
         timestamp: new Date().toISOString()
       }),
       { 
