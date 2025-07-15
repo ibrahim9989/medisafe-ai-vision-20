@@ -461,6 +461,50 @@ export type Database = {
         }
         Relationships: []
       }
+      token_usage: {
+        Row: {
+          counter_type: string
+          created_at: string
+          feature_type: string
+          id: string
+          prescription_id: string | null
+          session_id: string | null
+          tokens_used: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          counter_type: string
+          created_at?: string
+          feature_type: string
+          id?: string
+          prescription_id?: string | null
+          session_id?: string | null
+          tokens_used?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          counter_type?: string
+          created_at?: string
+          feature_type?: string
+          id?: string
+          prescription_id?: string | null
+          session_id?: string | null
+          tokens_used?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "token_usage_prescription_id_fkey"
+            columns: ["prescription_id"]
+            isOneToOne: false
+            referencedRelation: "prescriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

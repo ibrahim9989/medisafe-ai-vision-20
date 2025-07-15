@@ -109,13 +109,7 @@ export const usePrescriptions = () => {
         follow_up_date: prescriptionData.followUpDate || null
       };
 
-      console.log('🚀 Sending enhanced prescription to database:', {
-        ...prescriptionToSave,
-        lab_analysis: prescriptionToSave.lab_analysis ? `${prescriptionToSave.lab_analysis.length} characters` : 'null',
-        diagnosis: prescriptionToSave.diagnosis || 'null',
-        diagnosis_details: prescriptionToSave.diagnosis_details || 'null',
-        underlying_conditions: prescriptionToSave.underlying_conditions || 'null'
-      });
+      console.log('🚀 Sending enhanced prescription to database with token tracking support');
 
       const { data, error } = await supabase
         .from('prescriptions')
@@ -128,7 +122,7 @@ export const usePrescriptions = () => {
         throw error;
       }
 
-      console.log('✅ Enhanced prescription saved successfully with all medical fields');
+      console.log('✅ Enhanced prescription saved successfully with token tracking capability');
       return data;
     },
     onSuccess: () => {

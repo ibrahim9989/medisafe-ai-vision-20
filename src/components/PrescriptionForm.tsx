@@ -1,10 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { toast } from '@/hooks/use-toast';
 import { usePrescriptions } from '@/hooks/usePrescriptions';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDoctorProfile } from '@/hooks/useDoctorProfile';
+import { useTokenUsage } from '@/hooks/useTokenUsage';
 import { supabase } from '@/integrations/supabase/client';
 import EnhancedPrescriptionForm from './EnhancedPrescriptionForm';
 import ConsultationNotesSection from './ConsultationNotesSection';
@@ -16,12 +16,14 @@ import VitalSigns from './VitalSigns';
 import EnhancedMedicationList from './EnhancedMedicationList';
 import ConsultationRecorder from './ConsultationRecorder';
 import AIAnalysisSection from './AIAnalysisSection';
+import TokenCounter from './TokenCounter';
 import { PrescriptionData } from '@/types/prescription';
 
 const PrescriptionForm = () => {
   const { user } = useAuth();
   const { profile } = useDoctorProfile();
   const { savePrescription, saveAIAnalysis } = usePrescriptions();
+  const { logTokenUsage } = useTokenUsage();
 
   const [data, setData] = useState<PrescriptionData>({
     doctorName: '',
@@ -47,6 +49,7 @@ const PrescriptionForm = () => {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAIAnalysis, setShowAIAnalysis] = useState(false);
+  const [currentPrescriptionId, setCurrentPrescriptionId] = useState<string | null>(null);
 
   useEffect(() => {
     if (profile) {
@@ -72,6 +75,15 @@ const PrescriptionForm = () => {
         });
 
         if (error) throw new Error('Failed to analyze lab report');
+        
+        // Log token usage for lab analysis (using GPT-4.1)
+        await logTokenUsage({
+          feature_type: 'prescription',
+          counter_type: 'gpt41',
+          tokens_used: result.tokens_used || 1000, // Use actual tokens from response or estimate
+          prescription_id: currentPrescriptionId || undefined,
+          session_id: `lab-analysis-${Date.now()}`
+        });
         
         return `${file.name}: ${result.analysis}`;
       });
@@ -201,7 +213,17 @@ const PrescriptionForm = () => {
 
       console.log('💾 Saving prescription with enhanced fields:', prescriptionData);
       
-      await savePrescription(prescriptionData);
+      const savedPrescription = await savePrescription(prescriptionData);
+      setCurrentPrescriptionId(savedPrescription.id);
+
+      // Log token usage for prescription creation (estimated tokens)
+      await logTokenUsage({
+        feature_type: 'prescription',
+        counter_type: 'gpt41',
+        tokens_used: 500, // Estimated tokens for prescription processing
+        prescription_id: savedPrescription.id,
+        session_id: `prescription-${Date.now()}`
+      });
       
       toast({
         title: "Success",
@@ -231,6 +253,7 @@ const PrescriptionForm = () => {
       });
       
       setShowAIAnalysis(false);
+      setCurrentPrescriptionId(null);
     } catch (error) {
       console.error('💥 Error saving prescription:', error);
       toast({
@@ -243,8 +266,26 @@ const PrescriptionForm = () => {
     }
   };
 
-  const handleConsultationComplete = (consultationData: any) => {
+  const handleConsultationComplete = async (consultationData: any) => {
     console.log('🎯 Enhanced voice consultation data received:', consultationData);
+    
+    // Log STT token usage
+    await logTokenUsage({
+      feature_type: 'prescription',
+      counter_type: 'stt',
+      tokens_used: consultationData.stt_tokens || 200, // Use actual tokens or estimate
+      prescription_id: currentPrescriptionId || undefined,
+      session_id: `consultation-${Date.now()}`
+    });
+
+    // Log GPT-4.1 token usage for analysis
+    await logTokenUsage({
+      feature_type: 'prescription',
+      counter_type: 'gpt41',
+      tokens_used: consultationData.analysis_tokens || 800, // Use actual tokens or estimate
+      prescription_id: currentPrescriptionId || undefined,
+      session_id: `consultation-analysis-${Date.now()}`
+    });
     
     const patientData = consultationData.analysisData?.patientInfo || {};
     const treatmentData = consultationData.analysisData?.treatmentPlan || {};
@@ -299,6 +340,16 @@ const PrescriptionForm = () => {
   const handleAIAnalysisComplete = async (analysis: any) => {
     try {
       console.log('🤖 Enhanced AI Analysis completed:', analysis);
+      
+      // Log Lyzr token usage for analysis
+      await logTokenUsage({
+        feature_type: 'prescription',
+        counter_type: 'lyzr',
+        tokens_used: analysis.tokens_used || 1500, // Use actual tokens or estimate
+        prescription_id: currentPrescriptionId || undefined,
+        session_id: `ai-analysis-${Date.now()}`
+      });
+
       toast({
         title: "AI Analysis Complete",
         description: "Comprehensive prescription analysis with diagnosis and conditions completed",
@@ -324,6 +375,12 @@ const PrescriptionForm = () => {
             Create comprehensive prescriptions with enhanced AI assistance
           </p>
         </div>
+
+        <TokenCounter 
+          featureType="prescription" 
+          prescriptionId={currentPrescriptionId || undefined}
+          className="mb-6"
+        />
 
         <form onSubmit={handleSubmit} className="space-y-8">
           <EnhancedPrescriptionForm data={data} onChange={setData}>
