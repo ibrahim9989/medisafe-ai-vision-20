@@ -61,7 +61,7 @@ const TokenCounter: React.FC<TokenCounterProps> = ({
   const getLabel = (type: string) => {
     switch (type) {
       case 'gpt41':
-        return 'AI Counter (GPT-4.1)';
+        return 'AI Counter';
       case 'stt':
         return 'STT Counter';
       case 'lyzr':
