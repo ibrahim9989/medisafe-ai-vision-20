@@ -10,6 +10,7 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import ProfileGuard from "@/components/ProfileGuard";
 import Header from "@/components/Header";
 import GlobalVoiceControl from "@/components/GlobalVoiceControl";
+import RootRedirect from "@/components/RootRedirect";
 import Home from "./pages/Home";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -31,8 +32,8 @@ const App = () => (
           <TutorialProvider>
             <TutorialOverlay />
             <Routes>
-              {/* Root route redirects to auth */}
-              <Route path="/" element={<Navigate to="/auth" replace />} />
+              {/* Root route with proper authentication check */}
+              <Route path="/" element={<RootRedirect />} />
               
               <Route path="/auth" element={<Auth />} />
               <Route 
@@ -81,8 +82,8 @@ const App = () => (
                   </ProtectedRoute>
                 } 
               />
-              {/* Catch all other routes and redirect to auth */}
-              <Route path="*" element={<Navigate to="/auth" replace />} />
+              {/* Catch all other routes and redirect to root */}
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </TutorialProvider>
         </AuthProvider>

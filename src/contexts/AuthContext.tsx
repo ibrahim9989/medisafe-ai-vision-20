@@ -38,8 +38,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             window.history.replaceState(null, '', window.location.pathname);
           }
           
-          // Redirect to home page after successful authentication
-          if (window.location.pathname === '/auth' || window.location.pathname === '/') {
+          // Only redirect if we're on the auth page
+          if (window.location.pathname === '/auth') {
             console.log('Redirecting to /home');
             window.location.href = '/home';
           }

@@ -22,7 +22,7 @@ const Auth = () => {
   useEffect(() => {
     if (user) {
       console.log('User authenticated, redirecting to home');
-      navigate('/', { replace: true });
+      navigate('/home', { replace: true });
     }
   }, [user, navigate]);
 
