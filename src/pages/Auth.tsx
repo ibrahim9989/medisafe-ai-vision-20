@@ -21,9 +21,23 @@ const Auth = () => {
 
   useEffect(() => {
     if (user) {
+      console.log('User authenticated, redirecting to home');
       navigate('/', { replace: true });
     }
   }, [user, navigate]);
+
+  // Handle OAuth callback
+  useEffect(() => {
+    const handleOAuthCallback = async () => {
+      const hashParams = new URLSearchParams(window.location.hash.slice(1));
+      if (hashParams.get('access_token')) {
+        console.log('OAuth callback detected, processing...');
+        // The auth state change will handle the redirect
+      }
+    };
+
+    handleOAuthCallback();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
