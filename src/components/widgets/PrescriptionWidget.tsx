@@ -104,17 +104,19 @@ const PrescriptionWidget: React.FC<PrescriptionWidgetProps> = ({ config, onEvent
       const { data, error } = await supabase
         .from('prescriptions')
         .insert({
-          user_id: user?.id,
+          user_id: user?.id || '',
           patient_name: patientName,
-          medications: medications,
+          medications: JSON.parse(JSON.stringify(medications)),
           doctor_name: user?.user_metadata?.full_name || 'Dr. User',
           age: 0, // Will be updated with actual patient data
           gender: 'Unknown' // Will be updated with actual patient data
-        });
+        })
+        .select();
 
       if (error) throw error;
 
-      onEvent('prescriptionCreated', { prescription, id: data?.[0]?.id });
+      const insertedId = data && data.length > 0 ? data[0].id : null;
+      onEvent('prescriptionCreated', { prescription, id: insertedId });
     } catch (error) {
       console.error('Save failed:', error);
       onEvent('error', error);

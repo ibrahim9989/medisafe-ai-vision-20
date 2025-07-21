@@ -155,7 +155,7 @@ export class MedVerseSDK {
     });
 
     widget.onMessage('ready', () => {
-      config.onReady?.(widget);
+      config.onReady?.();
     });
 
     widget.onMessage('error', (error) => {
@@ -182,7 +182,7 @@ export class MedVerseSDK {
     });
 
     widget.onMessage('ready', () => {
-      config.onReady?.(widget);
+      config.onReady?.();
     });
 
     this.widgets.set(`imageInterpreter-${Date.now()}`, widget);
