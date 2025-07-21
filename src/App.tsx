@@ -1,4 +1,3 @@
-
 import * as React from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -19,6 +18,7 @@ import DoctorsDirectory from "./pages/DoctorsDirectory";
 import InterpretAI from "./pages/InterpretAI";
 import { TutorialProvider } from "@/components/tutorial/TutorialProvider";
 import TutorialOverlay from "@/components/tutorial/TutorialOverlay";
+import PluginRoutes from "@/routes/PluginRoutes";
 
 const queryClient = new QueryClient();
 
@@ -36,6 +36,10 @@ const App = () => (
               <Route path="/" element={<RootRedirect />} />
               
               <Route path="/auth" element={<Auth />} />
+              
+              {/* Widget routes for plugin embedding (no auth required) */}
+              <Route path="/widget" element={<PluginRoutes />} />
+              
               <Route 
                 path="/home" 
                 element={

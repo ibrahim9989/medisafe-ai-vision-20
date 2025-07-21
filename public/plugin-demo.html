@@ -1,0 +1,423 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedVerse Plugin Integration Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            color: #cb6ce6;
+            margin-bottom: 10px;
+        }
+        
+        .widget-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+        
+        .widget-container {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .widget-header {
+            background: #cb6ce6;
+            color: white;
+            padding: 15px 20px;
+            font-weight: 600;
+        }
+        
+        .widget-content {
+            height: 500px;
+            position: relative;
+        }
+        
+        .full-width-widget {
+            grid-column: 1 / -1;
+        }
+        
+        .full-width-widget .widget-content {
+            height: 400px;
+        }
+        
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        .controls h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        
+        .control-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        button {
+            background: #cb6ce6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        
+        button:hover {
+            background: #b84fd9;
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .code-example {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        
+        .code-example h4 {
+            margin-bottom: 10px;
+            color: #495057;
+        }
+        
+        pre {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏥 MedVerse Plugin Integration Demo</h1>
+            <p>Experience how MedVerse AI widgets can be seamlessly integrated into your EHS/EMS system</p>
+        </div>
+        
+        <div class="controls">
+            <h3>Widget Controls</h3>
+            <div class="control-group">
+                <button onclick="initializeSDK()">Initialize SDK</button>
+                <button onclick="loadPrescriptionWidget()" id="prescriptionBtn" disabled>Load Prescription Widget</button>
+                <button onclick="loadImageWidget()" id="imageBtn" disabled>Load Image Interpreter</button>
+                <button onclick="loadVoiceWidget()" id="voiceBtn" disabled>Load Voice Assistant</button>
+            </div>
+            <div class="control-group">
+                <button onclick="loadPatientWidget()" id="patientBtn" disabled>Load Patient Management</button>
+                <button onclick="toggleTheme()" id="themeBtn" disabled>Toggle Theme</button>
+                <button onclick="destroyAllWidgets()" id="destroyBtn" disabled>Destroy All Widgets</button>
+            </div>
+        </div>
+        
+        <div class="widget-grid">
+            <div class="widget-container">
+                <div class="widget-header">Prescription Management Widget</div>
+                <div class="widget-content" id="prescription-widget">
+                    <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666;">
+                        Widget will load here...
+                    </div>
+                </div>
+            </div>
+            
+            <div class="widget-container">
+                <div class="widget-header">Medical Image Interpreter Widget</div>
+                <div class="widget-content" id="image-widget">
+                    <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666;">
+                        Widget will load here...
+                    </div>
+                </div>
+            </div>
+            
+            <div class="widget-container full-width-widget">
+                <div class="widget-header">Voice Assistant Widget</div>
+                <div class="widget-content" id="voice-widget">
+                    <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666;">
+                        Widget will load here...
+                    </div>
+                </div>
+            </div>
+            
+            <div class="widget-container full-width-widget">
+                <div class="widget-header">Patient Management Widget</div>
+                <div class="widget-content" id="patient-widget">
+                    <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666;">
+                        Widget will load here...
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="code-example">
+            <h4>Integration Code Example</h4>
+            <pre><code>// Initialize MedVerse SDK
+const medverse = new MedVerseSDK({
+  apiKey: 'your-api-key-here',
+  environment: 'production',
+  fhirEndpoint: 'https://your-ehr.com/fhir/r4',
+  theme: 'auto'
+});
+
+// Create prescription widget
+const prescriptionWidget = medverse.createPrescriptionWidget({
+  container: '#prescription-container',
+  patientId: 'patient-123',
+  onPrescriptionCreated: (prescription) => {
+    console.log('Prescription created:', prescription);
+    // Sync with your EHR system
+    updateEHRPrescription(prescription);
+  }
+});
+
+// Create medical image interpreter
+const imageWidget = medverse.createImageInterpreterWidget({
+  container: '#image-container',
+  supportedFormats: ['jpg', 'png', 'dicom'],
+  onInterpretationComplete: (result) => {
+    console.log('Image interpretation:', result);
+    // Add to patient record
+    addToPatientRecord(result);
+  }
+});
+
+// Create voice assistant
+const voiceWidget = medverse.createVoiceAssistantWidget({
+  container: '#voice-container',
+  autoStart: false,
+  onCommandExecuted: (command, result) => {
+    console.log('Voice command executed:', command, result);
+  }
+});
+
+// FHIR Integration
+medverse.syncWithFHIR({
+  resourceType: 'Patient',
+  id: 'patient-123',
+  // ... FHIR patient data
+});
+</code></pre>
+        </div>
+    </div>
+
+    <script>
+        let medverseSDK = null;
+        let currentTheme = 'light';
+        
+        function initializeSDK() {
+            try {
+                // In a real implementation, this would be loaded from your CDN
+                // For demo purposes, we'll simulate the SDK
+                console.log('Initializing MedVerse SDK...');
+                
+                // Simulate SDK initialization
+                medverseSDK = {
+                    createPrescriptionWidget: (config) => simulateWidget('prescription', config),
+                    createImageInterpreterWidget: (config) => simulateWidget('image', config),
+                    createVoiceAssistantWidget: (config) => simulateWidget('voice', config),
+                    createPatientManagementWidget: (config) => simulateWidget('patient', config),
+                    destroyAllWidgets: () => {
+                        document.querySelectorAll('.widget-content').forEach(container => {
+                            container.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666;">Widget destroyed</div>';
+                        });
+                    }
+                };
+                
+                // Enable controls
+                document.getElementById('prescriptionBtn').disabled = false;
+                document.getElementById('imageBtn').disabled = false;
+                document.getElementById('voiceBtn').disabled = false;
+                document.getElementById('patientBtn').disabled = false;
+                document.getElementById('themeBtn').disabled = false;
+                document.getElementById('destroyBtn').disabled = false;
+                
+                alert('SDK initialized successfully! You can now load widgets.');
+            } catch (error) {
+                alert('Failed to initialize SDK: ' + error.message);
+            }
+        }
+        
+        function simulateWidget(type, config) {
+            const container = document.querySelector(config.container);
+            if (!container) return null;
+            
+            // Create iframe simulation
+            const iframe = document.createElement('iframe');
+            iframe.style.width = '100%';
+            iframe.style.height = '100%';
+            iframe.style.border = 'none';
+            iframe.style.borderRadius = '8px';
+            
+            // Simulate widget URLs
+            const widgetUrls = {
+                prescription: '/widget?widget=prescription&config=' + encodeURIComponent(JSON.stringify({
+                    patientId: 'PAT-20241221-0001',
+                    readOnly: false
+                })),
+                image: '/widget?widget=imageInterpreter&config=' + encodeURIComponent(JSON.stringify({
+                    supportedFormats: ['jpg', 'png', 'dicom']
+                })),
+                voice: '/widget?widget=voiceAssistant&config=' + encodeURIComponent(JSON.stringify({
+                    autoStart: false
+                })),
+                patient: '/widget?widget=patientManagement&config=' + encodeURIComponent(JSON.stringify({
+                    patientId: 'PAT-20241221-0001',
+                    editableFields: ['name', 'age', 'gender', 'phoneNumber']
+                }))
+            };
+            
+            iframe.src = widgetUrls[type] + '&theme=' + currentTheme;
+            container.innerHTML = '';
+            container.appendChild(iframe);
+            
+            return {
+                destroy: () => container.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666;">Widget destroyed</div>'
+            };
+        }
+        
+        function loadPrescriptionWidget() {
+            if (!medverseSDK) {
+                alert('Please initialize SDK first');
+                return;
+            }
+            
+            medverseSDK.createPrescriptionWidget({
+                container: '#prescription-widget',
+                patientId: 'PAT-20241221-0001',
+                onPrescriptionCreated: (prescription) => {
+                    console.log('Prescription created:', prescription);
+                    alert('Prescription created successfully!');
+                },
+                onError: (error) => {
+                    console.error('Prescription widget error:', error);
+                }
+            });
+        }
+        
+        function loadImageWidget() {
+            if (!medverseSDK) {
+                alert('Please initialize SDK first');
+                return;
+            }
+            
+            medverseSDK.createImageInterpreterWidget({
+                container: '#image-widget',
+                supportedFormats: ['jpg', 'png', 'dicom', 'nifti'],
+                onInterpretationComplete: (result) => {
+                    console.log('Image interpretation:', result);
+                    alert('Image interpretation completed!');
+                },
+                onError: (error) => {
+                    console.error('Image widget error:', error);
+                }
+            });
+        }
+        
+        function loadVoiceWidget() {
+            if (!medverseSDK) {
+                alert('Please initialize SDK first');
+                return;
+            }
+            
+            medverseSDK.createVoiceAssistantWidget({
+                container: '#voice-widget',
+                autoStart: false,
+                onCommandExecuted: (command, result) => {
+                    console.log('Voice command:', command, result);
+                },
+                onError: (error) => {
+                    console.error('Voice widget error:', error);
+                }
+            });
+        }
+        
+        function loadPatientWidget() {
+            if (!medverseSDK) {
+                alert('Please initialize SDK first');
+                return;
+            }
+            
+            medverseSDK.createPatientManagementWidget({
+                container: '#patient-widget',
+                patientId: 'PAT-20241221-0001',
+                editableFields: ['name', 'age', 'gender', 'phoneNumber', 'address'],
+                onPatientUpdated: (patient) => {
+                    console.log('Patient updated:', patient);
+                    alert('Patient information updated!');
+                },
+                onError: (error) => {
+                    console.error('Patient widget error:', error);
+                }
+            });
+        }
+        
+        function toggleTheme() {
+            currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+            document.querySelectorAll('iframe').forEach(iframe => {
+                const url = new URL(iframe.src);
+                url.searchParams.set('theme', currentTheme);
+                iframe.src = url.toString();
+            });
+            alert('Theme switched to ' + currentTheme);
+        }
+        
+        function destroyAllWidgets() {
+            if (!medverseSDK) {
+                alert('Please initialize SDK first');
+                return;
+            }
+            
+            medverseSDK.destroyAllWidgets();
+            alert('All widgets destroyed');
+        }
+        
+        // Event listeners for demo messages
+        window.addEventListener('message', (event) => {
+            console.log('Widget message received:', event.data);
+        });
+    </script>
+</body>
+</html>
