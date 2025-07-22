@@ -193,6 +193,200 @@ export type Database = {
         }
         Relationships: []
       }
+      fhir_allergies: {
+        Row: {
+          allergen_code: string | null
+          allergen_display: string | null
+          clinical_status: string | null
+          created_at: string
+          fhir_id: string
+          id: string
+          patient_id: string
+          reaction: string | null
+          updated_at: string
+          verification_status: string | null
+        }
+        Insert: {
+          allergen_code?: string | null
+          allergen_display?: string | null
+          clinical_status?: string | null
+          created_at?: string
+          fhir_id: string
+          id?: string
+          patient_id: string
+          reaction?: string | null
+          updated_at?: string
+          verification_status?: string | null
+        }
+        Update: {
+          allergen_code?: string | null
+          allergen_display?: string | null
+          clinical_status?: string | null
+          created_at?: string
+          fhir_id?: string
+          id?: string
+          patient_id?: string
+          reaction?: string | null
+          updated_at?: string
+          verification_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fhir_allergies_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fhir_conditions: {
+        Row: {
+          category: string | null
+          clinical_status: string | null
+          condition_code: string | null
+          condition_display: string | null
+          created_at: string
+          fhir_id: string
+          id: string
+          onset_date: string | null
+          patient_id: string
+          updated_at: string
+          verification_status: string | null
+        }
+        Insert: {
+          category?: string | null
+          clinical_status?: string | null
+          condition_code?: string | null
+          condition_display?: string | null
+          created_at?: string
+          fhir_id: string
+          id?: string
+          onset_date?: string | null
+          patient_id: string
+          updated_at?: string
+          verification_status?: string | null
+        }
+        Update: {
+          category?: string | null
+          clinical_status?: string | null
+          condition_code?: string | null
+          condition_display?: string | null
+          created_at?: string
+          fhir_id?: string
+          id?: string
+          onset_date?: string | null
+          patient_id?: string
+          updated_at?: string
+          verification_status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fhir_conditions_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fhir_medications: {
+        Row: {
+          created_at: string
+          effective_date: string | null
+          fhir_id: string
+          id: string
+          medication_code: string | null
+          medication_display: string | null
+          patient_id: string
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          effective_date?: string | null
+          fhir_id: string
+          id?: string
+          medication_code?: string | null
+          medication_display?: string | null
+          patient_id: string
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          effective_date?: string | null
+          fhir_id?: string
+          id?: string
+          medication_code?: string | null
+          medication_display?: string | null
+          patient_id?: string
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fhir_medications_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fhir_observations: {
+        Row: {
+          category: string | null
+          code: string | null
+          created_at: string
+          display: string | null
+          effective_date: string | null
+          fhir_id: string
+          id: string
+          patient_id: string
+          updated_at: string
+          value_quantity: number | null
+          value_string: string | null
+          value_unit: string | null
+        }
+        Insert: {
+          category?: string | null
+          code?: string | null
+          created_at?: string
+          display?: string | null
+          effective_date?: string | null
+          fhir_id: string
+          id?: string
+          patient_id: string
+          updated_at?: string
+          value_quantity?: number | null
+          value_string?: string | null
+          value_unit?: string | null
+        }
+        Update: {
+          category?: string | null
+          code?: string | null
+          created_at?: string
+          display?: string | null
+          effective_date?: string | null
+          fhir_id?: string
+          id?: string
+          patient_id?: string
+          updated_at?: string
+          value_quantity?: number | null
+          value_string?: string | null
+          value_unit?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fhir_observations_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       follow_up_prescriptions: {
         Row: {
           created_at: string
@@ -319,8 +513,10 @@ export type Database = {
         Row: {
           address: string | null
           age: number | null
+          birth_date: string | null
           created_at: string
           doctor_id: string
+          fhir_id: string | null
           full_name: string
           gender: string | null
           id: string
@@ -331,8 +527,10 @@ export type Database = {
         Insert: {
           address?: string | null
           age?: number | null
+          birth_date?: string | null
           created_at?: string
           doctor_id: string
+          fhir_id?: string | null
           full_name: string
           gender?: string | null
           id?: string
@@ -343,8 +541,10 @@ export type Database = {
         Update: {
           address?: string | null
           age?: number | null
+          birth_date?: string | null
           created_at?: string
           doctor_id?: string
+          fhir_id?: string | null
           full_name?: string
           gender?: string | null
           id?: string
