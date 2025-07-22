@@ -16,6 +16,7 @@ import Auth from "./pages/Auth";
 import ProfileSetup from "./pages/ProfileSetup";
 import DoctorsDirectory from "./pages/DoctorsDirectory";
 import InterpretAI from "./pages/InterpretAI";
+import FHIRCallback from "./pages/FHIRCallback";
 import { TutorialProvider } from "@/components/tutorial/TutorialProvider";
 import TutorialOverlay from "@/components/tutorial/TutorialOverlay";
 import PluginRoutes from "@/routes/PluginRoutes";
@@ -36,6 +37,9 @@ const App = () => (
               <Route path="/" element={<RootRedirect />} />
               
               <Route path="/auth" element={<Auth />} />
+              
+              {/* FHIR OAuth callback */}
+              <Route path="/fhir/callback" element={<FHIRCallback />} />
               
               {/* Widget routes for plugin embedding (no auth required) */}
               <Route path="/widget" element={<PluginRoutes />} />
