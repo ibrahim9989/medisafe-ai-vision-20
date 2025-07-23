@@ -61,6 +61,87 @@ export type Database = {
           },
         ]
       }
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          resource: string
+          timestamp: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          resource: string
+          timestamp?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          resource?: string
+          timestamp?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      compliance_reports: {
+        Row: {
+          compliance_score: number | null
+          created_at: string
+          critical_issues: number | null
+          generated_at: string
+          generated_by: string
+          id: string
+          period_end: string | null
+          period_start: string | null
+          recommendations: string[] | null
+          report_data: Json
+          report_type: string
+          resolved_issues: number | null
+        }
+        Insert: {
+          compliance_score?: number | null
+          created_at?: string
+          critical_issues?: number | null
+          generated_at?: string
+          generated_by: string
+          id?: string
+          period_end?: string | null
+          period_start?: string | null
+          recommendations?: string[] | null
+          report_data: Json
+          report_type: string
+          resolved_issues?: number | null
+        }
+        Update: {
+          compliance_score?: number | null
+          created_at?: string
+          critical_issues?: number | null
+          generated_at?: string
+          generated_by?: string
+          id?: string
+          period_end?: string | null
+          period_start?: string | null
+          recommendations?: string[] | null
+          report_data?: Json
+          report_type?: string
+          resolved_issues?: number | null
+        }
+        Relationships: []
+      }
       consultation_transcripts: {
         Row: {
           action_items: Json | null
@@ -129,6 +210,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      data_access_permissions: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          granted_at: string
+          granted_by: string
+          id: string
+          permission_level: string
+          reason: string | null
+          resource_id: string | null
+          resource_type: string
+          revoked_at: string | null
+          revoked_by: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          granted_at?: string
+          granted_by: string
+          id?: string
+          permission_level: string
+          reason?: string | null
+          resource_id?: string | null
+          resource_type: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          granted_at?: string
+          granted_by?: string
+          id?: string
+          permission_level?: string
+          reason?: string | null
+          resource_id?: string | null
+          resource_type?: string
+          revoked_at?: string | null
+          revoked_by?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       doctor_profiles: {
         Row: {
@@ -682,6 +811,48 @@ export type Database = {
         }
         Relationships: []
       }
+      security_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string
+          description: string
+          id: string
+          metadata: Json | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string
+          description: string
+          id?: string
+          metadata?: Json | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string
+          description?: string
+          id?: string
+          metadata?: Json | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       token_usage: {
         Row: {
           counter_type: string
@@ -731,6 +902,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      expire_access_permissions: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
+      generate_compliance_report: {
+        Args: {
+          p_report_type: string
+          p_period_start?: string
+          p_period_end?: string
+        }
+        Returns: string
+      }
       generate_patient_id: {
         Args: Record<PropertyKey, never>
         Returns: string
