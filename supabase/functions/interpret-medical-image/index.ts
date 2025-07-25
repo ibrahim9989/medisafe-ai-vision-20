@@ -26,9 +26,9 @@ serve(async (req) => {
       throw new Error('No image data provided');
     }
 
-    // Use the specific Azure OpenAI configuration provided
-    const azureApiKey = 'FZ9RZqAVfAtln3qn1Y8CvVJck70dw2ijPZB51KFLbOg9EVWXyUtDJQQJ99BEACHYHv6XJ3w3AAAAACOGbxmN';
-    const azureEndpoint = 'https://razam-mac1ml8q-eastus2.cognitiveservices.azure.com';
+    // Use the dedicated Interpret AI Azure OpenAI configuration
+    const azureApiKey = Deno.env.get('INTERPRET_AI_AZURE_API_KEY');
+    const azureEndpoint = Deno.env.get('INTERPRET_AI_AZURE_ENDPOINT');
     
     console.log('Azure config check:', {
       hasApiKey: !!azureApiKey,
@@ -36,7 +36,12 @@ serve(async (req) => {
       endpoint: azureEndpoint
     });
 
-    // Use the specific deployment and API version provided
+    if (!azureApiKey || !azureEndpoint) {
+      console.error('Interpret AI Azure OpenAI configuration missing');
+      throw new Error('Interpret AI Azure OpenAI configuration not found');
+    }
+
+    // Use the specific deployment and API version for Interpret AI
     const deploymentName = 'gpt-4.1';
     const apiVersion = '2025-01-01-preview';
 
