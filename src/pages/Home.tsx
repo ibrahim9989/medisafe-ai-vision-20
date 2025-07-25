@@ -77,8 +77,7 @@ const Home = () => {
         <Alert className="mb-6 border-orange-200 bg-orange-50">
           <AlertTriangle className="h-4 w-4 text-orange-600" />
           <AlertDescription className="text-orange-800">
-            <strong>HIPAA Compliance Notice:</strong> This platform is currently in the process of obtaining HIPAA compliance certification. 
-            Please do not use this system for protected health information (PHI) until official certification is completed.
+            <strong>HIPAA Compliance Notice:</strong> This platform is currently in the process of obtaining HIPAA compliance certification.
           </AlertDescription>
         </Alert>
 
