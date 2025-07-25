@@ -42,8 +42,8 @@ serve(async (req) => {
       throw new Error('Azure OpenAI GPT41 configuration not found');
     }
 
-    // Use the correct deployment name for GPT-4.1
-    const deploymentName = 'gpt-41'; // Updated deployment name for GPT-4.1
+    // Use gpt-4o deployment which is more commonly available
+    const deploymentName = 'gpt-4o';
     const apiVersion = '2024-02-15-preview';
 
     console.log('Using deployment:', deploymentName);
@@ -183,7 +183,7 @@ Please analyze this medical image and provide:
         console.log('404 error - deployment not found');
         return new Response(
           JSON.stringify({ 
-            error: 'AI model deployment not found. Please check GPT-4.1 deployment configuration.',
+            error: 'AI model deployment not found. Please check that gpt-4o deployment exists in Azure OpenAI.',
             timestamp: new Date().toISOString()
           }),
           { 
