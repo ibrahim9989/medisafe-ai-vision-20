@@ -27,8 +27,8 @@ serve(async (req) => {
       throw new Error('No image data provided');
     }
 
-    // Check for Azure OpenAI configuration
-    const azureApiKey = Deno.env.get('AZURE_OPENAI_API_KEY');
+    // Check for Azure OpenAI configuration - using GPT41 API key
+    const azureApiKey = Deno.env.get('AZURE_OPENAI_GPT41_API_KEY');
     const azureEndpoint = Deno.env.get('AZURE_OPENAI_ENDPOINT');
     
     console.log('Azure config check:', {
@@ -39,12 +39,12 @@ serve(async (req) => {
     
     if (!azureApiKey || !azureEndpoint) {
       console.error('Azure OpenAI configuration missing');
-      throw new Error('Azure OpenAI configuration not found');
+      throw new Error('Azure OpenAI GPT41 configuration not found');
     }
 
-    // Use the correct deployment name for vision models
-    const deploymentName = 'gpt-4o'; // Changed from 'gpt-4.1' to 'gpt-4o'
-    const apiVersion = '2024-02-15-preview'; // Updated API version for vision
+    // Use the correct deployment name for GPT-4.1
+    const deploymentName = 'gpt-41'; // Updated deployment name for GPT-4.1
+    const apiVersion = '2024-02-15-preview';
 
     console.log('Using deployment:', deploymentName);
     console.log('API version:', apiVersion);
@@ -183,7 +183,7 @@ Please analyze this medical image and provide:
         console.log('404 error - deployment not found');
         return new Response(
           JSON.stringify({ 
-            error: 'AI model deployment not found. Please check configuration.',
+            error: 'AI model deployment not found. Please check GPT-4.1 deployment configuration.',
             timestamp: new Date().toISOString()
           }),
           { 
