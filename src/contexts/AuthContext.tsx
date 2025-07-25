@@ -201,17 +201,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signInWithGoogle = async () => {
-    // Generate secure state parameter for CSRF protection
-    const state = SecurityService.generateSecureRandomString(32);
-    
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/home`,
-          queryParams: {
-            state: state
-          }
+          redirectTo: `${window.location.origin}/home`
         }
       });
 
