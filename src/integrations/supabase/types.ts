@@ -766,48 +766,57 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null
+          bio: string | null
+          certifications: string[] | null
           created_at: string
-          email: string
-          full_name: string
-          hospital_affiliation: string | null
+          education: string | null
+          email: string | null
+          full_name: string | null
           id: string
-          is_verified: boolean
+          languages: string[] | null
           license_number: string | null
           phone_number: string | null
-          role: string
-          specialization: string[] | null
+          role: string | null
+          specialty: string | null
           updated_at: string
-          user_id: string | null
+          user_id: string
+          years_of_experience: number | null
         }
         Insert: {
           avatar_url?: string | null
+          bio?: string | null
+          certifications?: string[] | null
           created_at?: string
-          email: string
-          full_name: string
-          hospital_affiliation?: string | null
-          id: string
-          is_verified?: boolean
+          education?: string | null
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          languages?: string[] | null
           license_number?: string | null
           phone_number?: string | null
-          role?: string
-          specialization?: string[] | null
+          role?: string | null
+          specialty?: string | null
           updated_at?: string
-          user_id?: string | null
+          user_id: string
+          years_of_experience?: number | null
         }
         Update: {
           avatar_url?: string | null
+          bio?: string | null
+          certifications?: string[] | null
           created_at?: string
-          email?: string
-          full_name?: string
-          hospital_affiliation?: string | null
+          education?: string | null
+          email?: string | null
+          full_name?: string | null
           id?: string
-          is_verified?: boolean
+          languages?: string[] | null
           license_number?: string | null
           phone_number?: string | null
-          role?: string
-          specialization?: string[] | null
+          role?: string | null
+          specialty?: string | null
           updated_at?: string
-          user_id?: string | null
+          user_id?: string
+          years_of_experience?: number | null
         }
         Relationships: []
       }
