@@ -1,4 +1,3 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -27,24 +26,19 @@ serve(async (req) => {
       throw new Error('No image data provided');
     }
 
-    // Check for Azure OpenAI configuration - using GPT41 API key
-    const azureApiKey = Deno.env.get('AZURE_OPENAI_GPT41_API_KEY');
-    const azureEndpoint = Deno.env.get('AZURE_OPENAI_ENDPOINT');
+    // Use the specific Azure OpenAI configuration provided
+    const azureApiKey = 'FZ9RZqAVfAtln3qn1Y8CvVJck70dw2ijPZB51KFLbOg9EVWXyUtDJQQJ99BEACHYHv6XJ3w3AAAAACOGbxmN';
+    const azureEndpoint = 'https://razam-mac1ml8q-eastus2.cognitiveservices.azure.com';
     
     console.log('Azure config check:', {
       hasApiKey: !!azureApiKey,
       hasEndpoint: !!azureEndpoint,
-      endpoint: azureEndpoint ? azureEndpoint.substring(0, 30) + '...' : 'not set'
+      endpoint: azureEndpoint
     });
-    
-    if (!azureApiKey || !azureEndpoint) {
-      console.error('Azure OpenAI configuration missing');
-      throw new Error('Azure OpenAI GPT41 configuration not found');
-    }
 
-    // Use gpt-4o deployment which is more commonly available
-    const deploymentName = 'gpt-4o';
-    const apiVersion = '2024-02-15-preview';
+    // Use the specific deployment and API version provided
+    const deploymentName = 'gpt-4.1';
+    const apiVersion = '2025-01-01-preview';
 
     console.log('Using deployment:', deploymentName);
     console.log('API version:', apiVersion);
@@ -183,7 +177,7 @@ Please analyze this medical image and provide:
         console.log('404 error - deployment not found');
         return new Response(
           JSON.stringify({ 
-            error: 'AI model deployment not found. Please check that gpt-4o deployment exists in Azure OpenAI.',
+            error: 'AI model deployment not found. Please check that gpt-4.1 deployment exists in Azure OpenAI.',
             timestamp: new Date().toISOString()
           }),
           { 
