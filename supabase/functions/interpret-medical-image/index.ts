@@ -20,9 +20,14 @@ serve(async (req) => {
       throw new Error('No image data provided');
     }
 
-    // Use the specific Azure OpenAI configuration provided
-    const azureApiKey = 'FZ9RZqAVfAtln3qn1Y8CvVJck70dw2ijPZB51KFLbOg9EVWXyUtDJQQJ99BEACHYHv6XJ3w3AAAAACOGbxmN';
-    const azureEndpoint = 'https://razam-mac1ml8q-eastus2.cognitiveservices.azure.com';
+    // Use the Azure OpenAI configuration from environment variables
+    const azureApiKey = Deno.env.get('AZURE_OPENAI_GPT41_API_KEY');
+    const azureEndpoint = Deno.env.get('AZURE_OPENAI_ENDPOINT');
+    
+    if (!azureApiKey || !azureEndpoint) {
+      throw new Error('Azure OpenAI configuration not found');
+    }
+
     const deploymentName = 'gpt-4.1';
     const apiVersion = '2025-01-01-preview';
 
@@ -110,7 +115,10 @@ Please analyze this medical image and provide:
     console.log('Sending request to Azure OpenAI...');
     
     const azureUrl = `${azureEndpoint}/openai/deployments/${deploymentName}/chat/completions?api-version=${apiVersion}`;
-    console.log('Azure URL:', azureUrl);
+    
+    // Set a timeout for the request
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 second timeout
 
     const response = await fetch(azureUrl, {
       method: 'POST',
@@ -119,13 +127,35 @@ Please analyze this medical image and provide:
         'api-key': azureApiKey,
       },
       body: JSON.stringify(requestBody),
+      signal: controller.signal
     });
+
+    clearTimeout(timeoutId);
 
     console.log('Azure OpenAI response status:', response.status);
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Azure OpenAI API error:', response.status, errorText);
+      
+      // Handle specific error cases
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ 
+            error: 'Service temporarily overloaded. Please try again in a few moments.',
+            timestamp: new Date().toISOString()
+          }),
+          { 
+            status: 503,
+            headers: { 
+              ...corsHeaders, 
+              'Content-Type': 'application/json',
+              'Retry-After': '30'
+            } 
+          }
+        );
+      }
+      
       return new Response(
         JSON.stringify({ 
           error: `Azure OpenAI API error: ${response.status} - ${errorText}`,
@@ -203,6 +233,23 @@ Please analyze this medical image and provide:
   } catch (error) {
     console.error('Error in interpret-medical-image function:', error);
     console.error('Error stack:', error.stack);
+    
+    // Handle timeout error
+    if (error.name === 'AbortError') {
+      return new Response(
+        JSON.stringify({ 
+          error: 'Request timeout. Please try again with a smaller image or better internet connection.',
+          timestamp: new Date().toISOString()
+        }),
+        { 
+          status: 408,
+          headers: { 
+            ...corsHeaders, 
+            'Content-Type': 'application/json' 
+          } 
+        }
+      );
+    }
     
     return new Response(
       JSON.stringify({ 
