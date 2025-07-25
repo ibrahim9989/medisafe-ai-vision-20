@@ -8,29 +8,46 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
+  console.log('Function invoked with method:', req.method);
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
+    console.log('Handling CORS preflight request');
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    console.log('Starting medical image interpretation...');
+    
     const { imageData, imageType, clinicalContext, patientName, patientAge } = await req.json();
+    console.log('Request body parsed successfully');
 
     if (!imageData) {
+      console.error('No image data provided');
       throw new Error('No image data provided');
     }
 
-    // Use the Azure OpenAI configuration from environment variables
-    const azureApiKey = Deno.env.get('AZURE_OPENAI_GPT41_API_KEY');
+    // Check for Azure OpenAI configuration
+    const azureApiKey = Deno.env.get('AZURE_OPENAI_API_KEY');
     const azureEndpoint = Deno.env.get('AZURE_OPENAI_ENDPOINT');
     
+    console.log('Azure config check:', {
+      hasApiKey: !!azureApiKey,
+      hasEndpoint: !!azureEndpoint,
+      endpoint: azureEndpoint ? azureEndpoint.substring(0, 30) + '...' : 'not set'
+    });
+    
     if (!azureApiKey || !azureEndpoint) {
+      console.error('Azure OpenAI configuration missing');
       throw new Error('Azure OpenAI configuration not found');
     }
 
-    const deploymentName = 'gpt-4.1';
-    const apiVersion = '2025-01-01-preview';
+    // Use the correct deployment name for vision models
+    const deploymentName = 'gpt-4o'; // Changed from 'gpt-4.1' to 'gpt-4o'
+    const apiVersion = '2024-02-15-preview'; // Updated API version for vision
 
+    console.log('Using deployment:', deploymentName);
+    console.log('API version:', apiVersion);
     console.log('Processing medical image interpretation request...');
     console.log('Image type:', imageType);
     console.log('Clinical context provided:', !!clinicalContext);
@@ -112,13 +129,17 @@ Please analyze this medical image and provide:
       temperature: 0.3
     };
 
-    console.log('Sending request to Azure OpenAI...');
+    console.log('Request body prepared, sending to Azure OpenAI...');
     
     const azureUrl = `${azureEndpoint}/openai/deployments/${deploymentName}/chat/completions?api-version=${apiVersion}`;
+    console.log('Azure URL:', azureUrl);
     
     // Set a timeout for the request
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 second timeout
+    const timeoutId = setTimeout(() => {
+      console.log('Request timeout triggered');
+      controller.abort();
+    }, 45000); // 45 second timeout
 
     const response = await fetch(azureUrl, {
       method: 'POST',
@@ -133,6 +154,7 @@ Please analyze this medical image and provide:
     clearTimeout(timeoutId);
 
     console.log('Azure OpenAI response status:', response.status);
+    console.log('Azure OpenAI response headers:', Object.fromEntries(response.headers.entries()));
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -140,6 +162,7 @@ Please analyze this medical image and provide:
       
       // Handle specific error cases
       if (response.status === 429) {
+        console.log('Rate limit hit, returning 503');
         return new Response(
           JSON.stringify({ 
             error: 'Service temporarily overloaded. Please try again in a few moments.',
@@ -151,6 +174,23 @@ Please analyze this medical image and provide:
               ...corsHeaders, 
               'Content-Type': 'application/json',
               'Retry-After': '30'
+            } 
+          }
+        );
+      }
+      
+      if (response.status === 404) {
+        console.log('404 error - deployment not found');
+        return new Response(
+          JSON.stringify({ 
+            error: 'AI model deployment not found. Please check configuration.',
+            timestamp: new Date().toISOString()
+          }),
+          { 
+            status: 500,
+            headers: { 
+              ...corsHeaders, 
+              'Content-Type': 'application/json' 
             } 
           }
         );
@@ -173,6 +213,7 @@ Please analyze this medical image and provide:
 
     const data = await response.json();
     console.log('Azure OpenAI response received successfully');
+    console.log('Response data structure:', Object.keys(data));
     
     if (!data.choices || !data.choices[0] || !data.choices[0].message) {
       console.error('Invalid response format:', data);
@@ -192,6 +233,7 @@ Please analyze this medical image and provide:
     }
 
     const interpretation = data.choices[0].message.content;
+    console.log('Interpretation generated, length:', interpretation?.length);
 
     if (!interpretation || interpretation.trim().length === 0) {
       console.error('No interpretation generated');
@@ -232,10 +274,13 @@ Please analyze this medical image and provide:
 
   } catch (error) {
     console.error('Error in interpret-medical-image function:', error);
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
     console.error('Error stack:', error.stack);
     
     // Handle timeout error
     if (error.name === 'AbortError') {
+      console.log('Request aborted due to timeout');
       return new Response(
         JSON.stringify({ 
           error: 'Request timeout. Please try again with a smaller image or better internet connection.',
