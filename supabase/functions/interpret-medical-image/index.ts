@@ -1,3 +1,4 @@
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -29,16 +30,18 @@ serve(async (req) => {
     // Use the dedicated Interpret AI Azure OpenAI configuration
     const azureApiKey = Deno.env.get('INTERPRET_AI_AZURE_API_KEY');
     const azureEndpoint = Deno.env.get('INTERPRET_AI_AZURE_ENDPOINT');
+    const geminiApiKey = Deno.env.get('INTERPRET_AI_GEMINI_API_KEY');
     
-    console.log('Azure config check:', {
-      hasApiKey: !!azureApiKey,
-      hasEndpoint: !!azureEndpoint,
-      endpoint: azureEndpoint
+    console.log('API config check:', {
+      hasAzureApiKey: !!azureApiKey,
+      hasAzureEndpoint: !!azureEndpoint,
+      hasGeminiApiKey: !!geminiApiKey,
+      azureEndpoint: azureEndpoint
     });
 
-    if (!azureApiKey || !azureEndpoint) {
-      console.error('Interpret AI Azure OpenAI configuration missing');
-      throw new Error('Interpret AI Azure OpenAI configuration not found');
+    if (!azureApiKey || !azureEndpoint || !geminiApiKey) {
+      console.error('Interpret AI configuration missing');
+      throw new Error('Interpret AI API configuration not found');
     }
 
     // Use the specific deployment and API version for Interpret AI
@@ -105,136 +108,182 @@ Please analyze this medical image and provide:
 
     prompt += `\n\nRemember: This is an INTERPRETATION for educational and informational purposes. Clinical correlation and professional medical evaluation are essential for proper patient care.`;
 
-    const requestBody = {
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: prompt
-            },
-            {
-              type: "image_url",
-              image_url: {
-                url: `data:${imageType};base64,${imageData}`,
-                detail: "high"
+    // Function to try Azure OpenAI first
+    const tryAzureOpenAI = async () => {
+      const requestBody = {
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: prompt
+              },
+              {
+                type: "image_url",
+                image_url: {
+                  url: `data:${imageType};base64,${imageData}`,
+                  detail: "high"
+                }
               }
-            }
-          ]
-        }
-      ],
-      max_tokens: 2000,
-      temperature: 0.3
+            ]
+          }
+        ],
+        max_tokens: 2000,
+        temperature: 0.3
+      };
+
+      console.log('Trying Azure OpenAI...');
+      
+      const azureUrl = `${azureEndpoint}/openai/deployments/${deploymentName}/chat/completions?api-version=${apiVersion}`;
+      console.log('Azure URL:', azureUrl);
+      
+      // Set a timeout for the request
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        console.log('Azure OpenAI request timeout triggered');
+        controller.abort();
+      }, 45000); // 45 second timeout
+
+      const response = await fetch(azureUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'api-key': azureApiKey,
+        },
+        body: JSON.stringify(requestBody),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      console.log('Azure OpenAI response status:', response.status);
+      console.log('Azure OpenAI response headers:', Object.fromEntries(response.headers.entries()));
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Azure OpenAI API error:', response.status, errorText);
+        throw new Error(`Azure OpenAI API error: ${response.status} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log('Azure OpenAI response received successfully');
+      
+      if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+        console.error('Invalid Azure OpenAI response format:', data);
+        throw new Error('Invalid response format from Azure OpenAI');
+      }
+
+      return {
+        interpretation: data.choices[0].message.content,
+        tokensUsed: data.usage ? data.usage.total_tokens : Math.ceil(data.choices[0].message.content.length / 4),
+        provider: 'azure-openai'
+      };
     };
 
-    console.log('Request body prepared, sending to Azure OpenAI...');
-    
-    const azureUrl = `${azureEndpoint}/openai/deployments/${deploymentName}/chat/completions?api-version=${apiVersion}`;
-    console.log('Azure URL:', azureUrl);
-    
-    // Set a timeout for the request
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      console.log('Request timeout triggered');
-      controller.abort();
-    }, 45000); // 45 second timeout
-
-    const response = await fetch(azureUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'api-key': azureApiKey,
-      },
-      body: JSON.stringify(requestBody),
-      signal: controller.signal
-    });
-
-    clearTimeout(timeoutId);
-
-    console.log('Azure OpenAI response status:', response.status);
-    console.log('Azure OpenAI response headers:', Object.fromEntries(response.headers.entries()));
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Azure OpenAI API error:', response.status, errorText);
+    // Function to fallback to Gemini API
+    const tryGemini = async () => {
+      console.log('Falling back to Gemini API...');
       
-      // Handle specific error cases
-      if (response.status === 429) {
-        console.log('Rate limit hit, returning 503');
-        return new Response(
-          JSON.stringify({ 
-            error: 'Service temporarily overloaded. Please try again in a few moments.',
-            timestamp: new Date().toISOString()
-          }),
-          { 
-            status: 503,
-            headers: { 
-              ...corsHeaders, 
-              'Content-Type': 'application/json',
-              'Retry-After': '30'
-            } 
+      const geminiRequestBody = {
+        contents: [
+          {
+            parts: [
+              {
+                text: prompt
+              },
+              {
+                inline_data: {
+                  mime_type: imageType,
+                  data: imageData
+                }
+              }
+            ]
           }
-        );
-      }
-      
-      if (response.status === 404) {
-        console.log('404 error - deployment not found');
-        return new Response(
-          JSON.stringify({ 
-            error: 'AI model deployment not found. Please check that gpt-4.1 deployment exists in Azure OpenAI.',
-            timestamp: new Date().toISOString()
-          }),
-          { 
-            status: 500,
-            headers: { 
-              ...corsHeaders, 
-              'Content-Type': 'application/json' 
-            } 
-          }
-        );
-      }
-      
-      return new Response(
-        JSON.stringify({ 
-          error: `Azure OpenAI API error: ${response.status} - ${errorText}`,
-          timestamp: new Date().toISOString()
-        }),
-        { 
-          status: 500,
-          headers: { 
-            ...corsHeaders, 
-            'Content-Type': 'application/json' 
-          } 
+        ],
+        generation_config: {
+          temperature: 0.3,
+          max_output_tokens: 2000,
         }
-      );
+      };
+
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`;
+      
+      const response = await fetch(geminiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-goog-api-key': geminiApiKey,
+        },
+        body: JSON.stringify(geminiRequestBody),
+      });
+
+      console.log('Gemini response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Gemini API error:', response.status, errorText);
+        throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log('Gemini response received successfully');
+      
+      if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+        console.error('Invalid Gemini response format:', data);
+        throw new Error('Invalid response format from Gemini');
+      }
+
+      const interpretation = data.candidates[0].content.parts[0].text;
+      
+      return {
+        interpretation,
+        tokensUsed: data.usageMetadata ? data.usageMetadata.totalTokenCount : Math.ceil(interpretation.length / 4),
+        provider: 'gemini'
+      };
+    };
+
+    let result;
+    let usedFallback = false;
+
+    try {
+      // Try Azure OpenAI first
+      result = await tryAzureOpenAI();
+    } catch (azureError) {
+      console.log('Azure OpenAI failed, trying Gemini fallback:', azureError.message);
+      usedFallback = true;
+      
+      try {
+        result = await tryGemini();
+      } catch (geminiError) {
+        console.error('Both Azure OpenAI and Gemini failed:', {
+          azureError: azureError.message,
+          geminiError: geminiError.message
+        });
+        
+        // Return appropriate error based on the primary failure
+        if (azureError.message.includes('429')) {
+          return new Response(
+            JSON.stringify({ 
+              error: 'Service temporarily overloaded. Please try again in a few moments.',
+              timestamp: new Date().toISOString()
+            }),
+            { 
+              status: 503,
+              headers: { 
+                ...corsHeaders, 
+                'Content-Type': 'application/json',
+                'Retry-After': '30'
+              } 
+            }
+          );
+        }
+        
+        throw new Error('Both AI services are currently unavailable. Please try again later.');
+      }
     }
 
-    const data = await response.json();
-    console.log('Azure OpenAI response received successfully');
-    console.log('Response data structure:', Object.keys(data));
-    
-    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-      console.error('Invalid response format:', data);
-      return new Response(
-        JSON.stringify({ 
-          error: 'Invalid response format from Azure OpenAI',
-          timestamp: new Date().toISOString()
-        }),
-        { 
-          status: 500,
-          headers: { 
-            ...corsHeaders, 
-            'Content-Type': 'application/json' 
-          } 
-        }
-      );
-    }
-
-    const interpretation = data.choices[0].message.content;
-    console.log('Interpretation generated, length:', interpretation?.length);
-
-    if (!interpretation || interpretation.trim().length === 0) {
+    if (!result.interpretation || result.interpretation.trim().length === 0) {
       console.error('No interpretation generated');
       return new Response(
         JSON.stringify({ 
@@ -251,16 +300,17 @@ Please analyze this medical image and provide:
       );
     }
 
-    // Calculate token usage from the response
-    const tokensUsed = data.usage ? data.usage.total_tokens : Math.ceil(interpretation.length / 4);
-    
     console.log('Medical image interpretation completed successfully');
-    console.log('Tokens used:', tokensUsed);
+    console.log('Provider used:', result.provider);
+    console.log('Used fallback:', usedFallback);
+    console.log('Tokens used:', result.tokensUsed);
 
     return new Response(
       JSON.stringify({ 
-        interpretation: interpretation.trim(),
-        tokensUsed: tokensUsed,
+        interpretation: result.interpretation.trim(),
+        tokensUsed: result.tokensUsed,
+        provider: result.provider,
+        usedFallback,
         timestamp: new Date().toISOString()
       }),
       { 
