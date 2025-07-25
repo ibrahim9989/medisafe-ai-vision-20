@@ -27,7 +27,7 @@ serve(async (req) => {
       throw new Error('No image data provided');
     }
 
-    // Use the dedicated Interpret AI Azure OpenAI configuration
+    // Use the dedicated Interpret AI configuration
     const azureApiKey = Deno.env.get('INTERPRET_AI_AZURE_API_KEY');
     const azureEndpoint = Deno.env.get('INTERPRET_AI_AZURE_ENDPOINT');
     const geminiApiKey = Deno.env.get('INTERPRET_AI_GEMINI_API_KEY');
@@ -44,12 +44,11 @@ serve(async (req) => {
       throw new Error('Interpret AI API configuration not found');
     }
 
-    // Use the specific deployment and API version for Interpret AI
+    // Use the specific deployment and API version for Azure OpenAI fallback
     const deploymentName = 'gpt-4.1';
     const apiVersion = '2025-01-01-preview';
 
-    console.log('Using deployment:', deploymentName);
-    console.log('API version:', apiVersion);
+    console.log('Using Gemini as primary, Azure OpenAI as fallback');
     console.log('Processing medical image interpretation request...');
     console.log('Image type:', imageType);
     console.log('Clinical context provided:', !!clinicalContext);
@@ -108,8 +107,83 @@ Please analyze this medical image and provide:
 
     prompt += `\n\nRemember: This is an INTERPRETATION for educational and informational purposes. Clinical correlation and professional medical evaluation are essential for proper patient care.`;
 
-    // Function to try Azure OpenAI first
+    // Function to try Gemini first (now primary)
+    const tryGemini = async () => {
+      console.log('Trying Gemini as primary service...');
+      
+      const geminiRequestBody = {
+        contents: [
+          {
+            parts: [
+              {
+                text: prompt
+              },
+              {
+                inline_data: {
+                  mime_type: imageType,
+                  data: imageData
+                }
+              }
+            ]
+          }
+        ],
+        generation_config: {
+          temperature: 0.3,
+          max_output_tokens: 2000,
+        }
+      };
+
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`;
+      
+      // Set a timeout for the request
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        console.log('Gemini request timeout triggered');
+        controller.abort();
+      }, 45000); // 45 second timeout
+
+      const response = await fetch(geminiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-goog-api-key': geminiApiKey,
+        },
+        body: JSON.stringify(geminiRequestBody),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      console.log('Gemini response status:', response.status);
+      console.log('Gemini response headers:', Object.fromEntries(response.headers.entries()));
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Gemini API error:', response.status, errorText);
+        throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log('Gemini response received successfully');
+      
+      if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
+        console.error('Invalid Gemini response format:', data);
+        throw new Error('Invalid response format from Gemini');
+      }
+
+      const interpretation = data.candidates[0].content.parts[0].text;
+      
+      return {
+        interpretation,
+        tokensUsed: data.usageMetadata ? data.usageMetadata.totalTokenCount : Math.ceil(interpretation.length / 4),
+        provider: 'gemini'
+      };
+    };
+
+    // Function to fallback to Azure OpenAI
     const tryAzureOpenAI = async () => {
+      console.log('Falling back to Azure OpenAI...');
+      
       const requestBody = {
         messages: [
           {
@@ -133,8 +207,6 @@ Please analyze this medical image and provide:
         temperature: 0.3
       };
 
-      console.log('Trying Azure OpenAI...');
-      
       const azureUrl = `${azureEndpoint}/openai/deployments/${deploymentName}/chat/completions?api-version=${apiVersion}`;
       console.log('Azure URL:', azureUrl);
       
@@ -181,88 +253,26 @@ Please analyze this medical image and provide:
       };
     };
 
-    // Function to fallback to Gemini API
-    const tryGemini = async () => {
-      console.log('Falling back to Gemini API...');
-      
-      const geminiRequestBody = {
-        contents: [
-          {
-            parts: [
-              {
-                text: prompt
-              },
-              {
-                inline_data: {
-                  mime_type: imageType,
-                  data: imageData
-                }
-              }
-            ]
-          }
-        ],
-        generation_config: {
-          temperature: 0.3,
-          max_output_tokens: 2000,
-        }
-      };
-
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`;
-      
-      const response = await fetch(geminiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-goog-api-key': geminiApiKey,
-        },
-        body: JSON.stringify(geminiRequestBody),
-      });
-
-      console.log('Gemini response status:', response.status);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Gemini API error:', response.status, errorText);
-        throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
-      }
-
-      const data = await response.json();
-      console.log('Gemini response received successfully');
-      
-      if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
-        console.error('Invalid Gemini response format:', data);
-        throw new Error('Invalid response format from Gemini');
-      }
-
-      const interpretation = data.candidates[0].content.parts[0].text;
-      
-      return {
-        interpretation,
-        tokensUsed: data.usageMetadata ? data.usageMetadata.totalTokenCount : Math.ceil(interpretation.length / 4),
-        provider: 'gemini'
-      };
-    };
-
     let result;
     let usedFallback = false;
 
     try {
-      // Try Azure OpenAI first
-      result = await tryAzureOpenAI();
-    } catch (azureError) {
-      console.log('Azure OpenAI failed, trying Gemini fallback:', azureError.message);
+      // Try Gemini first (now primary)
+      result = await tryGemini();
+    } catch (geminiError) {
+      console.log('Gemini failed, trying Azure OpenAI fallback:', geminiError.message);
       usedFallback = true;
       
       try {
-        result = await tryGemini();
-      } catch (geminiError) {
-        console.error('Both Azure OpenAI and Gemini failed:', {
-          azureError: azureError.message,
-          geminiError: geminiError.message
+        result = await tryAzureOpenAI();
+      } catch (azureError) {
+        console.error('Both Gemini and Azure OpenAI failed:', {
+          geminiError: geminiError.message,
+          azureError: azureError.message
         });
         
         // Return appropriate error based on the primary failure
-        if (azureError.message.includes('429')) {
+        if (geminiError.message.includes('429')) {
           return new Response(
             JSON.stringify({ 
               error: 'Service temporarily overloaded. Please try again in a few moments.',
