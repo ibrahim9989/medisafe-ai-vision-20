@@ -8,6 +8,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
 import { LogIn, UserPlus, Stethoscope } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { SecurityService } from '@/services/securityService';
+import PasswordStrengthIndicator from '@/components/ui/password-strength-indicator';
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -16,7 +18,12 @@ const Auth = () => {
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const { signIn, signUp, signInWithGoogle, user } = useAuth();
+  const [passwordValidation, setPasswordValidation] = useState({
+    isValid: false,
+    errors: [],
+    strength: 'weak' as 'weak' | 'medium' | 'strong'
+  });
+  const { signIn, signUp, signInWithGoogle, user, validatePassword } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -26,26 +33,89 @@ const Auth = () => {
     }
   }, [user, navigate]);
 
-  // Handle OAuth callback
+  // Handle OAuth callback with enhanced security
   useEffect(() => {
     const handleOAuthCallback = async () => {
       const hashParams = new URLSearchParams(window.location.hash.slice(1));
+      const urlParams = new URLSearchParams(window.location.search);
+      
       if (hashParams.get('access_token')) {
         console.log('OAuth callback detected, processing...');
-        // The auth state change will handle the redirect
+        
+        // Verify state parameter for CSRF protection
+        const state = urlParams.get('state');
+        if (!state || state.length < 16) {
+          console.error('Invalid or missing state parameter');
+          toast({
+            title: "Security Error",
+            description: "Invalid authentication state. Please try again.",
+            variant: "destructive"
+          });
+          return;
+        }
+        
+        // Clean up URL
+        const url = new URL(window.location.href);
+        url.hash = '';
+        url.search = '';
+        window.history.replaceState(null, '', url.toString());
       }
     };
 
     handleOAuthCallback();
   }, []);
 
+  // Real-time password validation
+  useEffect(() => {
+    if (isSignUp && password) {
+      const validation = validatePassword(password);
+      setPasswordValidation(validation);
+    } else {
+      setPasswordValidation({ isValid: false, errors: [], strength: 'weak' });
+    }
+  }, [password, isSignUp, validatePassword]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Enhanced input validation
+    const sanitizedEmail = SecurityService.sanitizeInput(email, 254).toLowerCase().trim();
+    const sanitizedFullName = SecurityService.sanitizeInput(fullName, 100);
+    
+    if (!SecurityService.validateEmail(sanitizedEmail)) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (isSignUp) {
+      if (!passwordValidation.isValid) {
+        toast({
+          title: "Password Requirements Not Met",
+          description: "Please ensure your password meets all requirements.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      if (!sanitizedFullName) {
+        toast({
+          title: "Full Name Required",
+          description: "Please enter your full name.",
+          variant: "destructive"
+        });
+        return;
+      }
+    }
+
     setLoading(true);
 
     try {
       if (isSignUp) {
-        const { error } = await signUp(email, password, fullName);
+        const { error } = await signUp(sanitizedEmail, password, sanitizedFullName);
         if (error) {
           toast({
             title: "Sign Up Failed",
@@ -57,9 +127,13 @@ const Auth = () => {
             title: "Sign Up Successful",
             description: "Please check your email to confirm your account.",
           });
+          // Clear form
+          setEmail('');
+          setPassword('');
+          setFullName('');
         }
       } else {
-        const { error } = await signIn(email, password);
+        const { error } = await signIn(sanitizedEmail, password);
         if (error) {
           toast({
             title: "Sign In Failed",
@@ -134,7 +208,7 @@ const Auth = () => {
             </h2>
             <p className="text-gray-600 dark:text-gray-400">
               {isSignUp 
-                ? 'Sign up to start using the medical intelligence platform' 
+                ? 'Sign up to start using the secure medical intelligence platform' 
                 : 'Sign in to your account'
               }
             </p>
@@ -197,6 +271,7 @@ const Auth = () => {
                       className="glass-input border-0 focus:ring-2 focus:ring-[#cb6ce6]/30 text-gray-900 dark:text-gray-100"
                       placeholder="Dr. John Smith"
                       required={isSignUp}
+                      maxLength={100}
                     />
                   </div>
                 )}
@@ -211,6 +286,7 @@ const Auth = () => {
                     className="glass-input border-0 focus:ring-2 focus:ring-[#cb6ce6]/30 text-gray-900 dark:text-gray-100"
                     placeholder="your@email.com"
                     required
+                    maxLength={254}
                   />
                 </div>
                 
@@ -224,14 +300,23 @@ const Auth = () => {
                     className="glass-input border-0 focus:ring-2 focus:ring-[#cb6ce6]/30 text-gray-900 dark:text-gray-100"
                     placeholder="••••••••"
                     required
-                    minLength={6}
+                    minLength={8}
+                    maxLength={128}
                   />
+                  
+                  {isSignUp && (
+                    <PasswordStrengthIndicator
+                      password={password}
+                      errors={passwordValidation.errors}
+                      strength={passwordValidation.strength}
+                    />
+                  )}
                 </div>
 
                 <Button
                   type="submit"
-                  disabled={loading}
-                  className="w-full bg-gradient-to-r from-[#cb6ce6] via-[#b84fd9] to-[#9c4bc7] text-white hover:shadow-lg hover:shadow-purple-500/25 transform hover:scale-[1.02] transition-all duration-300 border-0"
+                  disabled={loading || (isSignUp && !passwordValidation.isValid)}
+                  className="w-full bg-gradient-to-r from-[#cb6ce6] via-[#b84fd9] to-[#9c4bc7] text-white hover:shadow-lg hover:shadow-purple-500/25 transform hover:scale-[1.02] transition-all duration-300 border-0 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? 'Please wait...' : (isSignUp ? 'Sign Up' : 'Sign In')}
                 </Button>
@@ -240,7 +325,11 @@ const Auth = () => {
               <div className="text-center">
                 <button
                   type="button"
-                  onClick={() => setIsSignUp(!isSignUp)}
+                  onClick={() => {
+                    setIsSignUp(!isSignUp);
+                    setPassword('');
+                    setPasswordValidation({ isValid: false, errors: [], strength: 'weak' });
+                  }}
                   className="text-sm text-[#cb6ce6] hover:text-[#9c4bc7] font-medium transition-colors"
                 >
                   {isSignUp 

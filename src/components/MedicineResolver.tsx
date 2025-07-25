@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Search, CheckCircle, AlertCircle, Loader2, AlertTriangle } from 'lucide-react';
-import { tavilyService, MedicineResolution } from '../services/tavilyService';
+import { secureTavilyService, MedicineResolution } from '../services/secureTavilyService';
+import { SecurityService } from '../services/securityService';
 import { Card, CardContent } from '@/components/ui/card';
 
 interface MedicineResolverProps {
@@ -16,10 +17,12 @@ const MedicineResolver = ({ medicineName, onResolutionChange }: MedicineResolver
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    console.log('MedicineResolver: Medicine name changed to:', medicineName);
-    if (medicineName.trim().length > 2) {
-      console.log('MedicineResolver: Starting resolution for:', medicineName);
-      resolveMedicine();
+    const sanitizedName = SecurityService.sanitizeInput(medicineName, 100);
+    console.log('MedicineResolver: Medicine name changed to:', sanitizedName);
+    
+    if (sanitizedName.length > 2) {
+      console.log('MedicineResolver: Starting resolution for:', sanitizedName);
+      resolveMedicine(sanitizedName);
     } else {
       console.log('MedicineResolver: Medicine name too short, clearing resolution');
       setResolution(null);
@@ -28,13 +31,13 @@ const MedicineResolver = ({ medicineName, onResolutionChange }: MedicineResolver
     }
   }, [medicineName]);
 
-  const resolveMedicine = async () => {
+  const resolveMedicine = async (sanitizedName: string) => {
     setIsResolving(true);
     setError(null);
-    console.log('MedicineResolver: Calling Tavily service for:', medicineName);
+    console.log('MedicineResolver: Calling secure Tavily service for:', sanitizedName);
     
     try {
-      const result = await tavilyService.resolveMedicineName(medicineName);
+      const result = await secureTavilyService.resolveMedicineName(sanitizedName);
       console.log('MedicineResolver: Received result:', result);
       setResolution(result);
       onResolutionChange(result);
@@ -60,14 +63,15 @@ const MedicineResolver = ({ medicineName, onResolutionChange }: MedicineResolver
     return <AlertCircle className="h-4 w-4" />;
   };
 
-  if (!medicineName.trim() || medicineName.length <= 2) return null;
+  const sanitizedMedicineName = SecurityService.sanitizeInput(medicineName, 100);
+  if (!sanitizedMedicineName.trim() || sanitizedMedicineName.length <= 2) return null;
 
   return (
     <div className="mt-2 space-y-2">
       {isResolving && (
         <div className="flex items-center space-x-2 text-blue-600 text-sm">
           <Loader2 className="h-4 w-4 animate-spin" />
-          <span>Resolving medicine name...</span>
+          <span>Securely resolving medicine name...</span>
         </div>
       )}
 
