@@ -1,6 +1,6 @@
-
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,116 +8,138 @@ const corsHeaders = {
 };
 
 serve(async (req) => {
-  console.log('Function invoked with method:', req.method);
-  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    console.log('Handling CORS preflight request');
     return new Response(null, { headers: corsHeaders });
   }
 
+  console.log('RadioGPT: Function invoked');
+
   try {
-    console.log('Starting medical image interpretation...');
-    
-    const { imageData, imageType, clinicalContext, patientName, patientAge } = await req.json();
-    console.log('Request body parsed successfully');
+    const { 
+      imageData, 
+      imageType, 
+      medicalImageType = 'radiology',
+      clinicalContext, 
+      patientName, 
+      patientAge,
+      userId 
+    } = await req.json();
+
+    console.log('RadioGPT: Request received', {
+      hasImageData: !!imageData,
+      imageType,
+      medicalImageType,
+      hasContext: !!clinicalContext,
+      patientName,
+      patientAge,
+      userId
+    });
 
     if (!imageData) {
-      console.error('No image data provided');
-      throw new Error('No image data provided');
+      console.error('RadioGPT: No image data provided');
+      return new Response(
+        JSON.stringify({ error: 'Image data is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    // Use the dedicated Interpret AI configuration
+    if (!userId) {
+      console.error('RadioGPT: No user ID provided');
+      return new Response(
+        JSON.stringify({ error: 'User authentication required' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Get API keys from environment
+    const geminiApiKey = Deno.env.get('INTERPRET_AI_GEMINI_API_KEY');
     const azureApiKey = Deno.env.get('INTERPRET_AI_AZURE_API_KEY');
     const azureEndpoint = Deno.env.get('INTERPRET_AI_AZURE_ENDPOINT');
-    const geminiApiKey = Deno.env.get('INTERPRET_AI_GEMINI_API_KEY');
-    
-    console.log('API config check:', {
-      hasAzureApiKey: !!azureApiKey,
-      hasAzureEndpoint: !!azureEndpoint,
-      hasGeminiApiKey: !!geminiApiKey,
-      azureEndpoint: azureEndpoint
+
+    console.log('RadioGPT: API keys status', {
+      hasGemini: !!geminiApiKey,
+      hasAzure: !!azureApiKey,
+      hasAzureEndpoint: !!azureEndpoint
     });
 
-    if (!azureApiKey || !azureEndpoint || !geminiApiKey) {
-      console.error('Interpret AI configuration missing');
-      throw new Error('Interpret AI API configuration not found');
-    }
+    // Create detailed prompt based on medical image type
+    const getPromptForImageType = (type: string, context?: string, name?: string, age?: number) => {
+      const basePrompt = `You are RadioGPT, an AI radiological companion for ICU medical professionals. 
+You provide detailed, accurate interpretation of medical images to assist healthcare providers.
 
-    // Use the specific deployment and API version for Azure OpenAI fallback
-    const deploymentName = 'gpt-4.1';
-    const apiVersion = '2025-01-01-preview';
+IMPORTANT: You provide interpretations and observations, NOT diagnoses. Always remind that final diagnosis requires clinical correlation.
 
-    console.log('Using Gemini as primary, Azure OpenAI as fallback');
-    console.log('Processing medical image interpretation request...');
-    console.log('Image type:', imageType);
-    console.log('Clinical context provided:', !!clinicalContext);
-    console.log('Patient info provided:', {
-      name: !!patientName,
-      age: !!patientAge
-    });
+Image Type: ${type.toUpperCase()}
+${name ? `Patient: ${name}` : ''}
+${age ? `Age: ${age} years` : ''}
+${context ? `Clinical Context: ${context}` : ''}
 
-    // Construct the prompt for medical image interpretation
-    let prompt = `You are an expert AI radiologist specializing in medical image interpretation. Please analyze this medical image and provide a detailed, accurate interpretation.
+Please provide a comprehensive interpretation including:
+1. Technical quality assessment
+2. Key findings and observations
+3. Notable abnormalities or normal variants
+4. Recommendations for further imaging or clinical correlation if needed
+5. Urgency level (routine, urgent, emergent) with reasoning
 
-IMPORTANT INSTRUCTIONS:
-- Provide INTERPRETATION only, NOT diagnosis
-- Be thorough and precise in your analysis
-- Describe what you observe in the image
-- Note any abnormalities, patterns, or significant findings
-- Use proper medical terminology
-- Structure your response clearly with sections for different aspects
-- Always emphasize that this is an interpretation, not a diagnosis
+Format your response clearly with appropriate medical terminology while being accessible to ICU staff.
 
-Please analyze this medical image and provide:
+Remember: This is an AI interpretation to assist medical professionals, not replace clinical judgment.`;
 
-1. IMAGE TYPE & QUALITY:
-   - Type of medical imaging (X-ray, CT, MRI, ECG, EEG, etc.)
-   - Image quality assessment
-   - Technical adequacy
+      switch (type) {
+        case 'eeg':
+          return basePrompt + `
 
-2. ANATOMICAL STRUCTURES:
-   - Identify visible anatomical structures
-   - Assess normal anatomy
+For EEG interpretation, focus on:
+- Rhythm and frequency analysis
+- Presence of epileptiform activity
+- Background activity assessment
+- Artifact identification
+- Sleep stages if applicable`;
 
-3. FINDINGS:
-   - Describe any notable findings or abnormalities
-   - Location and characteristics of findings
-   - Comparison with normal appearance
+        case 'ecg':
+          return basePrompt + `
 
-4. TECHNICAL OBSERVATIONS:
-   - Any technical factors affecting interpretation
-   - Image artifacts or limitations
+For ECG interpretation, focus on:
+- Heart rate and rhythm
+- Axis determination
+- Interval measurements (PR, QRS, QT)
+- ST-segment and T-wave analysis
+- Arrhythmia identification
+- Signs of ischemia, infarction, or other abnormalities`;
 
-5. SUMMARY:
-   - Brief summary of key findings
-   - Recommendations for clinical correlation`;
+        case 'radiology':
+        default:
+          return basePrompt + `
 
-    // Add clinical context if provided
-    if (clinicalContext) {
-      prompt += `\n\nCLINICAL CONTEXT PROVIDED:\n${clinicalContext}`;
-    }
+For radiological interpretation, focus on:
+- Anatomical structures visibility
+- Abnormal findings or masses
+- Positioning and technique
+- Comparison with normal anatomy
+- Pathological processes if evident`;
+      }
+    };
 
-    // Add patient information if provided
-    if (patientName || patientAge) {
-      prompt += `\n\nPATIENT INFORMATION:`;
-      if (patientName) prompt += `\nName: ${patientName}`;
-      if (patientAge) prompt += `\nAge: ${patientAge} years`;
-    }
+    const prompt = getPromptForImageType(medicalImageType, clinicalContext, patientName, patientAge);
 
-    prompt += `\n\nRemember: This is an INTERPRETATION for educational and informational purposes. Clinical correlation and professional medical evaluation are essential for proper patient care.`;
-
-    // Function to try Gemini first (now primary)
+    // Try Gemini first (no timeout for radiological analysis)
     const tryGemini = async () => {
-      console.log('Trying Gemini as primary service...');
-      
-      const geminiRequestBody = {
-        contents: [
-          {
+      if (!geminiApiKey) {
+        throw new Error('Gemini API key not configured');
+      }
+
+      console.log('RadioGPT: Attempting Gemini analysis');
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${geminiApiKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
             parts: [
-              {
-                text: prompt
-              },
+              { text: prompt },
               {
                 inline_data: {
                   mime_type: imageType,
@@ -125,227 +147,173 @@ Please analyze this medical image and provide:
                 }
               }
             ]
+          }],
+          generationConfig: {
+            temperature: 0.2,
+            topK: 40,
+            topP: 0.95,
+            maxOutputTokens: 2048,
           }
-        ],
-        generation_config: {
-          temperature: 0.3,
-          max_output_tokens: 2000,
-        }
-      };
-
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`;
-      
-      const response = await fetch(geminiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-goog-api-key': geminiApiKey,
-        },
-        body: JSON.stringify(geminiRequestBody)
+        })
       });
-
-      console.log('Gemini response status:', response.status);
-      console.log('Gemini response headers:', Object.fromEntries(response.headers.entries()));
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Gemini API error:', response.status, errorText);
-        throw new Error(`Gemini API error: ${response.status} - ${errorText}`);
+        console.error('RadioGPT: Gemini API error', { status: response.status, error: errorText });
+        throw new Error(`Gemini API error: ${response.status} ${errorText}`);
       }
 
-      const data = await response.json();
-      console.log('Gemini response received successfully');
-      
-      if (!data.candidates || !data.candidates[0] || !data.candidates[0].content) {
-        console.error('Invalid Gemini response format:', data);
-        throw new Error('Invalid response format from Gemini');
+      const result = await response.json();
+      console.log('RadioGPT: Gemini response received', { 
+        hasContent: !!result.candidates?.[0]?.content?.parts?.[0]?.text,
+        usageMetadata: result.usageMetadata 
+      });
+
+      const interpretation = result.candidates?.[0]?.content?.parts?.[0]?.text;
+      const tokensUsed = result.usageMetadata?.totalTokenCount || 0;
+
+      if (!interpretation) {
+        throw new Error('No interpretation generated by Gemini');
       }
 
-      const interpretation = data.candidates[0].content.parts[0].text;
-      
       return {
         interpretation,
-        tokensUsed: data.usageMetadata ? data.usageMetadata.totalTokenCount : Math.ceil(interpretation.length / 4),
-        provider: 'gemini'
+        provider: 'gemini',
+        tokensUsed,
+        timestamp: new Date().toISOString()
       };
     };
 
-    // Function to fallback to Azure OpenAI
+    // Try Azure OpenAI as fallback
     const tryAzureOpenAI = async () => {
-      console.log('Falling back to Azure OpenAI...');
-      
-      const requestBody = {
-        messages: [
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: prompt
-              },
-              {
-                type: "image_url",
-                image_url: {
-                  url: `data:${imageType};base64,${imageData}`,
-                  detail: "high"
-                }
-              }
-            ]
-          }
-        ],
-        max_tokens: 2000,
-        temperature: 0.3
-      };
+      if (!azureApiKey || !azureEndpoint) {
+        throw new Error('Azure OpenAI credentials not configured');
+      }
 
-      const azureUrl = `${azureEndpoint}/openai/deployments/${deploymentName}/chat/completions?api-version=${apiVersion}`;
-      console.log('Azure URL:', azureUrl);
+      console.log('RadioGPT: Attempting Azure OpenAI analysis');
 
-      const response = await fetch(azureUrl, {
+      const response = await fetch(`${azureEndpoint}/openai/deployments/gpt-4o/chat/completions?api-version=2024-02-15-preview`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'api-key': azureApiKey,
         },
-        body: JSON.stringify(requestBody)
+        body: JSON.stringify({
+          messages: [
+            {
+              role: 'user',
+              content: [
+                { type: 'text', text: prompt },
+                {
+                  type: 'image_url',
+                  image_url: {
+                    url: `data:${imageType};base64,${imageData}`
+                  }
+                }
+              ]
+            }
+          ],
+          max_tokens: 2048,
+          temperature: 0.2
+        })
       });
-
-      console.log('Azure OpenAI response status:', response.status);
-      console.log('Azure OpenAI response headers:', Object.fromEntries(response.headers.entries()));
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('Azure OpenAI API error:', response.status, errorText);
-        throw new Error(`Azure OpenAI API error: ${response.status} - ${errorText}`);
+        console.error('RadioGPT: Azure OpenAI error', { status: response.status, error: errorText });
+        throw new Error(`Azure OpenAI error: ${response.status} ${errorText}`);
       }
 
-      const data = await response.json();
-      console.log('Azure OpenAI response received successfully');
-      
-      if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-        console.error('Invalid Azure OpenAI response format:', data);
-        throw new Error('Invalid response format from Azure OpenAI');
+      const result = await response.json();
+      console.log('RadioGPT: Azure OpenAI response received', { 
+        hasContent: !!result.choices?.[0]?.message?.content,
+        usage: result.usage 
+      });
+
+      const interpretation = result.choices?.[0]?.message?.content;
+      const tokensUsed = result.usage?.total_tokens || 0;
+
+      if (!interpretation) {
+        throw new Error('No interpretation generated by Azure OpenAI');
       }
 
       return {
-        interpretation: data.choices[0].message.content,
-        tokensUsed: data.usage ? data.usage.total_tokens : Math.ceil(data.choices[0].message.content.length / 4),
-        provider: 'azure-openai'
+        interpretation,
+        provider: 'azure_openai',
+        tokensUsed,
+        timestamp: new Date().toISOString()
       };
     };
 
+    // Try Gemini first, then Azure OpenAI as fallback
     let result;
-    let usedFallback = false;
-
     try {
-      // Try Gemini first (now primary)
       result = await tryGemini();
+      console.log('RadioGPT: Successfully analyzed with Gemini');
     } catch (geminiError) {
-      console.log('Gemini failed, trying Azure OpenAI fallback:', geminiError.message);
-      usedFallback = true;
-      
+      console.log('RadioGPT: Gemini failed, trying Azure OpenAI', { error: geminiError.message });
       try {
         result = await tryAzureOpenAI();
+        console.log('RadioGPT: Successfully analyzed with Azure OpenAI');
       } catch (azureError) {
-        console.error('Both Gemini and Azure OpenAI failed:', {
-          geminiError: geminiError.message,
-          azureError: azureError.message
+        console.error('RadioGPT: Both providers failed', { 
+          geminiError: geminiError.message, 
+          azureError: azureError.message 
         });
-        
-        // Return appropriate error based on the primary failure
-        if (geminiError.message.includes('429')) {
-          return new Response(
-            JSON.stringify({ 
-              error: 'Service temporarily overloaded. Please try again in a few moments.',
-              timestamp: new Date().toISOString()
-            }),
-            { 
-              status: 503,
-              headers: { 
-                ...corsHeaders, 
-                'Content-Type': 'application/json',
-                'Retry-After': '30'
-              } 
-            }
-          );
-        }
-        
-        throw new Error('Both AI services are currently unavailable. Please try again later.');
+        throw new Error('Both AI providers failed to analyze the image');
       }
     }
 
-    if (!result.interpretation || result.interpretation.trim().length === 0) {
-      console.error('No interpretation generated');
-      return new Response(
-        JSON.stringify({ 
-          error: 'No interpretation generated',
-          timestamp: new Date().toISOString()
-        }),
-        { 
-          status: 500,
-          headers: { 
-            ...corsHeaders, 
-            'Content-Type': 'application/json' 
-          } 
+    // Initialize Supabase client for audit logging
+    try {
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+      // Log the analysis for audit purposes
+      await supabase.from('audit_logs').insert({
+        user_id: userId,
+        action: 'radiogpt_analysis',
+        resource: 'medical_image',
+        metadata: {
+          image_type: medicalImageType,
+          provider: result.provider,
+          tokens_used: result.tokensUsed,
+          has_clinical_context: !!clinicalContext,
+          patient_name: patientName || null,
+          patient_age: patientAge || null
         }
-      );
+      });
+
+      console.log('RadioGPT: Audit log created');
+    } catch (auditError) {
+      console.error('RadioGPT: Failed to create audit log', auditError);
+      // Don't fail the request if audit logging fails
     }
 
-    console.log('Medical image interpretation completed successfully');
-    console.log('Provider used:', result.provider);
-    console.log('Used fallback:', usedFallback);
-    console.log('Tokens used:', result.tokensUsed);
+    console.log('RadioGPT: Analysis completed successfully', {
+      provider: result.provider,
+      tokensUsed: result.tokensUsed,
+      interpretationLength: result.interpretation.length
+    });
 
     return new Response(
-      JSON.stringify({ 
-        interpretation: result.interpretation.trim(),
-        tokensUsed: result.tokensUsed,
-        provider: result.provider,
-        usedFallback,
-        timestamp: new Date().toISOString()
-      }),
+      JSON.stringify(result),
       { 
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        } 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
 
   } catch (error) {
-    console.error('Error in interpret-medical-image function:', error);
-    console.error('Error name:', error.name);
-    console.error('Error message:', error.message);
-    console.error('Error stack:', error.stack);
-    
-    // Handle timeout error
-    if (error.name === 'AbortError') {
-      console.log('Request aborted due to timeout');
-      return new Response(
-        JSON.stringify({ 
-          error: 'Request timeout. Please try again with a smaller image or better internet connection.',
-          timestamp: new Date().toISOString()
-        }),
-        { 
-          status: 408,
-          headers: { 
-            ...corsHeaders, 
-            'Content-Type': 'application/json' 
-          } 
-        }
-      );
-    }
-    
+    console.error('RadioGPT: Function error', error);
     return new Response(
       JSON.stringify({ 
-        error: error.message || 'Failed to interpret medical image',
+        error: error.message || 'Failed to process medical image',
         timestamp: new Date().toISOString()
       }),
       { 
-        status: 500,
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        } 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
       }
     );
   }

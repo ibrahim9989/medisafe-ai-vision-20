@@ -58,7 +58,7 @@ export const useRadioGPTTokens = () => {
       // Refresh token usage data
       await getTokenUsage();
       
-      return result;
+      return result as RadioGPTTokenUsage;
     } catch (error) {
       console.error('RadioGPT: Failed to log token usage', error);
       throw error;
@@ -86,8 +86,8 @@ export const useRadioGPTTokens = () => {
 
       console.log('RadioGPT: Token usage fetched', { count: data?.length || 0 });
       
-      setTokenUsage(data || []);
-      return data || [];
+      setTokenUsage(data as RadioGPTTokenUsage[] || []);
+      return data as RadioGPTTokenUsage[] || [];
     } catch (error) {
       console.error('RadioGPT: Failed to fetch token usage', error);
       return [];

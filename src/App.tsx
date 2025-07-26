@@ -15,7 +15,7 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import ProfileSetup from "./pages/ProfileSetup";
 import DoctorsDirectory from "./pages/DoctorsDirectory";
-import InterpretAI from "./pages/InterpretAI";
+import RadioGPT from "./pages/RadioGPT";
 import FHIRCallback from "./pages/FHIRCallback";
 import { TutorialProvider } from "@/components/tutorial/TutorialProvider";
 import TutorialOverlay from "@/components/tutorial/TutorialOverlay";
@@ -53,10 +53,12 @@ const App = () => (
                 } 
               />
               <Route 
-                path="/interpret-ai" 
+                path="/radiogpt" 
                 element={
                   <ProtectedRoute>
-                    <InterpretAI />
+                    <ProfileGuard>
+                      <RadioGPT />
+                    </ProfileGuard>
                   </ProtectedRoute>
                 } 
               />

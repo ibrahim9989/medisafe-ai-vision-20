@@ -27,8 +27,8 @@ export const useTokenUsage = () => {
     prescription_id,
     session_id
   }: {
-    feature_type: 'prescription' | 'interpret_ai';
-    counter_type: 'gpt41' | 'stt' | 'lyzr';
+    feature_type: 'prescription' | 'radiogpt';
+    counter_type: 'gpt41' | 'stt' | 'lyzr' | 'gemini' | 'azure_openai';
     tokens_used: number;
     prescription_id?: string;
     session_id?: string;
@@ -69,7 +69,7 @@ export const useTokenUsage = () => {
     }
   }, [user]);
 
-  const getTokenUsage = useCallback(async (feature_type?: 'prescription' | 'interpret_ai') => {
+  const getTokenUsage = useCallback(async (feature_type?: 'prescription' | 'radiogpt') => {
     if (!user) return [];
 
     try {
@@ -97,7 +97,7 @@ export const useTokenUsage = () => {
     }
   }, [user]);
 
-  const getTotalTokens = useCallback(async (feature_type?: 'prescription' | 'interpret_ai', counter_type?: 'gpt41' | 'stt' | 'lyzr') => {
+  const getTotalTokens = useCallback(async (feature_type?: 'prescription' | 'radiogpt', counter_type?: 'gpt41' | 'stt' | 'lyzr' | 'gemini' | 'azure_openai') => {
     if (!user) return 0;
 
     try {
