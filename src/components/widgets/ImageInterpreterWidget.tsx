@@ -69,25 +69,27 @@ const ImageInterpreterWidget: React.FC<ImageInterpreterWidgetProps> = ({ config,
 
     setIsAnalyzing(true);
     try {
-      // Upload image to Supabase storage
-      const fileName = `medical-images/${Date.now()}-${selectedFile.name}`;
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('profile-pictures') // Using existing bucket for demo
-        .upload(fileName, selectedFile);
+      // Convert image to base64
+      const reader = new FileReader();
+      const imageData = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => {
+          const result = reader.result as string;
+          // Remove data:image/...;base64, prefix
+          const base64 = result.split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(selectedFile);
+      });
 
-      if (uploadError) throw uploadError;
-
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('profile-pictures')
-        .getPublicUrl(fileName);
-
-      // Call interpretation function
+      // Call interpretation function with base64 data
       const { data, error } = await supabase.functions.invoke('interpret-medical-image', {
         body: {
-          imageUrl: urlData.publicUrl,
+          imageData,
           imageType: selectedFile.type,
-          patientContext: patientContext || undefined
+          clinicalContext: patientContext || undefined,
+          patientName: '',
+          patientAge: null
         }
       });
 
@@ -95,7 +97,6 @@ const ImageInterpreterWidget: React.FC<ImageInterpreterWidgetProps> = ({ config,
 
       setInterpretation(data);
       onEvent('interpretationComplete', {
-        imageUrl: urlData.publicUrl,
         interpretation: data,
         patientContext
       });
@@ -198,44 +199,19 @@ const ImageInterpreterWidget: React.FC<ImageInterpreterWidgetProps> = ({ config,
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {interpretation.findings && (
+            {interpretation.interpretation && (
               <div>
-                <h4 className="font-medium mb-2">Key Findings</h4>
-                <p className="text-sm bg-gray-50 p-3 rounded-lg">{interpretation.findings}</p>
-              </div>
-            )}
-
-            {interpretation.recommendations && (
-              <div>
-                <h4 className="font-medium mb-2">Recommendations</h4>
-                <p className="text-sm bg-blue-50 p-3 rounded-lg">{interpretation.recommendations}</p>
-              </div>
-            )}
-
-            {interpretation.confidence && (
-              <div>
-                <h4 className="font-medium mb-2">Confidence Score</h4>
-                <div className="flex items-center space-x-2">
-                  <div className="flex-1 bg-gray-200 rounded-full h-2">
-                    <div
-                      className="bg-blue-500 h-2 rounded-full"
-                      style={{ width: `${interpretation.confidence * 100}%` }}
-                    ></div>
-                  </div>
-                  <span className="text-sm font-medium">{Math.round(interpretation.confidence * 100)}%</span>
+                <h4 className="font-medium mb-2">Medical Image Interpretation</h4>
+                <div className="text-sm bg-gray-50 p-4 rounded-lg whitespace-pre-wrap">
+                  {interpretation.interpretation}
                 </div>
               </div>
             )}
 
-            {interpretation.urgency && (
-              <div className="flex items-center space-x-2 p-3 bg-amber-50 rounded-lg">
-                <AlertCircle className="h-5 w-5 text-amber-500" />
-                <div>
-                  <h4 className="font-medium">Urgency Level: {interpretation.urgency}</h4>
-                  {interpretation.urgencyReason && (
-                    <p className="text-sm text-amber-700">{interpretation.urgencyReason}</p>
-                  )}
-                </div>
+            {interpretation.provider && (
+              <div className="flex items-center justify-between text-xs text-gray-500 pt-2 border-t">
+                <span>Analyzed by: {interpretation.provider === 'gemini' ? 'Gemini AI' : 'Azure OpenAI'}</span>
+                {interpretation.tokensUsed && <span>Tokens used: {interpretation.tokensUsed}</span>}
               </div>
             )}
           </CardContent>
