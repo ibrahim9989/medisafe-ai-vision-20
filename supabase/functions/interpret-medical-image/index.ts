@@ -135,24 +135,14 @@ Please analyze this medical image and provide:
 
       const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent`;
       
-      // Set a timeout for the request
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => {
-        console.log('Gemini request timeout triggered');
-        controller.abort();
-      }, 45000); // 45 second timeout
-
       const response = await fetch(geminiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'X-goog-api-key': geminiApiKey,
         },
-        body: JSON.stringify(geminiRequestBody),
-        signal: controller.signal
+        body: JSON.stringify(geminiRequestBody)
       });
-
-      clearTimeout(timeoutId);
 
       console.log('Gemini response status:', response.status);
       console.log('Gemini response headers:', Object.fromEntries(response.headers.entries()));
@@ -209,13 +199,6 @@ Please analyze this medical image and provide:
 
       const azureUrl = `${azureEndpoint}/openai/deployments/${deploymentName}/chat/completions?api-version=${apiVersion}`;
       console.log('Azure URL:', azureUrl);
-      
-      // Set a timeout for the request
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => {
-        console.log('Azure OpenAI request timeout triggered');
-        controller.abort();
-      }, 45000); // 45 second timeout
 
       const response = await fetch(azureUrl, {
         method: 'POST',
@@ -223,11 +206,8 @@ Please analyze this medical image and provide:
           'Content-Type': 'application/json',
           'api-key': azureApiKey,
         },
-        body: JSON.stringify(requestBody),
-        signal: controller.signal
+        body: JSON.stringify(requestBody)
       });
-
-      clearTimeout(timeoutId);
 
       console.log('Azure OpenAI response status:', response.status);
       console.log('Azure OpenAI response headers:', Object.fromEntries(response.headers.entries()));
