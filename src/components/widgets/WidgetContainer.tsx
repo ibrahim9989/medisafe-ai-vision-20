@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import PrescriptionWidget from './PrescriptionWidget';
-import ImageInterpreterWidget from './ImageInterpreterWidget';
+// ImageInterpreterWidget removed - replaced by RadioGPT
 import VoiceAssistantWidget from './VoiceAssistantWidget';
 import PatientManagementWidget from './PatientManagementWidget';
 
@@ -78,10 +78,10 @@ const WidgetContainer: React.FC<WidgetContainerProps> = () => {
         );
       case 'imageInterpreter':
         return (
-          <ImageInterpreterWidget
-            config={widgetConfig}
-            onEvent={handleWidgetEvent}
-          />
+          <div className="p-4 text-center">
+            <p className="text-orange-500">ImageInterpreter widget has been replaced by RadioGPT</p>
+            <p className="text-sm text-muted-foreground mt-2">Please use the RadioGPT feature for medical image analysis</p>
+          </div>
         );
       case 'voiceAssistant':
         return (

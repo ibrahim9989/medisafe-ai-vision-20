@@ -7,8 +7,8 @@ import { toast } from '@/hooks/use-toast';
 export interface TokenUsage {
   id: string;
   user_id: string;
-  feature_type: 'prescription' | 'interpret_ai';
-  counter_type: 'gpt41' | 'stt' | 'lyzr';
+  feature_type: 'prescription' | 'radiogpt';
+  counter_type: 'gpt41' | 'stt' | 'lyzr' | 'gemini' | 'azure_openai';
   tokens_used: number;
   prescription_id?: string;
   session_id?: string;
