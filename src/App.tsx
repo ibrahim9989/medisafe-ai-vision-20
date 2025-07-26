@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { useCacheManager } from "@/hooks/useCacheManager";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -21,10 +22,32 @@ import { TutorialProvider } from "@/components/tutorial/TutorialProvider";
 import TutorialOverlay from "@/components/tutorial/TutorialOverlay";
 import PluginRoutes from "@/routes/PluginRoutes";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes
+      retry: (failureCount, error) => {
+        // Don't retry on auth errors
+        if (error?.message?.includes('auth') || error?.message?.includes('401')) {
+          return false;
+        }
+        return failureCount < 3;
+      },
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    },
+  },
+});
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
+const AppContent = () => {
+  // Initialize cache manager
+  useCacheManager({
+    enableAutoClean: true,
+    showNotifications: true,
+    operationName: 'app-initialization'
+  });
+
+  return (
     <TooltipProvider>
       <Toaster />
       <Sonner />
@@ -99,6 +122,12 @@ const App = () => (
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
+  );
+};
+
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <AppContent />
   </QueryClientProvider>
 );
 

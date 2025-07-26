@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCacheManager } from '@/hooks/useCacheManager';
 import { useTokenUsage } from '@/hooks/useTokenUsage';
 
 const RadioGPT = () => {
@@ -26,6 +27,11 @@ const RadioGPT = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { logTokenUsage } = useTokenUsage();
+  const { startLoading, stopLoading } = useCacheManager({
+    operationName: 'radiogpt-analysis',
+    enableAutoClean: true,
+    showNotifications: true
+  });
 
   const supportedFormats = ['jpg', 'jpeg', 'png', 'dicom', 'dcm'];
 
@@ -99,6 +105,7 @@ const RadioGPT = () => {
       clinicalContext: clinicalContext.substring(0, 100)
     });
 
+    const operationId = startLoading(`radiogpt-${Date.now()}`);
     setIsAnalyzing(true);
     const startTime = Date.now();
 
@@ -179,6 +186,7 @@ const RadioGPT = () => {
         variant: "destructive"
       });
     } finally {
+      stopLoading(operationId);
       setIsAnalyzing(false);
     }
   };
