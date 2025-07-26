@@ -6,7 +6,7 @@ import { useTokenUsage } from '@/hooks/useTokenUsage';
 import { Activity, Brain, Mic, BarChart3 } from 'lucide-react';
 
 interface TokenCounterProps {
-  featureType: 'prescription' | 'interpret_ai';
+  featureType: 'prescription' | 'radiogpt';
   prescriptionId?: string;
   className?: string;
 }
@@ -130,7 +130,7 @@ const TokenCounter: React.FC<TokenCounterProps> = ({
         <CardHeader className="pb-2 sm:pb-3">
           <CardTitle className="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 flex items-center gap-2">
             <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
-            <span className="truncate">Token Usage - {featureType === 'prescription' ? 'Prescription' : 'Interpret AI'}</span>
+            <span className="truncate">Token Usage - {featureType === 'prescription' ? 'Prescription' : 'RadioGPT'}</span>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -147,7 +147,7 @@ const TokenCounter: React.FC<TokenCounterProps> = ({
       <CardHeader className="pb-2 sm:pb-3">
         <CardTitle className="text-sm sm:text-base lg:text-lg font-semibold text-gray-800 flex items-center gap-2">
           <Activity className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
-          <span className="truncate">Token Usage - {featureType === 'prescription' ? 'Prescription' : 'Interpret AI'}</span>
+          <span className="truncate">Token Usage - {featureType === 'prescription' ? 'Prescription' : 'RadioGPT'}</span>
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">

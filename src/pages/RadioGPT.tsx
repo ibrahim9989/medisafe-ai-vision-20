@@ -158,8 +158,8 @@ const RadioGPT = () => {
       // Log token usage
       if (data.tokensUsed) {
         await logTokenUsage({
-          feature_type: 'radiogpt' as any,
-          counter_type: data.provider === 'gemini' ? 'gemini' : 'azure_openai' as any,
+          feature_type: 'radiogpt',
+          counter_type: data.provider === 'gemini' ? 'gemini' : 'azure_openai',
           tokens_used: data.tokensUsed,
           session_id: `radiogpt_${Date.now()}`
         });
