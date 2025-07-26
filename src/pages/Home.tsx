@@ -159,38 +159,50 @@ const Home = () => {
                 </CardContent>
               </Card>
 
-              {/* Interpret AI */}
+              {/* RadioGPT */}
               <Card 
                 className="group relative overflow-hidden border-0 bg-white/60 backdrop-blur-xl shadow-xl hover:shadow-2xl transition-all duration-500 cursor-pointer transform hover:scale-[1.02]"
-                onClick={() => navigate('/interpret-ai')}
+                onClick={() => navigate('/radiogpt')}
               >
                 <CardHeader className="pb-4">
                   <div className="flex items-center justify-between mb-4">
                     <div className="relative">
-                      <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl shadow-lg">
-                        <Brain className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+                      <div className="flex items-center justify-center w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl shadow-lg">
+                        <FileImage className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                       </div>
+                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
                     </div>
-                    <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 group-hover:text-purple-500 group-hover:translate-x-1 transition-all duration-300" />
+                    <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 group-hover:text-green-500 group-hover:translate-x-1 transition-all duration-300" />
                   </div>
                   
-                  <CardTitle className="text-lg sm:text-xl font-semibold text-gray-900 group-hover:text-purple-600 transition-colors duration-300">
-                    Interpret AI
+                  <CardTitle className="text-lg sm:text-xl font-semibold text-gray-900 group-hover:text-green-600 transition-colors duration-300">
+                    RadioGPT
                   </CardTitle>
                   <CardDescription className="text-sm sm:text-base text-gray-600">
-                    Advanced AI for medical image analysis
+                    AI-powered radiological companion for ICU professionals
                   </CardDescription>
                 </CardHeader>
 
                 <CardContent>
+                  <div className="mb-3">
+                    <div className="flex items-center gap-2 text-xs text-gray-500 mb-2">
+                      <Shield className="h-3 w-3" />
+                      <span>Authentication Required</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1">
+                      <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">Radiology</span>
+                      <span className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">ECG</span>
+                      <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs rounded-full">EEG</span>
+                    </div>
+                  </div>
                   <Button 
-                    className="w-full bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-medium py-2 rounded-lg shadow-md transition-all duration-300 text-sm sm:text-base"
+                    className="w-full bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-medium py-2 rounded-lg shadow-md transition-all duration-300 text-sm sm:text-base"
                     onClick={(e) => {
                       e.stopPropagation();
-                      navigate('/interpret-ai');
+                      navigate('/radiogpt');
                     }}
                   >
-                    Launch Interpret AI
+                    Launch RadioGPT
                     <ArrowRight className="ml-2 h-3 w-3 sm:h-4 sm:w-4" />
                   </Button>
                 </CardContent>
